@@ -16,7 +16,6 @@ else; this one draws ``draw_code_editor``, the model-backed editor around it.
 import os
 import pathlib
 import sys
-import types
 
 from melty import glfw_window, pressed, root_view
 
@@ -37,26 +36,21 @@ for path in paths:
 state = {}
 
 
-def ensure_root():
-    """draw_code_editor reads its tabs from ``Melty.vis.root.open_files``,
-    the studio's app model. A bare melty app has no ``vis``; give it the two
-    collections the editor reads (the tab list and the per-file tints) and
-    post the first file as the pending jump, which selects its tab."""
-    if 'root' in state:
+def ensure_open():
+    """The editor's file model: an OpenFiles (the tab list; one shared
+    code_file_io host per file) that draw_code_editor takes as its value.
+    Nothing of the studio's app model is loaded. The first file is posted
+    as the pending jump, which selects its tab."""
+    if 'open_files' in state:
         return
-    from src.lsd.gl_gui.melty import Melty
-    from src.lsd.gl_gui.model.app_model import OpenFiles, FileMetaCollection
-    root = types.SimpleNamespace(open_files=OpenFiles(),
-                                 file_meta_collection=FileMetaCollection(),
-                                 draw_state_registry=Melty.draw_state_registry)
-    for path in paths:
-        root.open_files.open_file(path)
-    root.open_files.jump_to_path = str(paths[0])
-    Melty.vis = types.SimpleNamespace(root=root, window=Melty.glfw_window,
-                                      invalidate_all=lambda *a, **k: None)
+    from src.lsd.gl_gui.model.open_files import OpenFiles
     # Not on melty's public list yet: the studio's Code Editor window body.
     from src.lsd.gl_gui.view.playground.open_files import draw_code_editor
-    state['root'], state['view'] = root, draw_code_editor
+    open_files = OpenFiles()
+    for path in paths:
+        open_files.open_file(path)
+    open_files.jump_to_path = str(paths[0])
+    state['open_files'], state['view'] = open_files, draw_code_editor
     if os.environ.get('MELTY_CODE_DEBUG'):
         from src.lsd.gl_gui.toggles import Toggles
         Toggles.symbol_perf_log = True
@@ -79,7 +73,7 @@ def pump_hosts():
             host.draw()
             drew = True
     loading = any(host.get(host.value_key) is None
-                  for host in state['root'].open_files.files.values())
+                  for host in state['open_files'].files.values())
     if drew or loading:
         # The loop only renders on request and a file loads on a worker
         # thread: keep frames coming until every host holds its value, and
@@ -90,8 +84,8 @@ def pump_hosts():
 @glfw_window(title=paths[0].name if len(paths) == 1 else 'Code Editor',
              app_id='melty-code-editor', size=(1280, 800))
 def editor():
-    ensure_root()
-    root_view(state['view'], name='code-editor')
+    ensure_open()
+    root_view(state['view'], name='code-editor', value=state['open_files'])
     pump_hosts()
     if pressed('ctrl+q'):
         sys.exit(0)
