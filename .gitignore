@@ -1,0 +1,4 @@
+__pycache__/
+*.before*
+imgui.ini
+.venv/

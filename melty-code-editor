@@ -1,0 +1,15 @@
+#!/bin/sh
+# Launcher. draw_code_editor is the studio's editor window and pulls in the
+# studio's app model (torch, transformers, peft, ...), so unlike
+# melty_text_editor this app runs on the latent-descent venv itself, with the
+# checkout on PYTHONPATH for `import melty` — see README "Setup".
+# MELTY_PYTHON / MELTY_CHECKOUT override both.
+here=$(dirname "$(readlink -f "$0")")
+checkout=${MELTY_CHECKOUT:-$HOME/Desktop/latent-descent}
+python=${MELTY_PYTHON:-$checkout/venv/bin/python}
+if [ ! -x "$python" ]; then
+    echo "melty-code-editor: no interpreter at $python — see README.md Setup" >&2
+    exit 1
+fi
+MELTY_T0=$(date +%s.%N) PYTHONPATH="$checkout${PYTHONPATH:+:$PYTHONPATH}" \
+    exec "$python" "$here/editor.py" "$@"

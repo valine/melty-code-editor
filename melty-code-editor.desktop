@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Melty Code Editor
+Comment=Edit code in melty's draw_code_editor (tabs, compare with git, analysis)
+Exec=/home/lukas/Desktop/melty_code_editor/melty-code-editor %F
+Icon=text-x-script
+Terminal=false
+Categories=Development;TextEditor;
+MimeType=text/plain;text/x-python;
+StartupWMClass=melty-code-editor
