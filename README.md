@@ -37,8 +37,15 @@ cache (`src/lsd/gl_gui/model/open_files.py`, a light module with no studio
 imports behind it). The app builds one, opens its files into it and posts
 `jump_to_path` for the first file so its tab is selected. Passed `None`, as
 the studio's `@window` registration does, the editor falls back to the app
-model's `Melty.vis.root.open_files`; file tints come from the app model's
-`file_meta_collection` when there is one, else every tab is unpainted.
+model's `Melty.vis.root.open_files`.
+
+File tints (and icons, folder order) come from the **shared file-meta
+store**, `file_meta_store()` in `src/lsd/gl_gui/model/file_meta.py`: a
+`FileMetaProxy` dict backed by `~/.melty/file_meta.pkl` that the studio and
+this app both read and write. Paint a file in the studio and the tab here
+takes the colour within half a second (a poller thread watches the file;
+writes are debounced and atomic, concurrent edits from two apps merge per
+path). `MELTY_FILE_META=/path.pkl` points a process at another store.
 
 Two more things the app does that the studio's main loop would otherwise do:
 
