@@ -28,14 +28,12 @@ paths = [pathlib.Path(arg).expanduser().resolve() for arg in sys.argv[1:]]
 for path in paths:
     if not path.exists():
         path.touch()          # a new file: the editor needs something on disk to host
-    # The studio's plain-file codec edits only under $HOME and never inside a
-    # venv / site-packages (address.is_writable_file); a refused file would
-    # sit on a tab that never loads, so refuse it here with a reason.
-    parts = set(path.parts)
-    if (not path.is_relative_to(pathlib.Path.home())
-            or parts & {'site-packages', 'dist-packages', 'venv', '.venv', 'node_modules'}):
-        sys.exit(f'melty-code-editor: {path}: the editor only opens files under '
-                 f'{pathlib.Path.home()} (and not inside a venv / site-packages)')
+    # Refuse up front what the studio's plain-file codec will not edit (a
+    # library install, no write permission): the reason beats a dead tab.
+    from src.lsd.gl_gui.view.core_conversion.address import writable_file_refusal
+    refusal = writable_file_refusal(path)
+    if refusal:
+        sys.exit(f'melty-code-editor: {path}: not editable — {refusal}')
 state = {}
 
 

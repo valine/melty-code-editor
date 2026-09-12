@@ -41,10 +41,11 @@ studio's app model, so the app fakes the two pieces of it the editor uses
   `pump_hosts` does that here, and keeps frames coming while a file is
   still loading (the app's loop only renders on request; the file loads on
   a worker thread).
-* The studio's plain-file codec edits only files under `$HOME` and never
-  inside a venv / site-packages (`address.is_writable_file`); a refused file
-  would sit on a tab that never loads, so the launcher refuses it up front
-  with a message.
+* The studio's plain-file codec refuses library installs (venv,
+  site-packages, node_modules) and files the process cannot write
+  (`address.writable_file_refusal`, which used to require `$HOME` and refuse
+  silently); a refused tab now shows the reason, and the app refuses such a
+  file up front with the same reason.
 
 Files outside `melty`'s public surface: `draw_code_editor` itself is not on
 melty's lazy view list yet, hence the `src.lsd.gl_gui...` import.
@@ -69,7 +70,7 @@ imports); the text editor's is 0.4 s.
 
 ## Known gaps
 
-* Files outside `$HOME` are refused (studio rule, see above).
+* Read-only files and library installs are refused (studio rule, see above).
 * GLFW binds only the first `wl_seat`, so an agent seat cannot click or type
   into this app; input has to be checked by a person. Screenshots of the
   agent desktop work (`Pictures/Screenshots/melty-code-editor-*.png`).
