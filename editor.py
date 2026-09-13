@@ -51,9 +51,9 @@ if paths:
 
 
 @glfw_window(name=paths[0].name if len(paths) == 1 else 'Code Editor', app_id='melty-code-editor',
-             with_header=draw_header, size=(1280, 800))
+             with_header=draw_header, bg_offset=-2,)
 @render_func()
 def editor(_, draw_state):
     melty.draw_code_editor(open_files, name='code-editor',
-                           width=draw_state.width - 10, height=draw_state.height - 10)
+                           width=draw_state.width - 10, height=draw_state.height - draw_state.header_height)
     return False, None
