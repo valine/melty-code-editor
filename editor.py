@@ -1,25 +1,32 @@
 #!/usr/bin/env python3
-"""melty-code-editor — a one-window code editor built on melty.
+"""melty-code-editor — melty's code editor as a one-window app.
 
+    melty-code-editor                    open an empty editor (no tabs)
     melty-code-editor FILE [FILE ...]    open them as tabs (the first is selected)
 
-The window is the studio's Code Editor (``draw_code_editor``) as an OS window:
-a tab per file along the bottom, the editor above it with Python syntax
-analysis, folds, search and autocomplete, a Compare With dropdown (git HEAD,
-the file on disk, any recent commit) and the nav back / forward buttons.
-Edits auto-save to disk through melty's file hosts; this script only owns the
-list of files to open.
+The window is one ``@glfw_window`` render func drawing melty's
+``draw_code_editor`` with the app's ``OpenFiles`` (the tab list) as its
+value. A tab per file along the bottom, the editor above it with Python
+syntax analysis, folds, search and autocomplete, a Compare With dropdown
+(git HEAD, the file on disk, any recent commit) and the nav back / forward
+buttons. melty draws the file hosts each frame (load, reparse) and writes
+their queued saves when the window closes; this script only owns the list
+of files to open.
 
 The sibling melty_text_editor draws ``draw_text``, one file and nothing
 else; this one draws ``draw_code_editor``, the model-backed editor around it.
 """
-import os
 import pathlib
 import sys
 
-from melty import glfw_window, pressed, root_view
+import melty
+from melty import glfw_window
+from src.lsd.gl_gui.view.core_views.core_render import render_func
+from src.lsd.gl_gui.model.open_files import OpenFiles
+from src.lsd.gl_gui.view.core_conversion.address import writable_file_refusal
+from src.lsd.gl_gui.view.core_views.headers import draw_header
 
-if len(sys.argv) < 2 or sys.argv[1] in ('-h', '--help'):
+if len(sys.argv) > 1 and sys.argv[1] in ('-h', '--help'):
     print(__doc__.strip())
     sys.exit(2)
 
@@ -29,63 +36,24 @@ for path in paths:
         path.touch()          # a new file: the editor needs something on disk to host
     # Refuse up front what the studio's plain-file codec will not edit (a
     # library install, no write permission): the reason beats a dead tab.
-    from src.lsd.gl_gui.view.core_conversion.address import writable_file_refusal
     refusal = writable_file_refusal(path)
     if refusal:
         sys.exit(f'melty-code-editor: {path}: not editable — {refusal}')
-state = {}
 
-
-def ensure_open():
-    """The editor's file model: an OpenFiles (the tab list; one shared
-    code_file_io host per file) that draw_code_editor takes as its value.
-    Nothing of the studio's app model is loaded. The first file is posted
-    as the pending jump, which selects its tab."""
-    if 'open_files' in state:
-        return
-    from src.lsd.gl_gui.model.open_files import OpenFiles
-    # Not on melty's public list yet: the studio's Code Editor window body.
-    from src.lsd.gl_gui.view.playground.open_files import draw_code_editor
-    open_files = OpenFiles()
-    for path in paths:
-        open_files.open_file(path)
+# The tab list: one shared code_file_io host per file. The first file is
+# posted as the pending jump, which selects its tab; with no files the
+# editor draws its controls over an empty main cell.
+open_files = OpenFiles()
+for path in paths:
+    open_files.open_file(path)
+if paths:
     open_files.jump_to_path = str(paths[0])
-    state['open_files'], state['view'] = open_files, draw_code_editor
-    if os.environ.get('MELTY_CODE_DEBUG'):
-        from src.lsd.gl_gui.toggles import Toggles
-        Toggles.symbol_perf_log = True
 
 
-def pump_hosts():
-    """The studio's main loop draws every registered RenderHost once a
-    frame; that is what loads a tab's file (lazily, on the host's first
-    draw), reparses it after an edit and auto-saves it. A bare melty app has
-    no such loop, so run it here."""
-    import imgui
-    from src.lsd.gl_gui.utils.glfw_utils import request_render
-    from src.lsd.gl_gui.view.core_conversion.render_host import RenderHost
-    if imgui.is_mouse_down(0) or imgui.is_mouse_down(1) or imgui.is_mouse_down(2):
-        return          # as the studio: no host work under a drag
-    hosts = RenderHost.all()
-    drew = False
-    for host in hosts:
-        if host.draw_needed():
-            host.draw()
-            drew = True
-    loading = any(host.get(host.value_key) is None
-                  for host in state['open_files'].files.values())
-    if drew or loading:
-        # The loop only renders on request and a file loads on a worker
-        # thread: keep frames coming until every host holds its value, and
-        # one more after a host drew (its result lands in the blit cache).
-        request_render()
-
-
-@glfw_window(title=paths[0].name if len(paths) == 1 else 'Code Editor',
-             app_id='melty-code-editor', size=(1280, 800))
-def editor():
-    ensure_open()
-    root_view(state['view'], name='code-editor', value=state['open_files'])
-    pump_hosts()
-    if pressed('ctrl+q'):
-        sys.exit(0)
+@glfw_window(name=paths[0].name if len(paths) == 1 else 'Code Editor', app_id='melty-code-editor',
+             with_header=draw_header, size=(1280, 800))
+@render_func()
+def editor(_, draw_state):
+    melty.draw_code_editor(open_files, name='code-editor',
+                           width=draw_state.width - 10, height=draw_state.height - 10)
+    return False, None

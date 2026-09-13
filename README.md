@@ -5,18 +5,20 @@ instead of the bare text view: `editor.py` draws `draw_code_editor` where the
 text editor draws `draw_text`.
 
 ```python
-from melty import glfw_window, pressed, root_view
+import melty
+from melty import glfw_window
 from src.lsd.gl_gui.model.open_files import OpenFiles
-from src.lsd.gl_gui.view.playground.open_files import draw_code_editor
 
 open_files = OpenFiles()                     # the tab list, owned by the app
 for path in paths:
     open_files.open_file(path)
 
-@glfw_window(title='Code Editor', app_id='melty-code-editor', size=(1280, 800))
-def editor():
-    root_view(draw_code_editor, name='code-editor', value=open_files)
-    pump_hosts()                             # load / reparse / auto-save the files
+@glfw_window(title='Code Editor', app_id='melty-code-editor', with_header=draw_header, size=(1280, 800))
+@render_func()
+def editor(_, draw_state):
+    melty.draw_code_editor(open_files, name='code-editor',
+                           width=draw_state.width - 10, height=draw_state.height - 10)
+    return False, None
 ```
 
     ./melty-code-editor FILE [FILE ...]      # each file is a tab; the first is selected
@@ -25,9 +27,9 @@ What you get is the studio's editor window as an OS window: a tab per file
 along the bottom (close buttons, drag to reorder), the editor above it with
 Python highlighting, folds, search, autocomplete and analysis, the **Compare
 With** dropdown (git HEAD, the file on disk, any recent commit, rendered as
-an editable side-by-side diff) and the nav back / forward buttons. Edits
-**auto-save** to disk through melty's file hosts; there is no Ctrl+S. Ctrl+Q
-quits.
+an editable side-by-side diff) and the nav back / forward buttons. Edits go
+to melty's file hosts (the studio's deferred-save model: queued in memory,
+written to disk when the window closes); there is no Ctrl+S.
 
 ## What draw_code_editor needs that draw_text does not
 
@@ -47,21 +49,15 @@ takes the colour within half a second (a poller thread watches the file;
 writes are debounced and atomic, concurrent edits from two apps merge per
 path). `MELTY_FILE_META=/path.pkl` points a process at another store.
 
-Two more things the app does that the studio's main loop would otherwise do:
+The file hosts need nothing from the app. melty draws every registered
+RenderHost once a frame (`RenderHost.draw_all`, the studio's `draw_main` host
+loop, run from `Surface.frame` in a melty app) — that is what loads a file,
+reparses it after an edit and queues its save — and flushes the queued saves
+to disk when the loop exits (`app.run`). The studio's plain-file codec refuses
+library installs (venv, site-packages, node_modules) and files the process
+cannot write (`address.writable_file_refusal`); a refused tab shows the
+reason, and the app refuses such a file up front with the same reason.
 
-* The studio draws every registered RenderHost once a frame, and that is
-  what loads a file, reparses it after an edit and auto-saves. `pump_hosts`
-  does that here, and keeps frames coming while a file is still loading
-  (the app's loop only renders on request; the file loads on a worker
-  thread).
-* The studio's plain-file codec refuses library installs (venv,
-  site-packages, node_modules) and files the process cannot write
-  (`address.writable_file_refusal`, which used to require `$HOME` and refuse
-  silently); a refused tab now shows the reason, and the app refuses such a
-  file up front with the same reason.
-
-`draw_code_editor` itself is not on melty's lazy view list yet, hence the
-`src.lsd.gl_gui...` import.
 
 ## Setup
 
@@ -85,6 +81,6 @@ text editor (it was 1.6 s while the app model loaded).
 ## Known gaps
 
 * Read-only files and library installs are refused (studio rule, see above).
-* GLFW binds only the first `wl_seat`, so an agent seat cannot click or type
-  into this app; input has to be checked by a person. Screenshots of the
-  agent desktop work (`Pictures/Screenshots/melty-code-editor-*.png`).
+* Started through the desktop tooling's `launch` (the seat's own Wayland
+  socket) an agent seat can click and type into the app; a plain start binds
+  the first `wl_seat` only.
