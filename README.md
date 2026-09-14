@@ -9,7 +9,7 @@ import melty
 from melty import glfw_window
 from src.lsd.gl_gui.model.open_files import OpenFiles
 
-open_files = OpenFiles()                     # the tab list, owned by the app
+open_files = melty.persisted('open_files', OpenFiles, app_id='melty-code-editor')   # the tab list, kept between runs
 for path in paths:
     open_files.open_file(path)
 
@@ -84,3 +84,19 @@ text editor (it was 1.6 s while the app model loaded).
 * Started through the desktop tooling's `launch` (the seat's own Wayland
   socket) an agent seat can click and type into the app; a plain start binds
   the first `wl_seat` only.
+
+## File menu
+
+**File → New…** or **Ctrl+N** opens a one-line path field under the menu
+bar, prefilled with `untitled.py` beside the last opened tab. Edit the path
+and press Enter: the file is created (an existing path is simply opened) and
+becomes the selected tab. Escape closes the field. A path that cannot be
+created shows its error under the bar, the way a refused open does.
+
+**File → Open…** or **Ctrl+O** opens melty's file selector. Double-click a
+file or select it and press Enter to open and select its tab. Choosing an
+already-open file selects that tab; existing tabs and edits stay intact.
+Cancel/Escape leaves the editor unchanged. Read-only files and library
+installs show the same refusal as command-line opens.
+
+**File → Quit** closes the window and uses melty's normal save-on-exit flow.
