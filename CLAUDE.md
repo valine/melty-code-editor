@@ -7,3 +7,5 @@ and flushes their saves at exit). Sibling of
 user guide is `melty/README.md` in the latent-descent checkout.
 Run: `./melty-code-editor FILE...`; smoke test: `MELTY_BENCH=1 .venv/bin/python editor.py FILE`.
 Read-only files / library installs are refused up front.
+Search → Search… / Ctrl+Shift+F is `melty.global_search` (src/lsd/gl_gui/app_search.py in melty), Code tab over
+the open tabs' project roots (`project_roots()` in editor.py).

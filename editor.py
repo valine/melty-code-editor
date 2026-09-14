@@ -9,7 +9,9 @@ The window is one ``@glfw_window`` render func drawing melty's
 value. A tab per file along the bottom, the editor above it with Python
 syntax analysis, folds, search and autocomplete, a Compare With dropdown
 (git HEAD, the file on disk, any recent commit) and the nav back / forward
-buttons. melty draws the file hosts each frame (load, reparse) and writes
+buttons. Search → Search… (Ctrl+Shift+F) is melty's global search, its
+Code tab over the projects of the open tabs (`melty.global_search`).
+melty draws the file hosts each frame (load, reparse) and writes
 their queued saves when the window closes; this script only owns the list
 of files to open, which persists between runs (`melty.persisted`): the
 tabs of the last run come back, plus whatever the command line names.
@@ -30,6 +32,8 @@ from src.lsd.gl_gui.model.open_files import OpenFiles
 from src.lsd.gl_gui.melty import Melty
 from src.lsd.gl_gui.view.core_conversion.address import writable_file_refusal
 from src.lsd.gl_gui.view.core_views.headers import draw_header
+from src.lsd.gl_gui.view.playground.git import repo_root_for
+from src.lsd.gl_gui.view.playground.open_files import draw_code_editor
 
 if len(sys.argv) > 1 and sys.argv[1] in ('-h', '--help'):
     print(__doc__.strip())
@@ -57,6 +61,31 @@ if paths:
     open_files.jump_to_path = str(paths[0])
 
 
+
+def real_open_paths():
+    """The tabs that are files on disk (not git-diff tabs), in tab order."""
+    return [path for path in open_files.open_paths
+            if isinstance(path, str) and not path.startswith(OpenFiles.GIT_DIFF_PREFIX)]
+
+
+def project_roots():
+    """What global search's Code tab covers: the project of every open tab —
+    its git repo, or its directory outside one — each once, in tab order.
+    Read on every search, so a tab opened from another project joins."""
+    roots = []
+    for path in real_open_paths():
+        root = repo_root_for(path) or pathlib.Path(path).parent
+        root = str(root)
+        if root not in roots:
+            roots.append(root)
+    return roots
+
+
+# Global search (Search → Search…, Ctrl+Shift+F): melty draws the studio's
+# search window over this window; picks open in the editor through
+# open_files. Code only: the app has no studio windows, toggles or actions.
+search = melty.global_search(categories=('Code',), roots=project_roots, open_files=open_files)
+
 open_requested = False
 open_error = None
 # The New… path field's draft, or None while it is closed; new_opened is
@@ -73,8 +102,7 @@ def request_open():
 
 def default_new_dir():
     """Where a new file goes by default: beside the last opened tab."""
-    real = [path for path in open_files.open_paths
-            if isinstance(path, str) and not path.startswith(OpenFiles.GIT_DIFF_PREFIX)]
+    real = real_open_paths()
     return pathlib.Path(real[-1]).parent if real else pathlib.Path.cwd()
 
 
@@ -146,12 +174,13 @@ def draw_new_field(width):
 
 
 @glfw_window(name=paths[0].name if len(paths) == 1 else 'Code Editor', app_id='melty-code-editor',
-             with_header=draw_header, bg_offset=-2, tint=(0.11, 0.12, 0.14))
+             with_header=draw_header, bg_offset=-3, tint=(0.41, 0.44, 0.54))
 @render_func()
 def editor(_, draw_state):
     global open_requested
     menu_height = 25.0
-    melty.draw_menu_bar({'File': {'New…': request_new, 'Open…': request_open}},
+    melty.draw_menu_bar({'File': {'New…': request_new, 'Open…': request_open},
+                         'Search': {'Search…': search.open}},
                         name='menu', bar_height=menu_height)
     if new_draft is None and pressed('ctrl+n'):
         request_new()
@@ -166,6 +195,6 @@ def editor(_, draw_state):
     if open_error:
         imgui.text_wrapped(open_error)
         menu_height += imgui.get_item_rect_size()[1]
-    melty.draw_code_editor(open_files, name='code-editor', disable_scroll=True, use_cache=False,
+    draw_code_editor(open_files, name='code-editor', disable_scroll=True, use_cache=False,
                            width=draw_state.width - 10, height=draw_state.height - draw_state.header_height - menu_height - 1)
     return False, None

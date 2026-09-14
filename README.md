@@ -27,7 +27,13 @@ What you get is the studio's editor window as an OS window: a tab per file
 along the bottom (close buttons, drag to reorder), the editor above it with
 Python highlighting, folds, search, autocomplete and analysis, the **Compare
 With** dropdown (git HEAD, the file on disk, any recent commit, rendered as
-an editable side-by-side diff) and the nav back / forward buttons. Edits go
+an editable side-by-side diff) and the nav back / forward buttons.
+**Search → Search…** (Ctrl+Shift+F) is melty's global search, Code tab
+only: files, classes, defs and their call sites across the projects of the
+open tabs (the git root of each, or its directory), a hit opening in the
+editor at the definition. `melty.global_search(categories=('Code',),
+roots=project_roots, open_files=open_files)` in `editor.py` is the whole of
+it; the query and the pick counts persist with the session. Edits go
 to melty's file hosts (the studio's deferred-save model: queued in memory,
 written to disk when the window closes); there is no Ctrl+S.
 
