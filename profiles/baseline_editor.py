@@ -25,22 +25,22 @@ else; this one draws ``draw_code_editor``, the model-backed editor around it.
 import pathlib
 import sys
 
-if len(sys.argv) > 1 and sys.argv[1] in ('-h', '--help'):
-    print(__doc__.strip())
-    sys.exit(2)
+import glfw
+import imgui
 
 import melty
-melty.boot(app_id='melty-code-editor')
-# Resolve the view through melty: it waits for the import worker, whose work
-# overlaps the fresh EGL context above, before importing the code-editor views.
-from melty import glfw_window, pressed, draw_code_editor, window_api as glfw
-import imgui
+from melty import glfw_window, pressed
 from src.lsd.gl_gui.view.core_views.core_render import render_func
 from src.lsd.gl_gui.model.open_files import OpenFiles
 from src.lsd.gl_gui.melty import Melty
 from src.lsd.gl_gui.view.core_conversion.address import writable_file_refusal
 from src.lsd.gl_gui.view.core_views.headers import draw_header
 from src.lsd.gl_gui.model.file_meta import mark_project, project_roots as marked_projects, project_for
+from src.lsd.gl_gui.view.playground.open_files import draw_code_editor
+
+if len(sys.argv) > 1 and sys.argv[1] in ('-h', '--help'):
+    print(__doc__.strip())
+    sys.exit(2)
 
 paths = [pathlib.Path(arg).expanduser().resolve() for arg in sys.argv[1:]]
 for path in paths:
@@ -232,7 +232,7 @@ def draw_new_field(width):
 
 
 @glfw_window(name=paths[0].name if len(paths) == 1 else 'Code Editor', app_id='melty-code-editor',
-             with_header=draw_header, bg_offset=-2, tint=(0.54, 0.57, 0.67))
+             with_header=draw_header, bg_offset=-2, tint=(0.15, 0.16, 0.19))
 @render_func()
 def editor(_, draw_state):
     global open_requested, add_project_requested, browse

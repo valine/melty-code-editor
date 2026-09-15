@@ -1,0 +1,578 @@
+[
+  [
+    {
+      "ms": 0,
+      "delta_ms": 0,
+      "phase": "launcher exec"
+    },
+    {
+      "ms": 17,
+      "delta_ms": 17,
+      "phase": "interpreter + stdlib"
+    },
+    {
+      "ms": 53,
+      "delta_ms": 36,
+      "phase": "wayland window API ready"
+    },
+    {
+      "ms": 153,
+      "delta_ms": 100,
+      "phase": "imgui/numpy/GL imported (bg)"
+    },
+    {
+      "ms": 171,
+      "delta_ms": 18,
+      "phase": "wayland.init"
+    },
+    {
+      "ms": 200,
+      "delta_ms": 29,
+      "phase": "owner window created"
+    },
+    {
+      "ms": 236,
+      "delta_ms": 36,
+      "phase": "owner context current"
+    },
+    {
+      "ms": 281,
+      "delta_ms": 45,
+      "phase": "melty imported (bg)"
+    },
+    {
+      "ms": 307,
+      "delta_ms": 26,
+      "phase": "session loaded"
+    },
+    {
+      "ms": 307,
+      "delta_ms": 1,
+      "phase": "fonts loaded"
+    },
+    {
+      "ms": 308,
+      "delta_ms": 1,
+      "phase": "session loaded"
+    },
+    {
+      "ms": 309,
+      "delta_ms": 0,
+      "phase": "melty configured"
+    },
+    {
+      "ms": 348,
+      "delta_ms": 39,
+      "phase": "1 window(s) created"
+    },
+    {
+      "ms": 388,
+      "delta_ms": 40,
+      "phase": "first frame presented"
+    }
+  ],
+  [
+    {
+      "ms": 0,
+      "delta_ms": 0,
+      "phase": "launcher exec"
+    },
+    {
+      "ms": 17,
+      "delta_ms": 17,
+      "phase": "interpreter + stdlib"
+    },
+    {
+      "ms": 53,
+      "delta_ms": 36,
+      "phase": "wayland window API ready"
+    },
+    {
+      "ms": 104,
+      "delta_ms": 51,
+      "phase": "wayland.init"
+    },
+    {
+      "ms": 143,
+      "delta_ms": 38,
+      "phase": "owner window created"
+    },
+    {
+      "ms": 158,
+      "delta_ms": 15,
+      "phase": "imgui/numpy/GL imported (bg)"
+    },
+    {
+      "ms": 175,
+      "delta_ms": 17,
+      "phase": "owner context current"
+    },
+    {
+      "ms": 323,
+      "delta_ms": 148,
+      "phase": "melty imported (bg)"
+    },
+    {
+      "ms": 357,
+      "delta_ms": 34,
+      "phase": "session loaded"
+    },
+    {
+      "ms": 358,
+      "delta_ms": 1,
+      "phase": "fonts loaded"
+    },
+    {
+      "ms": 359,
+      "delta_ms": 1,
+      "phase": "session loaded"
+    },
+    {
+      "ms": 359,
+      "delta_ms": 1,
+      "phase": "melty configured"
+    },
+    {
+      "ms": 469,
+      "delta_ms": 110,
+      "phase": "1 window(s) created"
+    },
+    {
+      "ms": 566,
+      "delta_ms": 96,
+      "phase": "first frame presented"
+    }
+  ],
+  [
+    {
+      "ms": 0,
+      "delta_ms": 0,
+      "phase": "launcher exec"
+    },
+    {
+      "ms": 23,
+      "delta_ms": 23,
+      "phase": "interpreter + stdlib"
+    },
+    {
+      "ms": 84,
+      "delta_ms": 61,
+      "phase": "wayland window API ready"
+    },
+    {
+      "ms": 168,
+      "delta_ms": 84,
+      "phase": "wayland.init"
+    },
+    {
+      "ms": 206,
+      "delta_ms": 38,
+      "phase": "owner window created"
+    },
+    {
+      "ms": 215,
+      "delta_ms": 9,
+      "phase": "imgui/numpy/GL imported (bg)"
+    },
+    {
+      "ms": 261,
+      "delta_ms": 46,
+      "phase": "owner context current"
+    },
+    {
+      "ms": 372,
+      "delta_ms": 111,
+      "phase": "melty imported (bg)"
+    },
+    {
+      "ms": 396,
+      "delta_ms": 25,
+      "phase": "session loaded"
+    },
+    {
+      "ms": 397,
+      "delta_ms": 1,
+      "phase": "fonts loaded"
+    },
+    {
+      "ms": 398,
+      "delta_ms": 1,
+      "phase": "session loaded"
+    },
+    {
+      "ms": 400,
+      "delta_ms": 2,
+      "phase": "melty configured"
+    },
+    {
+      "ms": 442,
+      "delta_ms": 42,
+      "phase": "1 window(s) created"
+    },
+    {
+      "ms": 490,
+      "delta_ms": 48,
+      "phase": "first frame presented"
+    }
+  ],
+  [
+    {
+      "ms": 0,
+      "delta_ms": 0,
+      "phase": "launcher exec"
+    },
+    {
+      "ms": 20,
+      "delta_ms": 20,
+      "phase": "interpreter + stdlib"
+    },
+    {
+      "ms": 63,
+      "delta_ms": 43,
+      "phase": "wayland window API ready"
+    },
+    {
+      "ms": 130,
+      "delta_ms": 67,
+      "phase": "wayland.init"
+    },
+    {
+      "ms": 156,
+      "delta_ms": 27,
+      "phase": "owner window created"
+    },
+    {
+      "ms": 162,
+      "delta_ms": 6,
+      "phase": "imgui/numpy/GL imported (bg)"
+    },
+    {
+      "ms": 190,
+      "delta_ms": 28,
+      "phase": "owner context current"
+    },
+    {
+      "ms": 310,
+      "delta_ms": 121,
+      "phase": "melty imported (bg)"
+    },
+    {
+      "ms": 336,
+      "delta_ms": 26,
+      "phase": "session loaded"
+    },
+    {
+      "ms": 337,
+      "delta_ms": 1,
+      "phase": "fonts loaded"
+    },
+    {
+      "ms": 337,
+      "delta_ms": 1,
+      "phase": "session loaded"
+    },
+    {
+      "ms": 338,
+      "delta_ms": 0,
+      "phase": "melty configured"
+    },
+    {
+      "ms": 379,
+      "delta_ms": 41,
+      "phase": "1 window(s) created"
+    },
+    {
+      "ms": 425,
+      "delta_ms": 45,
+      "phase": "first frame presented"
+    }
+  ],
+  [
+    {
+      "ms": 0,
+      "delta_ms": 0,
+      "phase": "launcher exec"
+    },
+    {
+      "ms": 17,
+      "delta_ms": 17,
+      "phase": "interpreter + stdlib"
+    },
+    {
+      "ms": 53,
+      "delta_ms": 36,
+      "phase": "wayland window API ready"
+    },
+    {
+      "ms": 123,
+      "delta_ms": 70,
+      "phase": "wayland.init"
+    },
+    {
+      "ms": 148,
+      "delta_ms": 24,
+      "phase": "owner window created"
+    },
+    {
+      "ms": 159,
+      "delta_ms": 11,
+      "phase": "imgui/numpy/GL imported (bg)"
+    },
+    {
+      "ms": 177,
+      "delta_ms": 18,
+      "phase": "owner context current"
+    },
+    {
+      "ms": 321,
+      "delta_ms": 144,
+      "phase": "melty imported (bg)"
+    },
+    {
+      "ms": 345,
+      "delta_ms": 24,
+      "phase": "session loaded"
+    },
+    {
+      "ms": 345,
+      "delta_ms": 1,
+      "phase": "fonts loaded"
+    },
+    {
+      "ms": 346,
+      "delta_ms": 1,
+      "phase": "session loaded"
+    },
+    {
+      "ms": 347,
+      "delta_ms": 0,
+      "phase": "melty configured"
+    },
+    {
+      "ms": 386,
+      "delta_ms": 39,
+      "phase": "1 window(s) created"
+    },
+    {
+      "ms": 429,
+      "delta_ms": 43,
+      "phase": "first frame presented"
+    }
+  ],
+  [
+    {
+      "ms": 0,
+      "delta_ms": 0,
+      "phase": "launcher exec"
+    },
+    {
+      "ms": 17,
+      "delta_ms": 17,
+      "phase": "interpreter + stdlib"
+    },
+    {
+      "ms": 58,
+      "delta_ms": 41,
+      "phase": "wayland window API ready"
+    },
+    {
+      "ms": 127,
+      "delta_ms": 68,
+      "phase": "wayland.init"
+    },
+    {
+      "ms": 143,
+      "delta_ms": 16,
+      "phase": "imgui/numpy/GL imported (bg)"
+    },
+    {
+      "ms": 151,
+      "delta_ms": 8,
+      "phase": "owner window created"
+    },
+    {
+      "ms": 181,
+      "delta_ms": 30,
+      "phase": "owner context current"
+    },
+    {
+      "ms": 273,
+      "delta_ms": 92,
+      "phase": "melty imported (bg)"
+    },
+    {
+      "ms": 298,
+      "delta_ms": 24,
+      "phase": "session loaded"
+    },
+    {
+      "ms": 299,
+      "delta_ms": 1,
+      "phase": "fonts loaded"
+    },
+    {
+      "ms": 300,
+      "delta_ms": 1,
+      "phase": "session loaded"
+    },
+    {
+      "ms": 300,
+      "delta_ms": 1,
+      "phase": "melty configured"
+    },
+    {
+      "ms": 342,
+      "delta_ms": 42,
+      "phase": "1 window(s) created"
+    },
+    {
+      "ms": 385,
+      "delta_ms": 43,
+      "phase": "first frame presented"
+    }
+  ],
+  [
+    {
+      "ms": 0,
+      "delta_ms": 0,
+      "phase": "launcher exec"
+    },
+    {
+      "ms": 17,
+      "delta_ms": 17,
+      "phase": "interpreter + stdlib"
+    },
+    {
+      "ms": 53,
+      "delta_ms": 36,
+      "phase": "wayland window API ready"
+    },
+    {
+      "ms": 131,
+      "delta_ms": 77,
+      "phase": "wayland.init"
+    },
+    {
+      "ms": 157,
+      "delta_ms": 27,
+      "phase": "owner window created"
+    },
+    {
+      "ms": 157,
+      "delta_ms": 0,
+      "phase": "imgui/numpy/GL imported (bg)"
+    },
+    {
+      "ms": 206,
+      "delta_ms": 49,
+      "phase": "owner context current"
+    },
+    {
+      "ms": 392,
+      "delta_ms": 186,
+      "phase": "melty imported (bg)"
+    },
+    {
+      "ms": 453,
+      "delta_ms": 60,
+      "phase": "session loaded"
+    },
+    {
+      "ms": 457,
+      "delta_ms": 4,
+      "phase": "fonts loaded"
+    },
+    {
+      "ms": 459,
+      "delta_ms": 2,
+      "phase": "session loaded"
+    },
+    {
+      "ms": 461,
+      "delta_ms": 3,
+      "phase": "melty configured"
+    },
+    {
+      "ms": 563,
+      "delta_ms": 101,
+      "phase": "1 window(s) created"
+    },
+    {
+      "ms": 621,
+      "delta_ms": 58,
+      "phase": "first frame presented"
+    }
+  ],
+  [
+    {
+      "ms": 0,
+      "delta_ms": 0,
+      "phase": "launcher exec"
+    },
+    {
+      "ms": 18,
+      "delta_ms": 18,
+      "phase": "interpreter + stdlib"
+    },
+    {
+      "ms": 59,
+      "delta_ms": 40,
+      "phase": "wayland window API ready"
+    },
+    {
+      "ms": 127,
+      "delta_ms": 69,
+      "phase": "wayland.init"
+    },
+    {
+      "ms": 154,
+      "delta_ms": 26,
+      "phase": "owner window created"
+    },
+    {
+      "ms": 164,
+      "delta_ms": 11,
+      "phase": "imgui/numpy/GL imported (bg)"
+    },
+    {
+      "ms": 183,
+      "delta_ms": 19,
+      "phase": "owner context current"
+    },
+    {
+      "ms": 303,
+      "delta_ms": 120,
+      "phase": "melty imported (bg)"
+    },
+    {
+      "ms": 330,
+      "delta_ms": 27,
+      "phase": "session loaded"
+    },
+    {
+      "ms": 331,
+      "delta_ms": 1,
+      "phase": "fonts loaded"
+    },
+    {
+      "ms": 332,
+      "delta_ms": 1,
+      "phase": "session loaded"
+    },
+    {
+      "ms": 333,
+      "delta_ms": 1,
+      "phase": "melty configured"
+    },
+    {
+      "ms": 383,
+      "delta_ms": 50,
+      "phase": "1 window(s) created"
+    },
+    {
+      "ms": 426,
+      "delta_ms": 43,
+      "phase": "first frame presented"
+    }
+  ]
+]

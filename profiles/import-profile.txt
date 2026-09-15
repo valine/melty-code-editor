@@ -1,0 +1,65 @@
+Mon Sep 14 21:26:10 2026    profiles/import-worker.pstats
+
+         421594 function calls (406023 primitive calls) in 0.284 seconds
+
+   Ordered by: cumulative time
+   List reduced from 2325 to 25 due to restriction <25>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+    626/7    0.001    0.000    0.276    0.039 <frozen importlib._bootstrap>:1349(_find_and_load)
+  1061/10    0.000    0.000    0.276    0.028 <frozen importlib._bootstrap>:480(_call_with_frames_removed)
+    458/8    0.001    0.000    0.274    0.034 <frozen importlib._bootstrap>:911(_load_unlocked)
+    441/8    0.000    0.000    0.273    0.034 <frozen importlib._bootstrap_external>:989(exec_module)
+    470/7    0.001    0.000    0.273    0.039 <frozen importlib._bootstrap>:1304(_find_and_load_unlocked)
+   1531/8    0.054    0.000    0.271    0.034 {built-in method builtins.exec}
+   477/28    0.000    0.000    0.236    0.008 {built-in method builtins.__import__}
+  2212/13    0.002    0.000    0.171    0.013 <frozen importlib._bootstrap>:1390(_handle_fromlist)
+        1    0.000    0.000    0.124    0.124 /home/lukas/Desktop/latent-descent/src/lsd/gl_gui/app.py:143(_run_imports)
+        1    0.000    0.000    0.119    0.119 /home/lukas/Desktop/latent-descent/src/lsd/gl_gui/view/core_views/text_editor.py:1(<module>)
+        1    0.000    0.000    0.097    0.097 /home/lukas/Desktop/melty_code_editor/.venv/lib/python3.12/site-packages/libcst/__init__.py:1(<module>)
+      224    0.000    0.000    0.078    0.000 /usr/lib/python3.12/dataclasses.py:1257(wrap)
+      224    0.004    0.000    0.078    0.000 /usr/lib/python3.12/dataclasses.py:921(_process_class)
+        1    0.000    0.000    0.064    0.064 /home/lukas/Desktop/melty_code_editor/.venv/lib/python3.12/site-packages/OpenGL/arrays/numpymodule.py:1(<module>)
+     1090    0.003    0.000    0.058    0.000 /usr/lib/python3.12/dataclasses.py:449(_create_fn)
+        1    0.000    0.000    0.054    0.054 /home/lukas/Desktop/melty_code_editor/.venv/lib/python3.12/site-packages/numpy/__init__.py:1(<module>)
+      440    0.001    0.000    0.048    0.000 <frozen importlib._bootstrap_external>:1062(get_code)
+        1    0.000    0.000    0.045    0.045 /home/lukas/Desktop/melty_code_editor/.venv/lib/python3.12/site-packages/OpenGL/GL/__init__.py:1(<module>)
+        1    0.000    0.000    0.044    0.044 /home/lukas/Desktop/melty_code_editor/.venv/lib/python3.12/site-packages/libcst/_nodes/expression.py:1(<module>)
+        1    0.000    0.000    0.035    0.035 /home/lukas/Desktop/melty_code_editor/.venv/lib/python3.12/site-packages/numpy/__config__.py:1(<module>)
+        1    0.000    0.000    0.035    0.035 /home/lukas/Desktop/melty_code_editor/.venv/lib/python3.12/site-packages/numpy/_core/__init__.py:1(<module>)
+      440    0.009    0.000    0.032    0.000 <frozen importlib._bootstrap_external>:751(_compile_bytecode)
+      2/1    0.000    0.000    0.030    0.030 /home/lukas/Desktop/latent-descent/src/lsd/gl_gui/melty.py:1(<module>)
+  882/881    0.005    0.000    0.030    0.000 {built-in method builtins.__build_class__}
+        1    0.000    0.000    0.027    0.027 /home/lukas/Desktop/melty_code_editor/.venv/lib/python3.12/site-packages/libcst/_nodes/module.py:1(<module>)
+
+
+Mon Sep 14 21:26:10 2026    profiles/import-worker.pstats
+
+         421594 function calls (406023 primitive calls) in 0.284 seconds
+
+   Ordered by: internal time
+   List reduced from 2325 to 20 due to restriction <20>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+   1531/8    0.054    0.000    0.271    0.034 {built-in method builtins.exec}
+      440    0.022    0.000    0.022    0.000 {built-in method marshal.loads}
+      440    0.009    0.000    0.032    0.000 <frozen importlib._bootstrap_external>:751(_compile_bytecode)
+     1419    0.009    0.000    0.012    0.000 /home/lukas/Desktop/melty_code_editor/.venv/lib/python3.12/site-packages/OpenGL/platform/baseplatform.py:350(nullFunction)
+      713    0.007    0.000    0.008    0.000 <frozen importlib._bootstrap>:124(setdefault)
+5005/4542    0.005    0.000    0.009    0.000 {built-in method __new__ of type object at 0xa43b40}
+      440    0.005    0.000    0.006    0.000 {built-in method _io.open_code}
+  882/881    0.005    0.000    0.030    0.000 {built-in method builtins.__build_class__}
+      819    0.004    0.000    0.006    0.000 /home/lukas/Desktop/melty_code_editor/.venv/lib/python3.12/site-packages/OpenGL/wrapper.py:1648(wrapper)
+    63212    0.004    0.000    0.004    0.000 {built-in method builtins.isinstance}
+      224    0.004    0.000    0.078    0.000 /usr/lib/python3.12/dataclasses.py:921(_process_class)
+      372    0.004    0.000    0.007    0.000 /usr/lib/python3.12/inspect.py:875(cleandoc)
+5356/2678    0.004    0.000    0.005    0.000 /home/lukas/Desktop/melty_code_editor/.venv/lib/python3.12/site-packages/OpenGL/constant.py:14(__new__)
+23562/23508    0.003    0.000    0.004    0.000 {built-in method builtins.getattr}
+      440    0.003    0.000    0.003    0.000 {method 'read' of '_io.BufferedReader' objects}
+       13    0.003    0.000    0.003    0.000 {built-in method _imp.create_dynamic}
+       94    0.003    0.000    0.004    0.000 /usr/lib/python3.12/inspect.py:2366(_signature_from_function)
+     1643    0.003    0.000    0.003    0.000 {built-in method posix.stat}
+     1090    0.003    0.000    0.058    0.000 /usr/lib/python3.12/dataclasses.py:449(_create_fn)
+     8843    0.002    0.000    0.003    0.000 {method 'join' of 'str' objects}
+
+

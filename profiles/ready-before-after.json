@@ -1,0 +1,1029 @@
+{
+  "scenario": "fresh processes; normal disk caches",
+  "samples": [
+    {
+      "variant": "before",
+      "first_frame_ms": 2309.4236850738525,
+      "text_presented_ms": 2815.4866695404053,
+      "frames": 3,
+      "events": [
+        {
+          "phase": "launcher exec",
+          "ms": 0.0
+        },
+        {
+          "phase": "interpreter + stdlib",
+          "ms": 155.78532218933105
+        },
+        {
+          "phase": "wayland window API ready",
+          "ms": 1304.9588203430176
+        },
+        {
+          "phase": "imgui/numpy/GL imported (bg)",
+          "ms": 1310.2340698242188
+        },
+        {
+          "phase": "melty imported (bg)",
+          "ms": 1317.8563117980957
+        },
+        {
+          "phase": "wayland.init",
+          "ms": 1438.2376670837402
+        },
+        {
+          "phase": "owner window created",
+          "ms": 1521.493673324585
+        },
+        {
+          "phase": "owner context current",
+          "ms": 1574.5985507965088
+        },
+        {
+          "phase": "session loaded",
+          "ms": 1577.9321193695068
+        },
+        {
+          "phase": "fonts loaded",
+          "ms": 1583.1964015960693
+        },
+        {
+          "phase": "session loaded",
+          "ms": 1584.6025943756104
+        },
+        {
+          "phase": "melty configured",
+          "ms": 1585.5519771575928
+        },
+        {
+          "phase": "1 window(s) created",
+          "ms": 1797.790765762329
+        },
+        {
+          "phase": "first frame presented",
+          "ms": 2309.461832046509
+        }
+      ]
+    },
+    {
+      "variant": "after",
+      "first_frame_ms": 447.4811553955078,
+      "text_presented_ms": 610.9728813171387,
+      "frames": 3,
+      "events": [
+        {
+          "phase": "launcher exec",
+          "ms": 0.0
+        },
+        {
+          "phase": "interpreter + stdlib",
+          "ms": 34.903526306152344
+        },
+        {
+          "phase": "wayland window API ready",
+          "ms": 71.48385047912598
+        },
+        {
+          "phase": "wayland.init",
+          "ms": 117.87796020507812
+        },
+        {
+          "phase": "owner window created",
+          "ms": 144.75035667419434
+        },
+        {
+          "phase": "imgui/numpy/GL imported (bg)",
+          "ms": 152.34851837158203
+        },
+        {
+          "phase": "owner context current",
+          "ms": 178.27320098876953
+        },
+        {
+          "phase": "melty imported (bg)",
+          "ms": 317.2440528869629
+        },
+        {
+          "phase": "session loaded",
+          "ms": 341.5875434875488
+        },
+        {
+          "phase": "fonts loaded",
+          "ms": 342.44251251220703
+        },
+        {
+          "phase": "session loaded",
+          "ms": 343.1837558746338
+        },
+        {
+          "phase": "melty configured",
+          "ms": 343.6427116394043
+        },
+        {
+          "phase": "1 window(s) created",
+          "ms": 389.1730308532715
+        },
+        {
+          "phase": "first frame presented",
+          "ms": 447.5128650665283
+        }
+      ]
+    },
+    {
+      "variant": "after",
+      "first_frame_ms": 495.26214599609375,
+      "text_presented_ms": 650.9923934936523,
+      "frames": 3,
+      "events": [
+        {
+          "phase": "launcher exec",
+          "ms": 0.0
+        },
+        {
+          "phase": "interpreter + stdlib",
+          "ms": 40.13252258300781
+        },
+        {
+          "phase": "wayland window API ready",
+          "ms": 79.82492446899414
+        },
+        {
+          "phase": "wayland.init",
+          "ms": 134.4735622406006
+        },
+        {
+          "phase": "owner window created",
+          "ms": 169.87204551696777
+        },
+        {
+          "phase": "imgui/numpy/GL imported (bg)",
+          "ms": 181.1363697052002
+        },
+        {
+          "phase": "owner context current",
+          "ms": 201.48611068725586
+        },
+        {
+          "phase": "melty imported (bg)",
+          "ms": 356.42290115356445
+        },
+        {
+          "phase": "session loaded",
+          "ms": 387.5555992126465
+        },
+        {
+          "phase": "fonts loaded",
+          "ms": 389.1417980194092
+        },
+        {
+          "phase": "session loaded",
+          "ms": 390.486478805542
+        },
+        {
+          "phase": "melty configured",
+          "ms": 391.4833068847656
+        },
+        {
+          "phase": "1 window(s) created",
+          "ms": 438.8911724090576
+        },
+        {
+          "phase": "first frame presented",
+          "ms": 495.27788162231445
+        }
+      ]
+    },
+    {
+      "variant": "before",
+      "first_frame_ms": 550.8768558502197,
+      "text_presented_ms": 764.7502422332764,
+      "frames": 3,
+      "events": [
+        {
+          "phase": "launcher exec",
+          "ms": 0.0
+        },
+        {
+          "phase": "interpreter + stdlib",
+          "ms": 31.060457229614258
+        },
+        {
+          "phase": "wayland window API ready",
+          "ms": 377.9006004333496
+        },
+        {
+          "phase": "imgui/numpy/GL imported (bg)",
+          "ms": 379.09388542175293
+        },
+        {
+          "phase": "melty imported (bg)",
+          "ms": 383.53896141052246
+        },
+        {
+          "phase": "wayland.init",
+          "ms": 412.52875328063965
+        },
+        {
+          "phase": "owner window created",
+          "ms": 434.5571994781494
+        },
+        {
+          "phase": "owner context current",
+          "ms": 461.986780166626
+        },
+        {
+          "phase": "session loaded",
+          "ms": 465.24620056152344
+        },
+        {
+          "phase": "fonts loaded",
+          "ms": 466.0181999206543
+        },
+        {
+          "phase": "session loaded",
+          "ms": 467.21887588500977
+        },
+        {
+          "phase": "melty configured",
+          "ms": 468.3570861816406
+        },
+        {
+          "phase": "1 window(s) created",
+          "ms": 506.79969787597656
+        },
+        {
+          "phase": "first frame presented",
+          "ms": 550.8887767791748
+        }
+      ]
+    },
+    {
+      "variant": "before",
+      "first_frame_ms": 2011.2462043762207,
+      "text_presented_ms": 2497.3251819610596,
+      "frames": 3,
+      "events": [
+        {
+          "phase": "launcher exec",
+          "ms": 0.0
+        },
+        {
+          "phase": "interpreter + stdlib",
+          "ms": 29.357194900512695
+        },
+        {
+          "phase": "wayland window API ready",
+          "ms": 927.262544631958
+        },
+        {
+          "phase": "imgui/numpy/GL imported (bg)",
+          "ms": 941.0207271575928
+        },
+        {
+          "phase": "melty imported (bg)",
+          "ms": 984.1899871826172
+        },
+        {
+          "phase": "wayland.init",
+          "ms": 1087.824821472168
+        },
+        {
+          "phase": "owner window created",
+          "ms": 1131.3602924346924
+        },
+        {
+          "phase": "owner context current",
+          "ms": 1176.2490272521973
+        },
+        {
+          "phase": "session loaded",
+          "ms": 1181.7991733551025
+        },
+        {
+          "phase": "fonts loaded",
+          "ms": 1183.3484172821045
+        },
+        {
+          "phase": "session loaded",
+          "ms": 1185.0230693817139
+        },
+        {
+          "phase": "melty configured",
+          "ms": 1189.1560554504395
+        },
+        {
+          "phase": "1 window(s) created",
+          "ms": 1372.9400634765625
+        },
+        {
+          "phase": "first frame presented",
+          "ms": 2011.418342590332
+        }
+      ]
+    },
+    {
+      "variant": "after",
+      "first_frame_ms": 1844.2432880401611,
+      "text_presented_ms": 2707.6759338378906,
+      "frames": 3,
+      "events": [
+        {
+          "phase": "launcher exec",
+          "ms": 0.0
+        },
+        {
+          "phase": "interpreter + stdlib",
+          "ms": 73.28486442565918
+        },
+        {
+          "phase": "wayland window API ready",
+          "ms": 228.04880142211914
+        },
+        {
+          "phase": "wayland.init",
+          "ms": 367.91396141052246
+        },
+        {
+          "phase": "owner window created",
+          "ms": 423.13146591186523
+        },
+        {
+          "phase": "owner context current",
+          "ms": 487.4534606933594
+        },
+        {
+          "phase": "imgui/numpy/GL imported (bg)",
+          "ms": 525.0136852264404
+        },
+        {
+          "phase": "melty imported (bg)",
+          "ms": 1223.7069606781006
+        },
+        {
+          "phase": "session loaded",
+          "ms": 1411.2176895141602
+        },
+        {
+          "phase": "fonts loaded",
+          "ms": 1415.1332378387451
+        },
+        {
+          "phase": "session loaded",
+          "ms": 1422.9521751403809
+        },
+        {
+          "phase": "melty configured",
+          "ms": 1426.8951416015625
+        },
+        {
+          "phase": "1 window(s) created",
+          "ms": 1584.9072933197021
+        },
+        {
+          "phase": "first frame presented",
+          "ms": 1844.3961143493652
+        }
+      ]
+    },
+    {
+      "variant": "after",
+      "first_frame_ms": 1787.4972820281982,
+      "text_presented_ms": 2578.9010524749756,
+      "frames": 3,
+      "events": [
+        {
+          "phase": "launcher exec",
+          "ms": 0.0
+        },
+        {
+          "phase": "interpreter + stdlib",
+          "ms": 154.21199798583984
+        },
+        {
+          "phase": "wayland window API ready",
+          "ms": 304.80241775512695
+        },
+        {
+          "phase": "wayland.init",
+          "ms": 426.25975608825684
+        },
+        {
+          "phase": "owner window created",
+          "ms": 493.0086135864258
+        },
+        {
+          "phase": "owner context current",
+          "ms": 554.706335067749
+        },
+        {
+          "phase": "imgui/numpy/GL imported (bg)",
+          "ms": 634.2089176177979
+        },
+        {
+          "phase": "melty imported (bg)",
+          "ms": 1288.3477210998535
+        },
+        {
+          "phase": "session loaded",
+          "ms": 1392.449140548706
+        },
+        {
+          "phase": "fonts loaded",
+          "ms": 1400.909185409546
+        },
+        {
+          "phase": "session loaded",
+          "ms": 1408.0226421356201
+        },
+        {
+          "phase": "melty configured",
+          "ms": 1419.525146484375
+        },
+        {
+          "phase": "1 window(s) created",
+          "ms": 1572.6251602172852
+        },
+        {
+          "phase": "first frame presented",
+          "ms": 1787.585973739624
+        }
+      ]
+    },
+    {
+      "variant": "before",
+      "first_frame_ms": 1655.5917263031006,
+      "text_presented_ms": 1801.480770111084,
+      "frames": 3,
+      "events": [
+        {
+          "phase": "launcher exec",
+          "ms": 0.0
+        },
+        {
+          "phase": "interpreter + stdlib",
+          "ms": 123.89898300170898
+        },
+        {
+          "phase": "wayland window API ready",
+          "ms": 1270.920753479004
+        },
+        {
+          "phase": "imgui/numpy/GL imported (bg)",
+          "ms": 1281.5666198730469
+        },
+        {
+          "phase": "melty imported (bg)",
+          "ms": 1307.4870109558105
+        },
+        {
+          "phase": "wayland.init",
+          "ms": 1401.4701843261719
+        },
+        {
+          "phase": "owner window created",
+          "ms": 1436.0573291778564
+        },
+        {
+          "phase": "owner context current",
+          "ms": 1473.2716083526611
+        },
+        {
+          "phase": "session loaded",
+          "ms": 1480.5309772491455
+        },
+        {
+          "phase": "fonts loaded",
+          "ms": 1485.6030941009521
+        },
+        {
+          "phase": "session loaded",
+          "ms": 1487.4365329742432
+        },
+        {
+          "phase": "melty configured",
+          "ms": 1493.0050373077393
+        },
+        {
+          "phase": "1 window(s) created",
+          "ms": 1590.2657508850098
+        },
+        {
+          "phase": "first frame presented",
+          "ms": 1655.6260585784912
+        }
+      ]
+    },
+    {
+      "variant": "before",
+      "first_frame_ms": 570.1789855957031,
+      "text_presented_ms": 729.0191650390625,
+      "frames": 3,
+      "events": [
+        {
+          "phase": "launcher exec",
+          "ms": 0.0
+        },
+        {
+          "phase": "interpreter + stdlib",
+          "ms": 28.138399124145508
+        },
+        {
+          "phase": "wayland window API ready",
+          "ms": 373.75378608703613
+        },
+        {
+          "phase": "imgui/numpy/GL imported (bg)",
+          "ms": 375.19168853759766
+        },
+        {
+          "phase": "melty imported (bg)",
+          "ms": 380.19585609436035
+        },
+        {
+          "phase": "wayland.init",
+          "ms": 409.5191955566406
+        },
+        {
+          "phase": "owner window created",
+          "ms": 432.422399520874
+        },
+        {
+          "phase": "owner context current",
+          "ms": 461.4901542663574
+        },
+        {
+          "phase": "session loaded",
+          "ms": 466.49861335754395
+        },
+        {
+          "phase": "fonts loaded",
+          "ms": 467.56458282470703
+        },
+        {
+          "phase": "session loaded",
+          "ms": 469.06518936157227
+        },
+        {
+          "phase": "melty configured",
+          "ms": 470.3524112701416
+        },
+        {
+          "phase": "1 window(s) created",
+          "ms": 516.6974067687988
+        },
+        {
+          "phase": "first frame presented",
+          "ms": 570.1992511749268
+        }
+      ]
+    },
+    {
+      "variant": "after",
+      "first_frame_ms": 480.67355155944824,
+      "text_presented_ms": 636.5554332733154,
+      "frames": 3,
+      "events": [
+        {
+          "phase": "launcher exec",
+          "ms": 0.0
+        },
+        {
+          "phase": "interpreter + stdlib",
+          "ms": 33.068180084228516
+        },
+        {
+          "phase": "wayland window API ready",
+          "ms": 75.61326026916504
+        },
+        {
+          "phase": "wayland.init",
+          "ms": 161.65971755981445
+        },
+        {
+          "phase": "imgui/numpy/GL imported (bg)",
+          "ms": 188.1582736968994
+        },
+        {
+          "phase": "owner window created",
+          "ms": 189.71586227416992
+        },
+        {
+          "phase": "owner context current",
+          "ms": 229.0651798248291
+        },
+        {
+          "phase": "melty imported (bg)",
+          "ms": 352.1583080291748
+        },
+        {
+          "phase": "session loaded",
+          "ms": 384.0806484222412
+        },
+        {
+          "phase": "fonts loaded",
+          "ms": 384.8843574523926
+        },
+        {
+          "phase": "session loaded",
+          "ms": 385.6995105743408
+        },
+        {
+          "phase": "melty configured",
+          "ms": 386.2042427062988
+        },
+        {
+          "phase": "1 window(s) created",
+          "ms": 429.7478199005127
+        },
+        {
+          "phase": "first frame presented",
+          "ms": 480.68976402282715
+        }
+      ]
+    },
+    {
+      "variant": "after",
+      "first_frame_ms": 621.2348937988281,
+      "text_presented_ms": 858.1867218017578,
+      "frames": 3,
+      "events": [
+        {
+          "phase": "launcher exec",
+          "ms": 0.0
+        },
+        {
+          "phase": "interpreter + stdlib",
+          "ms": 25.747299194335938
+        },
+        {
+          "phase": "wayland window API ready",
+          "ms": 61.04087829589844
+        },
+        {
+          "phase": "wayland.init",
+          "ms": 125.32973289489746
+        },
+        {
+          "phase": "owner window created",
+          "ms": 152.49252319335938
+        },
+        {
+          "phase": "imgui/numpy/GL imported (bg)",
+          "ms": 154.09040451049805
+        },
+        {
+          "phase": "owner context current",
+          "ms": 182.30628967285156
+        },
+        {
+          "phase": "melty imported (bg)",
+          "ms": 323.26817512512207
+        },
+        {
+          "phase": "session loaded",
+          "ms": 420.856237411499
+        },
+        {
+          "phase": "fonts loaded",
+          "ms": 421.81921005249023
+        },
+        {
+          "phase": "session loaded",
+          "ms": 426.50890350341797
+        },
+        {
+          "phase": "melty configured",
+          "ms": 428.4627437591553
+        },
+        {
+          "phase": "1 window(s) created",
+          "ms": 525.1824855804443
+        },
+        {
+          "phase": "first frame presented",
+          "ms": 621.2472915649414
+        }
+      ]
+    },
+    {
+      "variant": "before",
+      "first_frame_ms": 1929.8529624938965,
+      "text_presented_ms": 2806.575298309326,
+      "frames": 3,
+      "events": [
+        {
+          "phase": "launcher exec",
+          "ms": 0.0
+        },
+        {
+          "phase": "interpreter + stdlib",
+          "ms": 174.4058132171631
+        },
+        {
+          "phase": "wayland window API ready",
+          "ms": 1277.5943279266357
+        },
+        {
+          "phase": "imgui/numpy/GL imported (bg)",
+          "ms": 1287.142038345337
+        },
+        {
+          "phase": "melty imported (bg)",
+          "ms": 1316.2789344787598
+        },
+        {
+          "phase": "wayland.init",
+          "ms": 1443.263053894043
+        },
+        {
+          "phase": "owner window created",
+          "ms": 1531.1589241027832
+        },
+        {
+          "phase": "owner context current",
+          "ms": 1603.1253337860107
+        },
+        {
+          "phase": "session loaded",
+          "ms": 1623.5301494598389
+        },
+        {
+          "phase": "fonts loaded",
+          "ms": 1630.2661895751953
+        },
+        {
+          "phase": "session loaded",
+          "ms": 1640.7787799835205
+        },
+        {
+          "phase": "melty configured",
+          "ms": 1658.700704574585
+        },
+        {
+          "phase": "1 window(s) created",
+          "ms": 1781.1229228973389
+        },
+        {
+          "phase": "first frame presented",
+          "ms": 1929.9561977386475
+        }
+      ]
+    },
+    {
+      "variant": "before",
+      "first_frame_ms": 2417.808771133423,
+      "text_presented_ms": 2946.1376667022705,
+      "frames": 3,
+      "events": [
+        {
+          "phase": "launcher exec",
+          "ms": 0.0
+        },
+        {
+          "phase": "interpreter + stdlib",
+          "ms": 79.27417755126953
+        },
+        {
+          "phase": "wayland window API ready",
+          "ms": 1467.7848815917969
+        },
+        {
+          "phase": "imgui/numpy/GL imported (bg)",
+          "ms": 1474.9538898468018
+        },
+        {
+          "phase": "melty imported (bg)",
+          "ms": 1499.5434284210205
+        },
+        {
+          "phase": "wayland.init",
+          "ms": 1654.181957244873
+        },
+        {
+          "phase": "owner window created",
+          "ms": 1697.1564292907715
+        },
+        {
+          "phase": "owner context current",
+          "ms": 1786.3056659698486
+        },
+        {
+          "phase": "session loaded",
+          "ms": 1791.5661334991455
+        },
+        {
+          "phase": "fonts loaded",
+          "ms": 1795.1843738555908
+        },
+        {
+          "phase": "session loaded",
+          "ms": 1798.715353012085
+        },
+        {
+          "phase": "melty configured",
+          "ms": 1802.8841018676758
+        },
+        {
+          "phase": "1 window(s) created",
+          "ms": 2160.2256298065186
+        },
+        {
+          "phase": "first frame presented",
+          "ms": 2417.991876602173
+        }
+      ]
+    },
+    {
+      "variant": "after",
+      "first_frame_ms": 2047.971248626709,
+      "text_presented_ms": 2988.03448677063,
+      "frames": 3,
+      "events": [
+        {
+          "phase": "launcher exec",
+          "ms": 0.0
+        },
+        {
+          "phase": "interpreter + stdlib",
+          "ms": 146.3320255279541
+        },
+        {
+          "phase": "wayland window API ready",
+          "ms": 307.39426612854004
+        },
+        {
+          "phase": "wayland.init",
+          "ms": 478.5490036010742
+        },
+        {
+          "phase": "owner window created",
+          "ms": 548.9921569824219
+        },
+        {
+          "phase": "owner context current",
+          "ms": 614.3753528594971
+        },
+        {
+          "phase": "imgui/numpy/GL imported (bg)",
+          "ms": 741.5623664855957
+        },
+        {
+          "phase": "melty imported (bg)",
+          "ms": 1440.7024383544922
+        },
+        {
+          "phase": "session loaded",
+          "ms": 1632.9073905944824
+        },
+        {
+          "phase": "fonts loaded",
+          "ms": 1639.8780345916748
+        },
+        {
+          "phase": "session loaded",
+          "ms": 1644.5729732513428
+        },
+        {
+          "phase": "melty configured",
+          "ms": 1648.0004787445068
+        },
+        {
+          "phase": "1 window(s) created",
+          "ms": 1827.4657726287842
+        },
+        {
+          "phase": "first frame presented",
+          "ms": 2048.2451915740967
+        }
+      ]
+    },
+    {
+      "variant": "after",
+      "first_frame_ms": 437.7593994140625,
+      "text_presented_ms": 592.0860767364502,
+      "frames": 3,
+      "events": [
+        {
+          "phase": "launcher exec",
+          "ms": 0.0
+        },
+        {
+          "phase": "interpreter + stdlib",
+          "ms": 24.817943572998047
+        },
+        {
+          "phase": "wayland window API ready",
+          "ms": 57.32321739196777
+        },
+        {
+          "phase": "wayland.init",
+          "ms": 133.56757164001465
+        },
+        {
+          "phase": "imgui/numpy/GL imported (bg)",
+          "ms": 162.98365592956543
+        },
+        {
+          "phase": "owner window created",
+          "ms": 168.562650680542
+        },
+        {
+          "phase": "owner context current",
+          "ms": 207.95512199401855
+        },
+        {
+          "phase": "melty imported (bg)",
+          "ms": 310.48130989074707
+        },
+        {
+          "phase": "session loaded",
+          "ms": 337.03136444091797
+        },
+        {
+          "phase": "fonts loaded",
+          "ms": 337.7950191497803
+        },
+        {
+          "phase": "session loaded",
+          "ms": 338.70816230773926
+        },
+        {
+          "phase": "melty configured",
+          "ms": 339.28871154785156
+        },
+        {
+          "phase": "1 window(s) created",
+          "ms": 384.4616413116455
+        },
+        {
+          "phase": "first frame presented",
+          "ms": 437.7758502960205
+        }
+      ]
+    },
+    {
+      "variant": "before",
+      "first_frame_ms": 555.5846691131592,
+      "text_presented_ms": 711.7128372192383,
+      "frames": 3,
+      "events": [
+        {
+          "phase": "launcher exec",
+          "ms": 0.0
+        },
+        {
+          "phase": "interpreter + stdlib",
+          "ms": 27.776718139648438
+        },
+        {
+          "phase": "wayland window API ready",
+          "ms": 351.14526748657227
+        },
+        {
+          "phase": "imgui/numpy/GL imported (bg)",
+          "ms": 352.5559902191162
+        },
+        {
+          "phase": "melty imported (bg)",
+          "ms": 358.7162494659424
+        },
+        {
+          "phase": "wayland.init",
+          "ms": 394.6857452392578
+        },
+        {
+          "phase": "owner window created",
+          "ms": 420.32432556152344
+        },
+        {
+          "phase": "owner context current",
+          "ms": 454.6771049499512
+        },
+        {
+          "phase": "session loaded",
+          "ms": 458.4007263183594
+        },
+        {
+          "phase": "fonts loaded",
+          "ms": 459.60521697998047
+        },
+        {
+          "phase": "session loaded",
+          "ms": 460.36696434020996
+        },
+        {
+          "phase": "melty configured",
+          "ms": 461.8363380432129
+        },
+        {
+          "phase": "1 window(s) created",
+          "ms": 507.8556537628174
+        },
+        {
+          "phase": "first frame presented",
+          "ms": 555.5987358093262
+        }
+      ]
+    }
+  ]
+}

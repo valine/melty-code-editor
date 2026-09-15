@@ -28,10 +28,19 @@ along the bottom (close buttons, drag to reorder), the editor above it with
 Python highlighting, folds, search, autocomplete and analysis, the **Compare
 With** dropdown (git HEAD, the file on disk, any recent commit, rendered as
 an editable side-by-side diff) and the nav back / forward buttons.
-**Search → Search…** (Ctrl+Shift+F) is melty's global search, Code tab
-only: files, classes, defs and their call sites across the projects of the
-open tabs (the git root of each, or its directory), a hit opening in the
-editor at the definition. `melty.global_search(categories=('Code',),
+The editor window leads with the file browser's **shortcuts column**
+(`draw_code_editor(show_shortcuts=True)`: home, the XDG folders, the root,
+then the projects), the divider next to it draggable and remembered; a
+click opens the Open dialog in that folder. **Projects** are folders marked in melty's shared file-meta store
+(`melty.mark_project`; the flag rides `~/.melty/file_meta.pkl` beside the
+tints, so the studio and every other melty app see it too). The Projects
+menu: **Add Folder…** (the file browser as a folder picker), **Mark ▸** an
+open tab's project (its git root / project marker, not marked yet), and
+**Unmark ▸** one; right-clicking a folder in the Open dialog offers the
+same. **Search → Search…** (Ctrl+Shift+F) is melty's global search, Code
+tab only: files, classes, defs and their call sites across the marked
+projects plus the project of every open tab outside them, a hit opening in
+the editor at the definition. `melty.global_search(categories=('Code',),
 roots=project_roots, open_files=open_files)` in `editor.py` is the whole of
 it; the query and the pick counts persist with the session. Edits go
 to melty's file hosts (the studio's deferred-save model: queued in memory,
@@ -84,6 +93,13 @@ In IntelliJ / PyCharm set the project interpreter to `.venv/bin/python`.
 `~/.local/share/applications/`). First frame is ~0.4 s, the same as the
 text editor (it was 1.6 s while the app model loaded).
 
+## Startup profiling
+
+Startup profiling and the native-window import optimizations are documented in
+[STARTUP_PROFILE.md](STARTUP_PROFILE.md), with a repeatable fresh-process harness.
+The final paired measurements were 519 → 396 ms to the first frame and
+652 → 526 ms to present the selected file's text.
+
 ## Known gaps
 
 * Read-only files and library installs are refused (studio rule, see above).
@@ -106,3 +122,17 @@ Cancel/Escape leaves the editor unchanged. Read-only files and library
 installs show the same refusal as command-line opens.
 
 **File → Quit** closes the window and uses melty's normal save-on-exit flow.
+
+## Inline function console
+
+The function's existing Run/Run Visualize and parameters panel also contains a
+scrollable, selectable console. Each run starts a fresh transcript, capturing
+Python stdout and stderr together. Functions run on a worker so `input()` and
+`sys.stdin` can wait while the editor stays responsive. Type into the console's
+input field and press Enter or **Send**; **End input** sends EOF. Output stays
+visible after the run finishes, and errors remain dismissible in the panel.
+
+A second manual click while the function is running does not start another
+copy. Auto Execute keeps the latest requested rerun until the current run
+finishes. Capture is scoped to the runner thread; other app threads, native
+file-descriptor writes, and subprocess streams keep their normal destinations.
