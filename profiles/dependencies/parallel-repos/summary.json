@@ -1,0 +1,100 @@
+[
+  {
+    "root": "/home/lukas/Desktop/pytorch-review/nanoGPT",
+    "seconds": [
+      0.04733294400648447,
+      0.006532965999213047,
+      0.0063952729979064316
+    ],
+    "median": 0.006532965999213047,
+    "imports": 18,
+    "rows": 18,
+    "errors": [
+      "No virtual environment selected"
+    ]
+  },
+  {
+    "root": "/home/lukas/Desktop/pytorch-review/whisper",
+    "seconds": [
+      0.08104111799912062,
+      0.01804322099633282,
+      0.01802894200227456
+    ],
+    "median": 0.01804322099633282,
+    "imports": 34,
+    "rows": 34,
+    "errors": [
+      "No virtual environment selected"
+    ]
+  },
+  {
+    "root": "/home/lukas/Desktop/pytorch-review/ultralytics",
+    "seconds": [
+      0.15290805800032103,
+      0.1422820480001974,
+      0.13897018400166417
+    ],
+    "median": 0.1422820480001974,
+    "imports": 158,
+    "rows": 173,
+    "errors": [
+      "No virtual environment selected"
+    ]
+  },
+  {
+    "root": "/home/lukas/Desktop/pytorch-review/timm",
+    "seconds": [
+      0.16502386500360444,
+      0.17220138999982737,
+      0.17807036500016693
+    ],
+    "median": 0.17220138999982737,
+    "imports": 74,
+    "rows": 78,
+    "errors": [
+      "No virtual environment selected"
+    ]
+  },
+  {
+    "root": "/home/lukas/Desktop/pytorch-review/ignite",
+    "seconds": [
+      0.14197502300521592,
+      0.13622480900085066,
+      0.14792974799638614
+    ],
+    "median": 0.14197502300521592,
+    "imports": 100,
+    "rows": 116,
+    "errors": [
+      "No virtual environment selected"
+    ]
+  },
+  {
+    "root": "/home/lukas/Desktop/pytorch-review/torchmetrics",
+    "seconds": [
+      0.17446985700371442,
+      0.17826691799564287,
+      0.16488408199802507
+    ],
+    "median": 0.17446985700371442,
+    "imports": 107,
+    "rows": 149,
+    "errors": [
+      "No virtual environment selected"
+    ]
+  },
+  {
+    "root": "/home/lukas/Desktop/pytorch-review/examples",
+    "seconds": [
+      0.06463168300251709,
+      0.06765146200632444,
+      0.05849582499649841
+    ],
+    "median": 0.06463168300251709,
+    "imports": 73,
+    "rows": 84,
+    "errors": [
+      "No virtual environment selected"
+    ]
+  }
+]

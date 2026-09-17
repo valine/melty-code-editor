@@ -1,0 +1,6677 @@
+{
+  "context": [
+    "/home/lukas/Desktop/pytorch-review/ultralytics",
+    null
+  ],
+  "installed": [],
+  "declared": [],
+  "toml": [
+    [
+      "cloudpickle",
+      ">=3.1.1"
+    ],
+    [
+      "filelock",
+      ">=3.16.1"
+    ],
+    [
+      "matplotlib",
+      ">=3.3.0"
+    ],
+    [
+      "numpy",
+      "!=2.0.*,!=2.1.*,!=2.2.*,!=2.3.0,!=2.3.1,!=2.3.2,!=2.3.3,!=2.3.4,>=1.23.0; platform_system == \"Darwin\""
+    ],
+    [
+      "numpy",
+      ">=1.23.0; platform_system != \"Darwin\""
+    ],
+    [
+      "nvidia-ml-py",
+      ">=12.0.0"
+    ],
+    [
+      "opencv-python",
+      "!=4.13.0.90,>=4.7.0"
+    ],
+    [
+      "pillow",
+      ">=7.1.2"
+    ],
+    [
+      "polars",
+      ">=0.20.0"
+    ],
+    [
+      "psutil",
+      ">=5.8.0"
+    ],
+    [
+      "pyyaml",
+      ">=5.3.1"
+    ],
+    [
+      "requests",
+      ">=2.23.0"
+    ],
+    [
+      "torch",
+      "!=2.4.0,>=1.8.0; sys_platform == \"win32\""
+    ],
+    [
+      "torch",
+      ">=1.8.0"
+    ],
+    [
+      "torchvision",
+      ">=0.9.0"
+    ],
+    [
+      "ultralytics-platform",
+      ">=0.1.32; python_version >= \"3.11\""
+    ],
+    [
+      "ultralytics-thop",
+      ">=2.1.6"
+    ]
+  ],
+  "imported": [
+    [
+      "__future__",
+      "\u2014"
+    ],
+    [
+      "abc",
+      "\u2014"
+    ],
+    [
+      "ai_edge_litert",
+      "\u2014"
+    ],
+    [
+      "ai_edge_quantizer",
+      "\u2014"
+    ],
+    [
+      "aiohttp",
+      "\u2014"
+    ],
+    [
+      "ais_bench",
+      "\u2014"
+    ],
+    [
+      "albumentations",
+      "\u2014"
+    ],
+    [
+      "argparse",
+      "\u2014"
+    ],
+    [
+      "ast",
+      "\u2014"
+    ],
+    [
+      "asyncio",
+      "\u2014"
+    ],
+    [
+      "ax",
+      "\u2014"
+    ],
+    [
+      "axelera",
+      "\u2014"
+    ],
+    [
+      "base64",
+      "\u2014"
+    ],
+    [
+      "build_reference",
+      "\u2014"
+    ],
+    [
+      "builtins",
+      "\u2014"
+    ],
+    [
+      "clearml",
+      "\u2014"
+    ],
+    [
+      "clip",
+      "\u2014"
+    ],
+    [
+      "cloudpickle",
+      "\u2014"
+    ],
+    [
+      "collections",
+      "\u2014"
+    ],
+    [
+      "colorsys",
+      "\u2014"
+    ],
+    [
+      "comet_ml",
+      "\u2014"
+    ],
+    [
+      "concurrent",
+      "\u2014"
+    ],
+    [
+      "ConfigSpace",
+      "\u2014"
+    ],
+    [
+      "contextlib",
+      "\u2014"
+    ],
+    [
+      "copy",
+      "\u2014"
+    ],
+    [
+      "coreai",
+      "\u2014"
+    ],
+    [
+      "coreai_torch",
+      "\u2014"
+    ],
+    [
+      "coremltools",
+      "\u2014"
+    ],
+    [
+      "csv",
+      "\u2014"
+    ],
+    [
+      "ctypes",
+      "\u2014"
+    ],
+    [
+      "cv2",
+      "\u2014"
+    ],
+    [
+      "dataclasses",
+      "\u2014"
+    ],
+    [
+      "datetime",
+      "\u2014"
+    ],
+    [
+      "difflib",
+      "\u2014"
+    ],
+    [
+      "dvclive",
+      "\u2014"
+    ],
+    [
+      "dx_com",
+      "\u2014"
+    ],
+    [
+      "dx_engine",
+      "\u2014"
+    ],
+    [
+      "edgemdt_cl",
+      "\u2014"
+    ],
+    [
+      "edgemdt_tpc",
+      "\u2014"
+    ],
+    [
+      "email",
+      "\u2014"
+    ],
+    [
+      "enum",
+      "\u2014"
+    ],
+    [
+      "executorch",
+      "\u2014"
+    ],
+    [
+      "faster_coco_eval",
+      "\u2014"
+    ],
+    [
+      "filelock",
+      "\u2014"
+    ],
+    [
+      "flask",
+      "\u2014"
+    ],
+    [
+      "functools",
+      "\u2014"
+    ],
+    [
+      "gc",
+      "\u2014"
+    ],
+    [
+      "glob",
+      "\u2014"
+    ],
+    [
+      "hailo_platform",
+      "\u2014"
+    ],
+    [
+      "hailo_sdk_client",
+      "\u2014"
+    ],
+    [
+      "hashlib",
+      "\u2014"
+    ],
+    [
+      "html",
+      "\u2014"
+    ],
+    [
+      "http",
+      "\u2014"
+    ],
+    [
+      "httpx",
+      "\u2014"
+    ],
+    [
+      "importlib",
+      "\u2014"
+    ],
+    [
+      "inspect",
+      "\u2014"
+    ],
+    [
+      "io",
+      "\u2014"
+    ],
+    [
+      "IPython",
+      "\u2014"
+    ],
+    [
+      "itertools",
+      "\u2014"
+    ],
+    [
+      "json",
+      "\u2014"
+    ],
+    [
+      "lap",
+      "\u2014"
+    ],
+    [
+      "litert_torch",
+      "\u2014"
+    ],
+    [
+      "logging",
+      "\u2014"
+    ],
+    [
+      "math",
+      "\u2014"
+    ],
+    [
+      "matplotlib",
+      "\u2014"
+    ],
+    [
+      "mct_quantizers",
+      "\u2014"
+    ],
+    [
+      "minijinja",
+      "\u2014"
+    ],
+    [
+      "mlflow",
+      "\u2014"
+    ],
+    [
+      "mmap",
+      "\u2014"
+    ],
+    [
+      "MNN",
+      "\u2014"
+    ],
+    [
+      "mobileclip",
+      "\u2014"
+    ],
+    [
+      "model_compression_toolkit",
+      "\u2014"
+    ],
+    [
+      "modelopt",
+      "\u2014"
+    ],
+    [
+      "mss",
+      "\u2014"
+    ],
+    [
+      "multiprocessing",
+      "\u2014"
+    ],
+    [
+      "ncnn",
+      "\u2014"
+    ],
+    [
+      "nevergrad",
+      "\u2014"
+    ],
+    [
+      "nncf",
+      "\u2014"
+    ],
+    [
+      "numbers",
+      "\u2014"
+    ],
+    [
+      "numpy",
+      "\u2014"
+    ],
+    [
+      "onnx",
+      "\u2014"
+    ],
+    [
+      "onnx2tf",
+      "\u2014"
+    ],
+    [
+      "onnxruntime",
+      "\u2014"
+    ],
+    [
+      "onnxruntime_qnn",
+      "\u2014"
+    ],
+    [
+      "onnxslim",
+      "\u2014"
+    ],
+    [
+      "openai",
+      "\u2014"
+    ],
+    [
+      "openvino",
+      "\u2014"
+    ],
+    [
+      "optuna",
+      "\u2014"
+    ],
+    [
+      "os",
+      "\u2014"
+    ],
+    [
+      "paddle",
+      "\u2014"
+    ],
+    [
+      "pafy",
+      "\u2014"
+    ],
+    [
+      "pathlib",
+      "\u2014"
+    ],
+    [
+      "pi_heif",
+      "\u2014"
+    ],
+    [
+      "pickle",
+      "\u2014"
+    ],
+    [
+      "PIL",
+      "\u2014"
+    ],
+    [
+      "platform",
+      "\u2014"
+    ],
+    [
+      "plistlib",
+      "\u2014"
+    ],
+    [
+      "pnnx",
+      "\u2014"
+    ],
+    [
+      "polars",
+      "\u2014"
+    ],
+    [
+      "psutil",
+      "\u2014"
+    ],
+    [
+      "pymongo",
+      "\u2014"
+    ],
+    [
+      "pynvml",
+      "\u2014"
+    ],
+    [
+      "pytest",
+      "\u2014"
+    ],
+    [
+      "pytubefix",
+      "\u2014"
+    ],
+    [
+      "random",
+      "\u2014"
+    ],
+    [
+      "ray",
+      "\u2014"
+    ],
+    [
+      "re",
+      "\u2014"
+    ],
+    [
+      "requests",
+      "\u2014"
+    ],
+    [
+      "rknn",
+      "\u2014"
+    ],
+    [
+      "rknnlite",
+      "\u2014"
+    ],
+    [
+      "sahi",
+      "\u2014"
+    ],
+    [
+      "scipy",
+      "\u2014"
+    ],
+    [
+      "sentry_sdk",
+      "\u2014"
+    ],
+    [
+      "shapely",
+      "\u2014"
+    ],
+    [
+      "shlex",
+      "\u2014"
+    ],
+    [
+      "shutil",
+      "\u2014"
+    ],
+    [
+      "smtplib",
+      "\u2014"
+    ],
+    [
+      "socket",
+      "\u2014"
+    ],
+    [
+      "streamlit",
+      "\u2014"
+    ],
+    [
+      "struct",
+      "\u2014"
+    ],
+    [
+      "subprocess",
+      "\u2014"
+    ],
+    [
+      "super_gradients",
+      "\u2014"
+    ],
+    [
+      "sys",
+      "\u2014"
+    ],
+    [
+      "sysconfig",
+      "\u2014"
+    ],
+    [
+      "tarfile",
+      "\u2014"
+    ],
+    [
+      "tempfile",
+      "\u2014"
+    ],
+    [
+      "tensorflow",
+      "\u2014"
+    ],
+    [
+      "tensorrt",
+      "\u2014"
+    ],
+    [
+      "tests",
+      "\u2014"
+    ],
+    [
+      "textwrap",
+      "\u2014"
+    ],
+    [
+      "tflite_runtime",
+      "\u2014"
+    ],
+    [
+      "thop",
+      "\u2014"
+    ],
+    [
+      "threading",
+      "\u2014"
+    ],
+    [
+      "time",
+      "\u2014"
+    ],
+    [
+      "timm",
+      "\u2014"
+    ],
+    [
+      "tkinter",
+      "\u2014"
+    ],
+    [
+      "torch",
+      "\u2014"
+    ],
+    [
+      "torch_npu",
+      "\u2014"
+    ],
+    [
+      "torchvision",
+      "\u2014"
+    ],
+    [
+      "transformers",
+      "\u2014"
+    ],
+    [
+      "tritonclient",
+      "\u2014"
+    ],
+    [
+      "types",
+      "\u2014"
+    ],
+    [
+      "typing",
+      "\u2014"
+    ],
+    [
+      "typing_extensions",
+      "\u2014"
+    ],
+    [
+      "ultralytics",
+      "\u2014"
+    ],
+    [
+      "ultralytics_platform",
+      "\u2014"
+    ],
+    [
+      "unicodedata",
+      "\u2014"
+    ],
+    [
+      "unittest",
+      "\u2014"
+    ],
+    [
+      "urllib",
+      "\u2014"
+    ],
+    [
+      "uuid",
+      "\u2014"
+    ],
+    [
+      "wandb",
+      "\u2014"
+    ],
+    [
+      "warnings",
+      "\u2014"
+    ],
+    [
+      "winreg",
+      "\u2014"
+    ],
+    [
+      "x2paddle",
+      "\u2014"
+    ],
+    [
+      "yaml",
+      "\u2014"
+    ],
+    [
+      "yt_dlp",
+      "\u2014"
+    ],
+    [
+      "zipfile",
+      "\u2014"
+    ],
+    [
+      "zlib",
+      "\u2014"
+    ]
+  ],
+  "errors": [
+    "No virtual environment selected"
+  ],
+  "standard_library": [
+    "__future__",
+    "_abc",
+    "_aix_support",
+    "_ast",
+    "_asyncio",
+    "_bisect",
+    "_blake2",
+    "_bz2",
+    "_codecs",
+    "_codecs_cn",
+    "_codecs_hk",
+    "_codecs_iso2022",
+    "_codecs_jp",
+    "_codecs_kr",
+    "_codecs_tw",
+    "_collections",
+    "_collections_abc",
+    "_compat_pickle",
+    "_compression",
+    "_contextvars",
+    "_crypt",
+    "_csv",
+    "_ctypes",
+    "_curses",
+    "_curses_panel",
+    "_datetime",
+    "_dbm",
+    "_decimal",
+    "_elementtree",
+    "_frozen_importlib",
+    "_frozen_importlib_external",
+    "_functools",
+    "_gdbm",
+    "_hashlib",
+    "_heapq",
+    "_imp",
+    "_io",
+    "_json",
+    "_locale",
+    "_lsprof",
+    "_lzma",
+    "_markupbase",
+    "_md5",
+    "_msi",
+    "_multibytecodec",
+    "_multiprocessing",
+    "_opcode",
+    "_operator",
+    "_osx_support",
+    "_overlapped",
+    "_pickle",
+    "_posixshmem",
+    "_posixsubprocess",
+    "_py_abc",
+    "_pydatetime",
+    "_pydecimal",
+    "_pyio",
+    "_pylong",
+    "_queue",
+    "_random",
+    "_scproxy",
+    "_sha1",
+    "_sha2",
+    "_sha3",
+    "_signal",
+    "_sitebuiltins",
+    "_socket",
+    "_sqlite3",
+    "_sre",
+    "_ssl",
+    "_stat",
+    "_statistics",
+    "_string",
+    "_strptime",
+    "_struct",
+    "_symtable",
+    "_thread",
+    "_threading_local",
+    "_tkinter",
+    "_tokenize",
+    "_tracemalloc",
+    "_typing",
+    "_uuid",
+    "_warnings",
+    "_weakref",
+    "_weakrefset",
+    "_winapi",
+    "_zoneinfo",
+    "abc",
+    "aifc",
+    "antigravity",
+    "argparse",
+    "array",
+    "ast",
+    "asyncio",
+    "atexit",
+    "audioop",
+    "base64",
+    "bdb",
+    "binascii",
+    "bisect",
+    "builtins",
+    "bz2",
+    "cProfile",
+    "calendar",
+    "cgi",
+    "cgitb",
+    "chunk",
+    "cmath",
+    "cmd",
+    "code",
+    "codecs",
+    "codeop",
+    "collections",
+    "colorsys",
+    "compileall",
+    "concurrent",
+    "configparser",
+    "contextlib",
+    "contextvars",
+    "copy",
+    "copyreg",
+    "crypt",
+    "csv",
+    "ctypes",
+    "curses",
+    "dataclasses",
+    "datetime",
+    "dbm",
+    "decimal",
+    "difflib",
+    "dis",
+    "doctest",
+    "email",
+    "encodings",
+    "ensurepip",
+    "enum",
+    "errno",
+    "faulthandler",
+    "fcntl",
+    "filecmp",
+    "fileinput",
+    "fnmatch",
+    "fractions",
+    "ftplib",
+    "functools",
+    "gc",
+    "genericpath",
+    "getopt",
+    "getpass",
+    "gettext",
+    "glob",
+    "graphlib",
+    "grp",
+    "gzip",
+    "hashlib",
+    "heapq",
+    "hmac",
+    "html",
+    "http",
+    "idlelib",
+    "imaplib",
+    "imghdr",
+    "importlib",
+    "inspect",
+    "io",
+    "ipaddress",
+    "itertools",
+    "json",
+    "keyword",
+    "lib2to3",
+    "linecache",
+    "locale",
+    "logging",
+    "lzma",
+    "mailbox",
+    "mailcap",
+    "marshal",
+    "math",
+    "mimetypes",
+    "mmap",
+    "modulefinder",
+    "msilib",
+    "msvcrt",
+    "multiprocessing",
+    "netrc",
+    "nis",
+    "nntplib",
+    "nt",
+    "ntpath",
+    "nturl2path",
+    "numbers",
+    "opcode",
+    "operator",
+    "optparse",
+    "os",
+    "ossaudiodev",
+    "pathlib",
+    "pdb",
+    "pickle",
+    "pickletools",
+    "pipes",
+    "pkgutil",
+    "platform",
+    "plistlib",
+    "poplib",
+    "posix",
+    "posixpath",
+    "pprint",
+    "profile",
+    "pstats",
+    "pty",
+    "pwd",
+    "py_compile",
+    "pyclbr",
+    "pydoc",
+    "pydoc_data",
+    "pyexpat",
+    "queue",
+    "quopri",
+    "random",
+    "re",
+    "readline",
+    "reprlib",
+    "resource",
+    "rlcompleter",
+    "runpy",
+    "sched",
+    "secrets",
+    "select",
+    "selectors",
+    "shelve",
+    "shlex",
+    "shutil",
+    "signal",
+    "site",
+    "smtplib",
+    "sndhdr",
+    "socket",
+    "socketserver",
+    "spwd",
+    "sqlite3",
+    "sre_compile",
+    "sre_constants",
+    "sre_parse",
+    "ssl",
+    "stat",
+    "statistics",
+    "string",
+    "stringprep",
+    "struct",
+    "subprocess",
+    "sunau",
+    "symtable",
+    "sys",
+    "sysconfig",
+    "syslog",
+    "tabnanny",
+    "tarfile",
+    "telnetlib",
+    "tempfile",
+    "termios",
+    "textwrap",
+    "this",
+    "threading",
+    "time",
+    "timeit",
+    "tkinter",
+    "token",
+    "tokenize",
+    "tomllib",
+    "trace",
+    "traceback",
+    "tracemalloc",
+    "tty",
+    "turtle",
+    "turtledemo",
+    "types",
+    "typing",
+    "unicodedata",
+    "unittest",
+    "urllib",
+    "uu",
+    "uuid",
+    "venv",
+    "warnings",
+    "wave",
+    "weakref",
+    "webbrowser",
+    "winreg",
+    "winsound",
+    "wsgiref",
+    "xdrlib",
+    "xml",
+    "xmlrpc",
+    "zipapp",
+    "zipfile",
+    "zipimport",
+    "zlib",
+    "zoneinfo"
+  ],
+  "optional_imports": [
+    "IPython",
+    "ai_edge_litert",
+    "ai_edge_quantizer",
+    "albumentations",
+    "argparse",
+    "build_reference",
+    "builtins",
+    "clearml",
+    "clip",
+    "colorsys",
+    "comet_ml",
+    "coreai_torch",
+    "coremltools",
+    "csv",
+    "difflib",
+    "dvclive",
+    "dx_com",
+    "executorch",
+    "faster_coco_eval",
+    "flask",
+    "html",
+    "http",
+    "lap",
+    "litert_torch",
+    "minijinja",
+    "mlflow",
+    "mobileclip",
+    "nncf",
+    "onnx",
+    "onnxruntime",
+    "onnxruntime_qnn",
+    "onnxslim",
+    "openai",
+    "openvino",
+    "optuna",
+    "pafy",
+    "pytest",
+    "pytubefix",
+    "sahi",
+    "scipy",
+    "sentry_sdk",
+    "shapely",
+    "streamlit",
+    "struct",
+    "tensorflow",
+    "tensorrt",
+    "tests",
+    "textwrap",
+    "tflite_runtime",
+    "thop",
+    "tkinter",
+    "torch_npu",
+    "transformers",
+    "tritonclient",
+    "ultralytics",
+    "ultralytics_platform",
+    "unittest",
+    "wandb",
+    "winreg",
+    "yt_dlp"
+  ],
+  "import_sources": {
+    "__future__": [
+      "docs/build_docs.py:4",
+      "docs/build_reference.py:11",
+      "examples/RTDETR-ONNXRuntime-Python/main.py:3",
+      "examples/YOLO-Axelera-Python/yolo11-seg.py:19",
+      "examples/YOLO-Axelera-Python/yolo26-pose-tracker.py:30",
+      "examples/YOLO-Interactive-Tracking-UI/interactive_tracker.py:3",
+      "examples/YOLOv8-Action-Recognition/action_recognition.py:3",
+      "examples/YOLOv8-ONNXRuntime/main.py:3",
+      "examples/YOLOv8-OpenCV-ONNX-Python/main.py:3",
+      "examples/YOLOv8-Region-Counter/yolov8_region_counter.py:3",
+      "examples/YOLOv8-Segmentation-ONNXRuntime-Python/main.py:3",
+      "ultralytics/cfg/__init__.py:3",
+      "ultralytics/data/annotator.py:3",
+      "ultralytics/data/augment.py:3",
+      "ultralytics/data/base.py:3",
+      "ultralytics/data/build.py:3",
+      "ultralytics/data/converter.py:3",
+      "ultralytics/data/dataset.py:3",
+      "ultralytics/data/loaders.py:3",
+      "ultralytics/data/split.py:3",
+      "ultralytics/data/split_dota.py:3",
+      "ultralytics/data/utils.py:3",
+      "ultralytics/engine/exporter.py:67",
+      "ultralytics/engine/model.py:3",
+      "ultralytics/engine/predictor.py:40",
+      "ultralytics/engine/results.py:8",
+      "ultralytics/engine/trainer.py:9",
+      "ultralytics/engine/tuner.py:17",
+      "ultralytics/engine/validator.py:31",
+      "ultralytics/models/fastsam/model.py:3",
+      "ultralytics/models/fastsam/predict.py:3",
+      "ultralytics/models/fastsam/val.py:3",
+      "ultralytics/models/llm.py:3",
+      "ultralytics/models/nas/model.py:3",
+      "ultralytics/models/rtdetr/train.py:3",
+      "ultralytics/models/rtdetr/val.py:3",
+      "ultralytics/models/sam/amg.py:3",
+      "ultralytics/models/sam/model.py:17",
+      "ultralytics/models/sam/modules/blocks.py:3",
+      "ultralytics/models/sam/modules/decoders.py:3",
+      "ultralytics/models/sam/modules/encoders.py:3",
+      "ultralytics/models/sam/modules/memory_attention.py:3",
+      "ultralytics/models/sam/modules/sam.py:6",
+      "ultralytics/models/sam/modules/tiny_encoder.py:12",
+      "ultralytics/models/sam/modules/transformer.py:3",
+      "ultralytics/models/sam/modules/utils.py:3",
+      "ultralytics/models/sam/predict.py:11",
+      "ultralytics/models/sam/sam3/decoder.py:9",
+      "ultralytics/models/sam/sam3/encoder.py:5",
+      "ultralytics/models/sam/sam3/maskformer_segmentation.py:5",
+      "ultralytics/models/sam/sam3/model_misc.py:7",
+      "ultralytics/models/sam/sam3/necks.py:7",
+      "ultralytics/models/sam/sam3/sam3_image.py:5",
+      "ultralytics/models/sam/sam3/text_encoder_ve.py:5",
+      "ultralytics/models/sam/sam3/vitdet.py:15",
+      "ultralytics/models/sam/sam3/vl_combiner.py:7",
+      "ultralytics/models/utils/loss.py:3",
+      "ultralytics/models/utils/ops.py:3",
+      "ultralytics/models/yolo/classify/predict.py:3",
+      "ultralytics/models/yolo/classify/train.py:3",
+      "ultralytics/models/yolo/classify/val.py:3",
+      "ultralytics/models/yolo/depth/calibrate.py:15",
+      "ultralytics/models/yolo/depth/predict.py:4",
+      "ultralytics/models/yolo/depth/train.py:4",
+      "ultralytics/models/yolo/depth/val.py:4",
+      "ultralytics/models/yolo/detect/train.py:3",
+      "ultralytics/models/yolo/detect/val.py:3",
+      "ultralytics/models/yolo/model.py:3",
+      "ultralytics/models/yolo/obb/predict.py:3",
+      "ultralytics/models/yolo/obb/train.py:3",
+      "ultralytics/models/yolo/obb/val.py:3",
+      "ultralytics/models/yolo/pose/predict.py:3",
+      "ultralytics/models/yolo/pose/train.py:3",
+      "ultralytics/models/yolo/pose/val.py:3",
+      "ultralytics/models/yolo/segment/predict.py:3",
+      "ultralytics/models/yolo/segment/train.py:3",
+      "ultralytics/models/yolo/segment/val.py:3",
+      "ultralytics/models/yolo/semantic/predict.py:3",
+      "ultralytics/models/yolo/semantic/train.py:3",
+      "ultralytics/models/yolo/semantic/val.py:3",
+      "ultralytics/models/yolo/world/train.py:3",
+      "ultralytics/models/yolo/world/train_world.py:3",
+      "ultralytics/models/yolo/world/val.py:3",
+      "ultralytics/models/yolo/yoloe/train.py:3",
+      "ultralytics/models/yolo/yoloe/val.py:3",
+      "ultralytics/nn/autobackend.py:3",
+      "ultralytics/nn/backends/ascend.py:3",
+      "ultralytics/nn/backends/axelera.py:3",
+      "ultralytics/nn/backends/base.py:3",
+      "ultralytics/nn/backends/coreai.py:3",
+      "ultralytics/nn/backends/coreml.py:3",
+      "ultralytics/nn/backends/deepx.py:3",
+      "ultralytics/nn/backends/executorch.py:3",
+      "ultralytics/nn/backends/hailo.py:3",
+      "ultralytics/nn/backends/litert.py:3",
+      "ultralytics/nn/backends/mnn.py:3",
+      "ultralytics/nn/backends/ncnn.py:3",
+      "ultralytics/nn/backends/onnx.py:3",
+      "ultralytics/nn/backends/openvino.py:3",
+      "ultralytics/nn/backends/paddle.py:3",
+      "ultralytics/nn/backends/pytorch.py:3",
+      "ultralytics/nn/backends/qnn.py:3",
+      "ultralytics/nn/backends/rknn.py:3",
+      "ultralytics/nn/backends/tensorflow.py:3",
+      "ultralytics/nn/backends/tensorrt.py:3",
+      "ultralytics/nn/backends/triton.py:3",
+      "ultralytics/nn/distill_model.py:3",
+      "ultralytics/nn/modules/block.py:4",
+      "ultralytics/nn/modules/conv.py:4",
+      "ultralytics/nn/modules/head.py:4",
+      "ultralytics/nn/modules/transformer.py:4",
+      "ultralytics/nn/tasks.py:3",
+      "ultralytics/nn/text_model.py:3",
+      "ultralytics/optim/muon.py:3",
+      "ultralytics/solutions/analytics.py:3",
+      "ultralytics/solutions/config.py:3",
+      "ultralytics/solutions/heatmap.py:3",
+      "ultralytics/solutions/object_counter.py:3",
+      "ultralytics/solutions/parking_management.py:3",
+      "ultralytics/solutions/region_counter.py:3",
+      "ultralytics/solutions/similarity_search.py:3",
+      "ultralytics/solutions/solutions.py:3",
+      "ultralytics/trackers/bot_sort.py:3",
+      "ultralytics/trackers/byte_tracker.py:3",
+      "ultralytics/trackers/deep_oc_sort.py:3",
+      "ultralytics/trackers/fast_tracker.py:3",
+      "ultralytics/trackers/oc_sort.py:3",
+      "ultralytics/trackers/track_tracker.py:3",
+      "ultralytics/trackers/utils/gmc.py:3",
+      "ultralytics/trackers/utils/kalman_filter.py:3",
+      "ultralytics/trackers/utils/reid.py:11",
+      "ultralytics/trackers/utils/stracks.py:8",
+      "ultralytics/utils/__init__.py:3",
+      "ultralytics/utils/autobatch.py:4",
+      "ultralytics/utils/autodevice.py:3",
+      "ultralytics/utils/benchmarks.py:30",
+      "ultralytics/utils/callbacks/comet.py:3",
+      "ultralytics/utils/checks.py:3",
+      "ultralytics/utils/cpu.py:3",
+      "ultralytics/utils/dist.py:3",
+      "ultralytics/utils/downloads.py:3",
+      "ultralytics/utils/export/ascend.py:3",
+      "ultralytics/utils/export/axelera.py:3",
+      "ultralytics/utils/export/coreai.py:3",
+      "ultralytics/utils/export/coreml.py:3",
+      "ultralytics/utils/export/deepx.py:3",
+      "ultralytics/utils/export/engine.py:3",
+      "ultralytics/utils/export/executorch.py:3",
+      "ultralytics/utils/export/imx.py:3",
+      "ultralytics/utils/export/litert.py:3",
+      "ultralytics/utils/export/mnn.py:3",
+      "ultralytics/utils/export/ncnn.py:3",
+      "ultralytics/utils/export/openvino.py:3",
+      "ultralytics/utils/export/paddle.py:3",
+      "ultralytics/utils/export/qnn.py:3",
+      "ultralytics/utils/export/rknn.py:3",
+      "ultralytics/utils/export/tensorflow.py:3",
+      "ultralytics/utils/export/torchscript.py:3",
+      "ultralytics/utils/files.py:3",
+      "ultralytics/utils/git.py:3",
+      "ultralytics/utils/instance.py:3",
+      "ultralytics/utils/loss.py:3",
+      "ultralytics/utils/metrics.py:4",
+      "ultralytics/utils/ops.py:3",
+      "ultralytics/utils/patches.py:4",
+      "ultralytics/utils/plotting.py:3",
+      "ultralytics/utils/tal.py:3",
+      "ultralytics/utils/torch_utils.py:3",
+      "ultralytics/utils/tqdm.py:3",
+      "ultralytics/utils/triton.py:3",
+      "ultralytics/utils/tuner.py:3",
+      "ultralytics/utils/uploads.py:4"
+    ],
+    "os": [
+      "docs/build_docs.py:6",
+      "examples/RTDETR-ONNXRuntime-Python/main.py:6",
+      "tests/test_cuda.py:3",
+      "tests/test_exports.py:4",
+      "tests/test_python.py:5",
+      "tests/test_solutions.py:6",
+      "ultralytics/__init__.py:6",
+      "ultralytics/cfg/__init__.py:6",
+      "ultralytics/data/augment.py:2088",
+      "ultralytics/data/base.py:7",
+      "ultralytics/data/build.py:6",
+      "ultralytics/data/loaders.py:7",
+      "ultralytics/data/utils.py:5",
+      "ultralytics/engine/exporter.py:70",
+      "ultralytics/engine/trainer.py:13",
+      "ultralytics/models/yolo/detect/val.py:5",
+      "ultralytics/nn/backends/mnn.py:6",
+      "ultralytics/solutions/similarity_search.py:5",
+      "ultralytics/solutions/streamlit_inference.py:4",
+      "ultralytics/utils/__init__.py:10",
+      "ultralytics/utils/callbacks/comet.py:22",
+      "ultralytics/utils/callbacks/dvc.py:14",
+      "ultralytics/utils/callbacks/mlflow.py:22",
+      "ultralytics/utils/callbacks/platform.py:3",
+      "ultralytics/utils/checks.py:10",
+      "ultralytics/utils/dist.py:5",
+      "ultralytics/utils/export/axelera.py:5",
+      "ultralytics/utils/files.py:7",
+      "ultralytics/utils/torch_utils.py:8",
+      "ultralytics/utils/tqdm.py:5",
+      "ultralytics/utils/uploads.py:6"
+    ],
+    "shutil": [
+      "docs/build_docs.py:7",
+      "tests/cache_test_assets.py:9",
+      "tests/conftest.py:3",
+      "tests/test_cli.py:4",
+      "tests/test_exports.py:5",
+      "tests/test_python.py:7",
+      "ultralytics/cfg/__init__.py:7",
+      "ultralytics/data/base.py:335",
+      "ultralytics/data/converter.py:10",
+      "ultralytics/data/split.py:6",
+      "ultralytics/engine/exporter.py:71",
+      "ultralytics/engine/tuner.py:20",
+      "ultralytics/utils/benchmarks.py:34",
+      "ultralytics/utils/callbacks/platform.py:220",
+      "ultralytics/utils/checks.py:14",
+      "ultralytics/utils/dist.py:6",
+      "ultralytics/utils/downloads.py:6",
+      "ultralytics/utils/export/ascend.py:6",
+      "ultralytics/utils/export/axelera.py:6",
+      "ultralytics/utils/export/imx.py:10",
+      "ultralytics/utils/files.py:8",
+      "ultralytics/utils/logger.py:6",
+      "ultralytics/utils/tqdm.py:6"
+    ],
+    "subprocess": [
+      "docs/build_docs.py:8",
+      "docs/build_reference.py:16",
+      "tests/test_cli.py:5",
+      "tests/test_cuda.py:165",
+      "tests/test_integrations.py:4",
+      "ultralytics/cfg/__init__.py:8",
+      "ultralytics/data/utils.py:7",
+      "ultralytics/engine/trainer.py:14",
+      "ultralytics/utils/checks.py:15",
+      "ultralytics/utils/downloads.py:7",
+      "ultralytics/utils/export/ascend.py:7",
+      "ultralytics/utils/export/imx.py:6",
+      "ultralytics/utils/export/tensorflow.py:250",
+      "ultralytics/utils/logger.py:7"
+    ],
+    "tempfile": [
+      "docs/build_docs.py:9",
+      "ultralytics/solutions/streamlit_inference.py:141",
+      "ultralytics/utils/dist.py:8",
+      "ultralytics/utils/export/ascend.py:8",
+      "ultralytics/utils/export/axelera.py:8",
+      "ultralytics/utils/files.py:9"
+    ],
+    "pathlib": [
+      "docs/build_docs.py:10",
+      "docs/build_reference.py:21",
+      "examples/YOLO-Axelera-Python/yolo11-seg.py:23",
+      "examples/YOLOv8-Region-Counter/yolov8_region_counter.py:7",
+      "tests/cache_test_assets.py:12",
+      "tests/conftest.py:4",
+      "tests/test_cli.py:7",
+      "tests/test_cuda.py:5",
+      "tests/test_engine.py:5",
+      "tests/test_exports.py:11",
+      "tests/test_integrations.py:6",
+      "tests/test_python.py:12",
+      "tests/test_python.py:244",
+      "ultralytics/cfg/__init__.py:10",
+      "ultralytics/data/annotator.py:5",
+      "ultralytics/data/base.py:11",
+      "ultralytics/data/build.py:10",
+      "ultralytics/data/converter.py:13",
+      "ultralytics/data/dataset.py:9",
+      "ultralytics/data/loaders.py:14",
+      "ultralytics/data/split.py:7",
+      "ultralytics/data/split_dota.py:8",
+      "ultralytics/data/utils.py:10",
+      "ultralytics/engine/exporter.py:76",
+      "ultralytics/engine/model.py:7",
+      "ultralytics/engine/predictor.py:46",
+      "ultralytics/engine/results.py:12",
+      "ultralytics/engine/trainer.py:20",
+      "ultralytics/engine/validator.py:36",
+      "ultralytics/models/fastsam/model.py:5",
+      "ultralytics/models/llm.py:6",
+      "ultralytics/models/nas/model.py:5",
+      "ultralytics/models/rtdetr/val.py:5",
+      "ultralytics/models/sam/model.py:19",
+      "ultralytics/models/yolo/classify/val.py:5",
+      "ultralytics/models/yolo/depth/calibrate.py:17",
+      "ultralytics/models/yolo/depth/train.py:7",
+      "ultralytics/models/yolo/depth/val.py:6",
+      "ultralytics/models/yolo/detect/val.py:6",
+      "ultralytics/models/yolo/model.py:5",
+      "ultralytics/models/yolo/obb/train.py:6",
+      "ultralytics/models/yolo/obb/val.py:5",
+      "ultralytics/models/yolo/pose/train.py:6",
+      "ultralytics/models/yolo/pose/val.py:5",
+      "ultralytics/models/yolo/segment/train.py:6",
+      "ultralytics/models/yolo/segment/val.py:5",
+      "ultralytics/models/yolo/semantic/val.py:5",
+      "ultralytics/models/yolo/world/train.py:6",
+      "ultralytics/models/yolo/world/train_world.py:5",
+      "ultralytics/models/yolo/yoloe/train.py:6",
+      "ultralytics/models/yolo/yoloe/val.py:5",
+      "ultralytics/nn/autobackend.py:7",
+      "ultralytics/nn/backends/ascend.py:5",
+      "ultralytics/nn/backends/axelera.py:5",
+      "ultralytics/nn/backends/base.py:9",
+      "ultralytics/nn/backends/coreai.py:6",
+      "ultralytics/nn/backends/coreml.py:5",
+      "ultralytics/nn/backends/deepx.py:5",
+      "ultralytics/nn/backends/executorch.py:5",
+      "ultralytics/nn/backends/hailo.py:7",
+      "ultralytics/nn/backends/litert.py:5",
+      "ultralytics/nn/backends/mnn.py:7",
+      "ultralytics/nn/backends/ncnn.py:5",
+      "ultralytics/nn/backends/onnx.py:5",
+      "ultralytics/nn/backends/openvino.py:6",
+      "ultralytics/nn/backends/paddle.py:5",
+      "ultralytics/nn/backends/pytorch.py:5",
+      "ultralytics/nn/backends/qnn.py:5",
+      "ultralytics/nn/backends/rknn.py:5",
+      "ultralytics/nn/backends/tensorflow.py:6",
+      "ultralytics/nn/backends/tensorrt.py:6",
+      "ultralytics/nn/backends/triton.py:5",
+      "ultralytics/nn/distill_model.py:5",
+      "ultralytics/nn/tasks.py:11",
+      "ultralytics/nn/tasks.py:1752",
+      "ultralytics/nn/text_model.py:6",
+      "ultralytics/solutions/object_cropper.py:3",
+      "ultralytics/solutions/similarity_search.py:6",
+      "ultralytics/trackers/track.py:4",
+      "ultralytics/trackers/utils/reid.py:54",
+      "ultralytics/utils/__init__.py:19",
+      "ultralytics/utils/benchmarks.py:37",
+      "ultralytics/utils/callbacks/comet.py:23",
+      "ultralytics/utils/callbacks/dvc.py:3",
+      "ultralytics/utils/callbacks/mlflow.py:23",
+      "ultralytics/utils/callbacks/platform.py:10",
+      "ultralytics/utils/callbacks/wb.py:132",
+      "ultralytics/utils/checks.py:19",
+      "ultralytics/utils/cpu.py:9",
+      "ultralytics/utils/dist.py:9",
+      "ultralytics/utils/downloads.py:11",
+      "ultralytics/utils/events.py:6",
+      "ultralytics/utils/export/ascend.py:9",
+      "ultralytics/utils/export/axelera.py:11",
+      "ultralytics/utils/export/coreai.py:5",
+      "ultralytics/utils/export/coreml.py:6",
+      "ultralytics/utils/export/deepx.py:6",
+      "ultralytics/utils/export/engine.py:8",
+      "ultralytics/utils/export/executorch.py:6",
+      "ultralytics/utils/export/imx.py:9",
+      "ultralytics/utils/export/litert.py:8",
+      "ultralytics/utils/export/mnn.py:6",
+      "ultralytics/utils/export/ncnn.py:5",
+      "ultralytics/utils/export/openvino.py:5",
+      "ultralytics/utils/export/paddle.py:5",
+      "ultralytics/utils/export/qnn.py:5",
+      "ultralytics/utils/export/rknn.py:5",
+      "ultralytics/utils/export/tensorflow.py:7",
+      "ultralytics/utils/export/tensorflow.py:164",
+      "ultralytics/utils/export/torchscript.py:6",
+      "ultralytics/utils/files.py:12",
+      "ultralytics/utils/git.py:7",
+      "ultralytics/utils/logger.py:12",
+      "ultralytics/utils/loss.py:6",
+      "ultralytics/utils/metrics.py:9",
+      "ultralytics/utils/patches.py:9",
+      "ultralytics/utils/plotting.py:8",
+      "ultralytics/utils/torch_utils.py:14",
+      "ultralytics/utils/uploads.py:7"
+    ],
+    "yaml": [
+      "docs/build_docs.py:12",
+      "examples/RTDETR-ONNXRuntime-Python/main.py:12",
+      "ultralytics/utils/__init__.py:606"
+    ],
+    "build_reference": [
+      "docs/build_docs.py:13"
+    ],
+    "minijinja": [
+      "docs/build_docs.py:14"
+    ],
+    "ultralytics": [
+      "docs/build_docs.py:16",
+      "docs/build_docs.py:17",
+      "docs/build_reference.py:24",
+      "docs/build_reference.py:25",
+      "examples/YOLO-Interactive-Tracking-UI/interactive_tracker.py:9",
+      "examples/YOLO-Interactive-Tracking-UI/interactive_tracker.py:10",
+      "examples/YOLO-Interactive-Tracking-UI/interactive_tracker.py:11",
+      "examples/YOLOv8-Action-Recognition/action_recognition.py:15",
+      "examples/YOLOv8-Action-Recognition/action_recognition.py:16",
+      "examples/YOLOv8-Action-Recognition/action_recognition.py:17",
+      "examples/YOLOv8-Action-Recognition/action_recognition.py:18",
+      "examples/YOLOv8-ONNXRuntime/main.py:12",
+      "examples/YOLOv8-ONNXRuntime/main.py:13",
+      "examples/YOLOv8-OpenCV-ONNX-Python/main.py:11",
+      "examples/YOLOv8-Region-Counter/yolov8_region_counter.py:15",
+      "examples/YOLOv8-Region-Counter/yolov8_region_counter.py:16",
+      "examples/YOLOv8-Region-Counter/yolov8_region_counter.py:17",
+      "examples/YOLOv8-SAHI-Inference-Video/yolov8_sahi.py:9",
+      "examples/YOLOv8-SAHI-Inference-Video/yolov8_sahi.py:43",
+      "examples/YOLOv8-Segmentation-ONNXRuntime-Python/main.py:12",
+      "examples/YOLOv8-Segmentation-ONNXRuntime-Python/main.py:13",
+      "tests/__init__.py:3",
+      "tests/__init__.py:4",
+      "tests/cache_test_assets.py:18",
+      "tests/cache_test_assets.py:19",
+      "tests/cache_test_assets.py:20",
+      "tests/cache_test_assets.py:21",
+      "tests/cache_test_assets.py:95",
+      "tests/conftest.py:14",
+      "tests/conftest.py:15",
+      "tests/conftest.py:70",
+      "tests/conftest.py:83",
+      "tests/conftest.py:102",
+      "tests/conftest.py:131",
+      "tests/test_cli.py:13",
+      "tests/test_cli.py:14",
+      "tests/test_cli.py:35",
+      "tests/test_cli.py:94",
+      "tests/test_cli.py:143",
+      "tests/test_cli.py:144",
+      "tests/test_cli.py:162",
+      "tests/test_cuda.py:11",
+      "tests/test_cuda.py:12",
+      "tests/test_cuda.py:13",
+      "tests/test_cuda.py:14",
+      "tests/test_cuda.py:15",
+      "tests/test_cuda.py:16",
+      "tests/test_cuda.py:125",
+      "tests/test_cuda.py:126",
+      "tests/test_cuda.py:127",
+      "tests/test_cuda.py:216",
+      "tests/test_cuda.py:225",
+      "tests/test_cuda.py:244",
+      "tests/test_cuda.py:245",
+      "tests/test_engine.py:13",
+      "tests/test_engine.py:14",
+      "tests/test_engine.py:15",
+      "tests/test_engine.py:16",
+      "tests/test_engine.py:17",
+      "tests/test_engine.py:18",
+      "tests/test_engine.py:19",
+      "tests/test_engine.py:20",
+      "tests/test_engine.py:21",
+      "tests/test_engine.py:130",
+      "tests/test_exports.py:22",
+      "tests/test_exports.py:23",
+      "tests/test_exports.py:24",
+      "tests/test_exports.py:25",
+      "tests/test_exports.py:35",
+      "tests/test_exports.py:36",
+      "tests/test_exports.py:98",
+      "tests/test_exports.py:157",
+      "tests/test_exports.py:395",
+      "tests/test_integrations.py:11",
+      "tests/test_integrations.py:12",
+      "tests/test_integrations.py:13",
+      "tests/test_integrations.py:132",
+      "tests/test_integrations.py:133",
+      "tests/test_integrations.py:134",
+      "tests/test_ndjson_converter.py:13",
+      "tests/test_ndjson_converter.py:14",
+      "tests/test_ndjson_converter.py:15",
+      "tests/test_python.py:20",
+      "tests/test_python.py:22",
+      "tests/test_python.py:23",
+      "tests/test_python.py:24",
+      "tests/test_python.py:25",
+      "tests/test_python.py:26",
+      "tests/test_python.py:45",
+      "tests/test_python.py:46",
+      "tests/test_python.py:152",
+      "tests/test_python.py:190",
+      "tests/test_python.py:214",
+      "tests/test_python.py:247",
+      "tests/test_python.py:258",
+      "tests/test_python.py:259",
+      "tests/test_python.py:281",
+      "tests/test_python.py:314",
+      "tests/test_python.py:315",
+      "tests/test_python.py:316",
+      "tests/test_python.py:317",
+      "tests/test_python.py:318",
+      "tests/test_python.py:348",
+      "tests/test_python.py:448",
+      "tests/test_python.py:482",
+      "tests/test_python.py:498",
+      "tests/test_python.py:550",
+      "tests/test_python.py:551",
+      "tests/test_python.py:552",
+      "tests/test_python.py:568",
+      "tests/test_python.py:569",
+      "tests/test_python.py:570",
+      "tests/test_python.py:590",
+      "tests/test_python.py:591",
+      "tests/test_python.py:592",
+      "tests/test_python.py:609",
+      "tests/test_python.py:610",
+      "tests/test_python.py:611",
+      "tests/test_python.py:627",
+      "tests/test_python.py:642",
+      "tests/test_python.py:643",
+      "tests/test_python.py:644",
+      "tests/test_python.py:660",
+      "tests/test_python.py:661",
+      "tests/test_python.py:684",
+      "tests/test_python.py:707",
+      "tests/test_python.py:781",
+      "tests/test_python.py:804",
+      "tests/test_python.py:814",
+      "tests/test_python.py:838",
+      "tests/test_python.py:928",
+      "tests/test_python.py:965",
+      "tests/test_python.py:966",
+      "tests/test_python.py:1105",
+      "tests/test_python.py:1117",
+      "tests/test_python.py:1131",
+      "tests/test_python.py:1145",
+      "tests/test_python.py:1156",
+      "tests/test_python.py:1168",
+      "tests/test_python.py:1188",
+      "tests/test_python.py:1203",
+      "tests/test_python.py:1204",
+      "tests/test_python.py:1218",
+      "tests/test_python.py:1262",
+      "tests/test_python.py:1263",
+      "tests/test_python.py:1293",
+      "tests/test_python.py:1355",
+      "tests/test_python.py:1370",
+      "tests/test_python.py:1382",
+      "tests/test_python.py:1393",
+      "tests/test_python.py:1448",
+      "tests/test_python.py:1449",
+      "tests/test_python.py:1450",
+      "tests/test_python.py:1484",
+      "tests/test_python.py:1485",
+      "tests/test_python.py:1486",
+      "tests/test_python.py:1518",
+      "tests/test_python.py:1519",
+      "tests/test_python.py:1548",
+      "tests/test_python.py:1603",
+      "tests/test_python.py:1610",
+      "tests/test_python.py:1611",
+      "tests/test_python.py:1624",
+      "tests/test_python.py:1653",
+      "tests/test_python.py:1654",
+      "tests/test_python.py:1655",
+      "tests/test_python.py:1683",
+      "tests/test_python.py:1704",
+      "tests/test_python.py:1753",
+      "tests/test_python.py:1754",
+      "tests/test_python.py:1772",
+      "tests/test_python.py:1793",
+      "tests/test_python.py:1804",
+      "tests/test_python.py:1829",
+      "tests/test_python.py:1841",
+      "tests/test_python.py:1860",
+      "tests/test_python.py:1875",
+      "tests/test_python.py:1891",
+      "tests/test_python.py:1903",
+      "tests/test_python.py:1913",
+      "tests/test_python.py:1944",
+      "tests/test_python.py:2018",
+      "tests/test_python.py:2053",
+      "tests/test_python.py:2082",
+      "tests/test_python.py:2083",
+      "tests/test_python.py:2104",
+      "tests/test_python.py:2170",
+      "tests/test_solutions.py:15",
+      "tests/test_solutions.py:16",
+      "tests/test_solutions.py:17",
+      "tests/test_solutions.py:18",
+      "tests/test_solutions.py:433",
+      "ultralytics/__init__.py:14",
+      "ultralytics/__init__.py:15",
+      "ultralytics/__init__.py:16",
+      "ultralytics/__init__.py:35",
+      "ultralytics/cfg/__init__.py:14",
+      "ultralytics/cfg/__init__.py:15",
+      "ultralytics/cfg/__init__.py:544",
+      "ultralytics/cfg/__init__.py:738",
+      "ultralytics/cfg/__init__.py:823",
+      "ultralytics/cfg/__init__.py:874",
+      "ultralytics/cfg/__init__.py:1108",
+      "ultralytics/cfg/__init__.py:1112",
+      "ultralytics/cfg/__init__.py:1116",
+      "ultralytics/cfg/__init__.py:1120",
+      "ultralytics/data/annotator.py:7",
+      "ultralytics/data/augment.py:16",
+      "ultralytics/data/augment.py:17",
+      "ultralytics/data/augment.py:18",
+      "ultralytics/data/augment.py:19",
+      "ultralytics/data/augment.py:20",
+      "ultralytics/data/augment.py:21",
+      "ultralytics/data/augment.py:22",
+      "ultralytics/data/base.py:18",
+      "ultralytics/data/base.py:19",
+      "ultralytics/data/base.py:20",
+      "ultralytics/data/build.py:20",
+      "ultralytics/data/build.py:21",
+      "ultralytics/data/build.py:29",
+      "ultralytics/data/build.py:39",
+      "ultralytics/data/build.py:40",
+      "ultralytics/data/build.py:41",
+      "ultralytics/data/build.py:42",
+      "ultralytics/data/converter.py:20",
+      "ultralytics/data/converter.py:21",
+      "ultralytics/data/converter.py:22",
+      "ultralytics/data/converter.py:23",
+      "ultralytics/data/converter.py:24",
+      "ultralytics/data/converter.py:632",
+      "ultralytics/data/converter.py:633",
+      "ultralytics/data/converter.py:634",
+      "ultralytics/data/converter.py:746",
+      "ultralytics/data/converter.py:887",
+      "ultralytics/data/dataset.py:18",
+      "ultralytics/data/dataset.py:19",
+      "ultralytics/data/dataset.py:20",
+      "ultralytics/data/dataset.py:21",
+      "ultralytics/data/loaders.py:23",
+      "ultralytics/data/loaders.py:24",
+      "ultralytics/data/loaders.py:25",
+      "ultralytics/data/loaders.py:26",
+      "ultralytics/data/split.py:9",
+      "ultralytics/data/split.py:10",
+      "ultralytics/data/split_dota.py:15",
+      "ultralytics/data/split_dota.py:16",
+      "ultralytics/data/split_dota.py:17",
+      "ultralytics/data/utils.py:18",
+      "ultralytics/data/utils.py:19",
+      "ultralytics/data/utils.py:31",
+      "ultralytics/data/utils.py:32",
+      "ultralytics/data/utils.py:33",
+      "ultralytics/data/utils.py:411",
+      "ultralytics/data/utils.py:545",
+      "ultralytics/data/utils.py:720",
+      "ultralytics/engine/exporter.py:81",
+      "ultralytics/engine/exporter.py:82",
+      "ultralytics/engine/exporter.py:83",
+      "ultralytics/engine/exporter.py:84",
+      "ultralytics/engine/exporter.py:85",
+      "ultralytics/engine/exporter.py:86",
+      "ultralytics/engine/exporter.py:87",
+      "ultralytics/engine/exporter.py:102",
+      "ultralytics/engine/exporter.py:103",
+      "ultralytics/engine/exporter.py:122",
+      "ultralytics/engine/exporter.py:130",
+      "ultralytics/engine/exporter.py:131",
+      "ultralytics/engine/exporter.py:132",
+      "ultralytics/engine/exporter.py:133",
+      "ultralytics/engine/exporter.py:134",
+      "ultralytics/engine/exporter.py:135",
+      "ultralytics/engine/exporter.py:136",
+      "ultralytics/engine/exporter.py:869",
+      "ultralytics/engine/exporter.py:873",
+      "ultralytics/engine/exporter.py:877",
+      "ultralytics/engine/exporter.py:1053",
+      "ultralytics/engine/exporter.py:1077",
+      "ultralytics/engine/exporter.py:1111",
+      "ultralytics/engine/exporter.py:1181",
+      "ultralytics/engine/exporter.py:1199",
+      "ultralytics/engine/exporter.py:1249",
+      "ultralytics/engine/exporter.py:1268",
+      "ultralytics/engine/exporter.py:1285",
+      "ultralytics/engine/exporter.py:1298",
+      "ultralytics/engine/exporter.py:1314",
+      "ultralytics/engine/exporter.py:1400",
+      "ultralytics/engine/exporter.py:1427",
+      "ultralytics/engine/exporter.py:1468",
+      "ultralytics/engine/exporter.py:1480",
+      "ultralytics/engine/exporter.py:1497",
+      "ultralytics/engine/exporter.py:1514",
+      "ultralytics/engine/exporter.py:1528",
+      "ultralytics/engine/exporter.py:1537",
+      "ultralytics/engine/exporter.py:1574",
+      "ultralytics/engine/exporter.py:1600",
+      "ultralytics/engine/exporter.py:1617",
+      "ultralytics/engine/exporter.py:1632",
+      "ultralytics/engine/model.py:14",
+      "ultralytics/engine/model.py:15",
+      "ultralytics/engine/model.py:16",
+      "ultralytics/engine/model.py:17",
+      "ultralytics/engine/model.py:29",
+      "ultralytics/engine/model.py:370",
+      "ultralytics/engine/model.py:371",
+      "ultralytics/engine/model.py:596",
+      "ultralytics/engine/model.py:666",
+      "ultralytics/engine/model.py:715",
+      "ultralytics/engine/model.py:850",
+      "ultralytics/engine/model.py:939",
+      "ultralytics/engine/model.py:1002",
+      "ultralytics/engine/predictor.py:53",
+      "ultralytics/engine/predictor.py:54",
+      "ultralytics/engine/predictor.py:55",
+      "ultralytics/engine/predictor.py:56",
+      "ultralytics/engine/predictor.py:57",
+      "ultralytics/engine/predictor.py:58",
+      "ultralytics/engine/predictor.py:59",
+      "ultralytics/engine/predictor.py:60",
+      "ultralytics/engine/results.py:18",
+      "ultralytics/engine/results.py:19",
+      "ultralytics/engine/trainer.py:27",
+      "ultralytics/engine/trainer.py:28",
+      "ultralytics/engine/trainer.py:29",
+      "ultralytics/engine/trainer.py:30",
+      "ultralytics/engine/trainer.py:31",
+      "ultralytics/engine/trainer.py:32",
+      "ultralytics/engine/trainer.py:33",
+      "ultralytics/engine/trainer.py:47",
+      "ultralytics/engine/trainer.py:48",
+      "ultralytics/engine/trainer.py:49",
+      "ultralytics/engine/trainer.py:50",
+      "ultralytics/engine/trainer.py:51",
+      "ultralytics/engine/trainer.py:52",
+      "ultralytics/engine/trainer.py:53",
+      "ultralytics/engine/trainer.py:1256",
+      "ultralytics/engine/trainer.py:1361",
+      "ultralytics/engine/trainer.py:1362",
+      "ultralytics/engine/tuner.py:26",
+      "ultralytics/engine/tuner.py:27",
+      "ultralytics/engine/tuner.py:28",
+      "ultralytics/engine/tuner.py:29",
+      "ultralytics/engine/tuner.py:124",
+      "ultralytics/engine/tuner.py:482",
+      "ultralytics/engine/validator.py:42",
+      "ultralytics/engine/validator.py:43",
+      "ultralytics/engine/validator.py:44",
+      "ultralytics/engine/validator.py:45",
+      "ultralytics/engine/validator.py:46",
+      "ultralytics/engine/validator.py:47",
+      "ultralytics/engine/validator.py:48",
+      "ultralytics/models/fastsam/model.py:8",
+      "ultralytics/models/fastsam/predict.py:10",
+      "ultralytics/models/fastsam/predict.py:11",
+      "ultralytics/models/fastsam/predict.py:12",
+      "ultralytics/models/fastsam/predict.py:13",
+      "ultralytics/models/fastsam/predict.py:14",
+      "ultralytics/models/fastsam/predict.py:165",
+      "ultralytics/models/fastsam/val.py:5",
+      "ultralytics/models/llm.py:13",
+      "ultralytics/models/nas/model.py:10",
+      "ultralytics/models/nas/model.py:11",
+      "ultralytics/models/nas/model.py:12",
+      "ultralytics/models/nas/model.py:13",
+      "ultralytics/models/nas/model.py:14",
+      "ultralytics/models/nas/predict.py:5",
+      "ultralytics/models/nas/predict.py:6",
+      "ultralytics/models/nas/val.py:5",
+      "ultralytics/models/nas/val.py:6",
+      "ultralytics/models/rtdetr/model.py:12",
+      "ultralytics/models/rtdetr/model.py:13",
+      "ultralytics/models/rtdetr/model.py:14",
+      "ultralytics/models/rtdetr/predict.py:5",
+      "ultralytics/models/rtdetr/predict.py:6",
+      "ultralytics/models/rtdetr/predict.py:7",
+      "ultralytics/models/rtdetr/predict.py:8",
+      "ultralytics/models/rtdetr/train.py:7",
+      "ultralytics/models/rtdetr/train.py:8",
+      "ultralytics/models/rtdetr/train.py:9",
+      "ultralytics/models/rtdetr/train.py:10",
+      "ultralytics/models/rtdetr/val.py:10",
+      "ultralytics/models/rtdetr/val.py:11",
+      "ultralytics/models/rtdetr/val.py:12",
+      "ultralytics/models/rtdetr/val.py:13",
+      "ultralytics/models/sam/build.py:13",
+      "ultralytics/models/sam/build.py:14",
+      "ultralytics/models/sam/build_sam3.py:7",
+      "ultralytics/models/sam/build_sam3.py:8",
+      "ultralytics/models/sam/build_sam3.py:149",
+      "ultralytics/models/sam/model.py:21",
+      "ultralytics/models/sam/model.py:22",
+      "ultralytics/models/sam/modules/blocks.py:14",
+      "ultralytics/models/sam/modules/decoders.py:8",
+      "ultralytics/models/sam/modules/encoders.py:9",
+      "ultralytics/models/sam/modules/sam.py:13",
+      "ultralytics/models/sam/modules/sam.py:14",
+      "ultralytics/models/sam/modules/tiny_encoder.py:20",
+      "ultralytics/models/sam/modules/tiny_encoder.py:21",
+      "ultralytics/models/sam/modules/tiny_encoder.py:22",
+      "ultralytics/models/sam/modules/transformer.py:10",
+      "ultralytics/models/sam/predict.py:22",
+      "ultralytics/models/sam/predict.py:23",
+      "ultralytics/models/sam/predict.py:24",
+      "ultralytics/models/sam/predict.py:25",
+      "ultralytics/models/sam/predict.py:26",
+      "ultralytics/models/sam/predict.py:27",
+      "ultralytics/models/sam/predict.py:3608",
+      "ultralytics/models/sam/sam3/decoder.py:15",
+      "ultralytics/models/sam/sam3/decoder.py:16",
+      "ultralytics/models/sam/sam3/decoder.py:17",
+      "ultralytics/models/sam/sam3/encoder.py:10",
+      "ultralytics/models/sam/sam3/geometry_encoders.py:8",
+      "ultralytics/models/sam/sam3/geometry_encoders.py:9",
+      "ultralytics/models/sam/sam3/maskformer_segmentation.py:14",
+      "ultralytics/models/sam/sam3/sam3_image.py:11",
+      "ultralytics/models/sam/sam3/sam3_image.py:12",
+      "ultralytics/models/sam/sam3/vitdet.py:26",
+      "ultralytics/models/sam/sam3/vitdet.py:27",
+      "ultralytics/models/sam/sam3/vitdet.py:35",
+      "ultralytics/models/utils/loss.py:11",
+      "ultralytics/models/utils/loss.py:12",
+      "ultralytics/models/utils/ops.py:11",
+      "ultralytics/models/utils/ops.py:12",
+      "ultralytics/models/yolo/__init__.py:3",
+      "ultralytics/models/yolo/classify/__init__.py:3",
+      "ultralytics/models/yolo/classify/__init__.py:4",
+      "ultralytics/models/yolo/classify/__init__.py:5",
+      "ultralytics/models/yolo/classify/predict.py:10",
+      "ultralytics/models/yolo/classify/predict.py:11",
+      "ultralytics/models/yolo/classify/predict.py:12",
+      "ultralytics/models/yolo/classify/predict.py:13",
+      "ultralytics/models/yolo/classify/train.py:10",
+      "ultralytics/models/yolo/classify/train.py:11",
+      "ultralytics/models/yolo/classify/train.py:12",
+      "ultralytics/models/yolo/classify/train.py:13",
+      "ultralytics/models/yolo/classify/train.py:14",
+      "ultralytics/models/yolo/classify/train.py:15",
+      "ultralytics/models/yolo/classify/train.py:16",
+      "ultralytics/models/yolo/classify/val.py:11",
+      "ultralytics/models/yolo/classify/val.py:12",
+      "ultralytics/models/yolo/classify/val.py:13",
+      "ultralytics/models/yolo/classify/val.py:14",
+      "ultralytics/models/yolo/classify/val.py:15",
+      "ultralytics/models/yolo/depth/calibrate.py:24",
+      "ultralytics/models/yolo/depth/calibrate.py:25",
+      "ultralytics/models/yolo/depth/calibrate.py:245",
+      "ultralytics/models/yolo/depth/calibrate.py:305",
+      "ultralytics/models/yolo/depth/predict.py:11",
+      "ultralytics/models/yolo/depth/predict.py:12",
+      "ultralytics/models/yolo/depth/predict.py:13",
+      "ultralytics/models/yolo/depth/train.py:10",
+      "ultralytics/models/yolo/depth/train.py:11",
+      "ultralytics/models/yolo/depth/train.py:12",
+      "ultralytics/models/yolo/depth/train.py:13",
+      "ultralytics/models/yolo/depth/train.py:14",
+      "ultralytics/models/yolo/depth/val.py:13",
+      "ultralytics/models/yolo/depth/val.py:14",
+      "ultralytics/models/yolo/depth/val.py:15",
+      "ultralytics/models/yolo/depth/val.py:16",
+      "ultralytics/models/yolo/detect/predict.py:3",
+      "ultralytics/models/yolo/detect/predict.py:4",
+      "ultralytics/models/yolo/detect/predict.py:5",
+      "ultralytics/models/yolo/detect/train.py:14",
+      "ultralytics/models/yolo/detect/train.py:15",
+      "ultralytics/models/yolo/detect/train.py:16",
+      "ultralytics/models/yolo/detect/train.py:17",
+      "ultralytics/models/yolo/detect/train.py:18",
+      "ultralytics/models/yolo/detect/train.py:19",
+      "ultralytics/models/yolo/detect/train.py:20",
+      "ultralytics/models/yolo/detect/train.py:21",
+      "ultralytics/models/yolo/detect/val.py:13",
+      "ultralytics/models/yolo/detect/val.py:14",
+      "ultralytics/models/yolo/detect/val.py:15",
+      "ultralytics/models/yolo/detect/val.py:16",
+      "ultralytics/models/yolo/detect/val.py:17",
+      "ultralytics/models/yolo/detect/val.py:18",
+      "ultralytics/models/yolo/detect/val.py:19",
+      "ultralytics/models/yolo/detect/val.py:483",
+      "ultralytics/models/yolo/model.py:11",
+      "ultralytics/models/yolo/model.py:12",
+      "ultralytics/models/yolo/model.py:13",
+      "ultralytics/models/yolo/model.py:14",
+      "ultralytics/models/yolo/model.py:15",
+      "ultralytics/models/yolo/model.py:16",
+      "ultralytics/models/yolo/model.py:17",
+      "ultralytics/models/yolo/model.py:29",
+      "ultralytics/models/yolo/model.py:88",
+      "ultralytics/models/yolo/obb/predict.py:7",
+      "ultralytics/models/yolo/obb/predict.py:8",
+      "ultralytics/models/yolo/obb/predict.py:9",
+      "ultralytics/models/yolo/obb/train.py:8",
+      "ultralytics/models/yolo/obb/train.py:9",
+      "ultralytics/models/yolo/obb/train.py:10",
+      "ultralytics/models/yolo/obb/val.py:11",
+      "ultralytics/models/yolo/obb/val.py:12",
+      "ultralytics/models/yolo/obb/val.py:13",
+      "ultralytics/models/yolo/obb/val.py:14",
+      "ultralytics/models/yolo/obb/val.py:15",
+      "ultralytics/models/yolo/obb/val.py:224",
+      "ultralytics/models/yolo/pose/predict.py:5",
+      "ultralytics/models/yolo/pose/predict.py:6",
+      "ultralytics/models/yolo/pose/train.py:9",
+      "ultralytics/models/yolo/pose/train.py:10",
+      "ultralytics/models/yolo/pose/train.py:11",
+      "ultralytics/models/yolo/pose/val.py:11",
+      "ultralytics/models/yolo/pose/val.py:12",
+      "ultralytics/models/yolo/pose/val.py:13",
+      "ultralytics/models/yolo/pose/val.py:210",
+      "ultralytics/models/yolo/segment/predict.py:5",
+      "ultralytics/models/yolo/segment/predict.py:6",
+      "ultralytics/models/yolo/segment/predict.py:7",
+      "ultralytics/models/yolo/segment/train.py:8",
+      "ultralytics/models/yolo/segment/train.py:9",
+      "ultralytics/models/yolo/segment/train.py:10",
+      "ultralytics/models/yolo/segment/val.py:12",
+      "ultralytics/models/yolo/segment/val.py:13",
+      "ultralytics/models/yolo/segment/val.py:14",
+      "ultralytics/models/yolo/segment/val.py:15",
+      "ultralytics/models/yolo/segment/val.py:193",
+      "ultralytics/models/yolo/semantic/predict.py:8",
+      "ultralytics/models/yolo/semantic/predict.py:9",
+      "ultralytics/models/yolo/semantic/predict.py:10",
+      "ultralytics/models/yolo/semantic/train.py:10",
+      "ultralytics/models/yolo/semantic/train.py:11",
+      "ultralytics/models/yolo/semantic/train.py:12",
+      "ultralytics/models/yolo/semantic/train.py:13",
+      "ultralytics/models/yolo/semantic/train.py:14",
+      "ultralytics/models/yolo/semantic/train.py:15",
+      "ultralytics/models/yolo/semantic/val.py:15",
+      "ultralytics/models/yolo/semantic/val.py:16",
+      "ultralytics/models/yolo/semantic/val.py:17",
+      "ultralytics/models/yolo/semantic/val.py:18",
+      "ultralytics/models/yolo/semantic/val.py:19",
+      "ultralytics/models/yolo/world/train.py:11",
+      "ultralytics/models/yolo/world/train.py:12",
+      "ultralytics/models/yolo/world/train.py:13",
+      "ultralytics/models/yolo/world/train.py:14",
+      "ultralytics/models/yolo/world/train.py:15",
+      "ultralytics/models/yolo/world/train_world.py:7",
+      "ultralytics/models/yolo/world/train_world.py:8",
+      "ultralytics/models/yolo/world/train_world.py:9",
+      "ultralytics/models/yolo/world/train_world.py:10",
+      "ultralytics/models/yolo/world/train_world.py:11",
+      "ultralytics/models/yolo/world/train_world.py:12",
+      "ultralytics/models/yolo/world/train_world.py:118",
+      "ultralytics/models/yolo/world/val.py:7",
+      "ultralytics/models/yolo/world/val.py:8",
+      "ultralytics/models/yolo/world/val.py:9",
+      "ultralytics/models/yolo/world/val.py:25",
+      "ultralytics/models/yolo/yoloe/predict.py:6",
+      "ultralytics/models/yolo/yoloe/predict.py:7",
+      "ultralytics/models/yolo/yoloe/predict.py:8",
+      "ultralytics/models/yolo/yoloe/train.py:10",
+      "ultralytics/models/yolo/yoloe/train.py:11",
+      "ultralytics/models/yolo/yoloe/train.py:12",
+      "ultralytics/models/yolo/yoloe/train.py:13",
+      "ultralytics/models/yolo/yoloe/train.py:14",
+      "ultralytics/models/yolo/yoloe/train.py:15",
+      "ultralytics/models/yolo/yoloe/train.py:16",
+      "ultralytics/models/yolo/yoloe/train_seg.py:3",
+      "ultralytics/models/yolo/yoloe/val.py:11",
+      "ultralytics/models/yolo/yoloe/val.py:12",
+      "ultralytics/models/yolo/yoloe/val.py:13",
+      "ultralytics/models/yolo/yoloe/val.py:14",
+      "ultralytics/models/yolo/yoloe/val.py:15",
+      "ultralytics/models/yolo/yoloe/val.py:16",
+      "ultralytics/models/yolo/yoloe/val.py:17",
+      "ultralytics/models/yolo/yoloe/val.py:18",
+      "ultralytics/models/yolo/yoloe/val.py:19",
+      "ultralytics/models/yolo/yoloe/val.py:173",
+      "ultralytics/nn/autobackend.py:14",
+      "ultralytics/nn/autobackend.py:15",
+      "ultralytics/nn/autobackend.py:16",
+      "ultralytics/nn/autobackend.py:17",
+      "ultralytics/nn/autobackend.py:70",
+      "ultralytics/nn/autobackend.py:88",
+      "ultralytics/nn/autobackend.py:89",
+      "ultralytics/nn/autobackend.py:232",
+      "ultralytics/nn/autobackend.py:354",
+      "ultralytics/nn/autobackend.py:387",
+      "ultralytics/nn/backends/ascend.py:10",
+      "ultralytics/nn/backends/axelera.py:10",
+      "ultralytics/nn/backends/axelera.py:27",
+      "ultralytics/nn/backends/base.py:14",
+      "ultralytics/nn/backends/coreai.py:10",
+      "ultralytics/nn/backends/coreai.py:11",
+      "ultralytics/nn/backends/coreml.py:11",
+      "ultralytics/nn/backends/coreml.py:12",
+      "ultralytics/nn/backends/coreml.py:65",
+      "ultralytics/nn/backends/deepx.py:10",
+      "ultralytics/nn/backends/executorch.py:9",
+      "ultralytics/nn/backends/executorch.py:10",
+      "ultralytics/nn/backends/hailo.py:12",
+      "ultralytics/nn/backends/hailo.py:66",
+      "ultralytics/nn/backends/hailo.py:124",
+      "ultralytics/nn/backends/hailo.py:175",
+      "ultralytics/nn/backends/litert.py:10",
+      "ultralytics/nn/backends/litert.py:11",
+      "ultralytics/nn/backends/mnn.py:12",
+      "ultralytics/nn/backends/mnn.py:13",
+      "ultralytics/nn/backends/ncnn.py:10",
+      "ultralytics/nn/backends/ncnn.py:11",
+      "ultralytics/nn/backends/onnx.py:10",
+      "ultralytics/nn/backends/onnx.py:11",
+      "ultralytics/nn/backends/openvino.py:11",
+      "ultralytics/nn/backends/openvino.py:12",
+      "ultralytics/nn/backends/paddle.py:10",
+      "ultralytics/nn/backends/paddle.py:11",
+      "ultralytics/nn/backends/pytorch.py:11",
+      "ultralytics/nn/backends/pytorch.py:12",
+      "ultralytics/nn/backends/pytorch.py:54",
+      "ultralytics/nn/backends/qnn.py:9",
+      "ultralytics/nn/backends/qnn.py:10",
+      "ultralytics/nn/backends/qnn.py:35",
+      "ultralytics/nn/backends/rknn.py:9",
+      "ultralytics/nn/backends/rknn.py:10",
+      "ultralytics/nn/backends/tensorflow.py:11",
+      "ultralytics/nn/backends/tensorflow.py:51",
+      "ultralytics/nn/backends/tensorrt.py:11",
+      "ultralytics/nn/backends/tensorrt.py:12",
+      "ultralytics/nn/backends/triton.py:9",
+      "ultralytics/nn/backends/triton.py:28",
+      "ultralytics/nn/distill_model.py:11",
+      "ultralytics/nn/distill_model.py:12",
+      "ultralytics/nn/modules/block.py:12",
+      "ultralytics/nn/modules/head.py:14",
+      "ultralytics/nn/modules/head.py:15",
+      "ultralytics/nn/modules/head.py:16",
+      "ultralytics/nn/modules/head.py:1578",
+      "ultralytics/nn/modules/transformer.py:13",
+      "ultralytics/nn/tasks.py:17",
+      "ultralytics/nn/tasks.py:18",
+      "ultralytics/nn/tasks.py:82",
+      "ultralytics/nn/tasks.py:93",
+      "ultralytics/nn/tasks.py:94",
+      "ultralytics/nn/tasks.py:105",
+      "ultralytics/nn/tasks.py:106",
+      "ultralytics/nn/tasks.py:107",
+      "ultralytics/nn/tasks.py:1002",
+      "ultralytics/nn/tasks.py:1145",
+      "ultralytics/nn/tasks.py:1265",
+      "ultralytics/nn/tasks.py:1450",
+      "ultralytics/nn/tasks.py:1506",
+      "ultralytics/nn/tasks.py:1694",
+      "ultralytics/nn/tasks.py:1754",
+      "ultralytics/nn/tasks.py:1821",
+      "ultralytics/nn/tasks.py:2305",
+      "ultralytics/nn/text_model.py:12",
+      "ultralytics/nn/text_model.py:13",
+      "ultralytics/nn/text_model.py:208",
+      "ultralytics/nn/text_model.py:288",
+      "ultralytics/solutions/ai_gym.py:6",
+      "ultralytics/solutions/analytics.py:11",
+      "ultralytics/solutions/analytics.py:12",
+      "ultralytics/solutions/config.py:107",
+      "ultralytics/solutions/distance_calculation.py:8",
+      "ultralytics/solutions/distance_calculation.py:9",
+      "ultralytics/solutions/heatmap.py:11",
+      "ultralytics/solutions/heatmap.py:12",
+      "ultralytics/solutions/instance_segmentation.py:5",
+      "ultralytics/solutions/instance_segmentation.py:6",
+      "ultralytics/solutions/object_blurrer.py:7",
+      "ultralytics/solutions/object_blurrer.py:8",
+      "ultralytics/solutions/object_blurrer.py:9",
+      "ultralytics/solutions/object_counter.py:8",
+      "ultralytics/solutions/object_counter.py:9",
+      "ultralytics/solutions/object_cropper.py:6",
+      "ultralytics/solutions/object_cropper.py:7",
+      "ultralytics/solutions/parking_management.py:11",
+      "ultralytics/solutions/parking_management.py:12",
+      "ultralytics/solutions/parking_management.py:13",
+      "ultralytics/solutions/queue_management.py:5",
+      "ultralytics/solutions/queue_management.py:6",
+      "ultralytics/solutions/region_counter.py:9",
+      "ultralytics/solutions/region_counter.py:10",
+      "ultralytics/solutions/security_alarm.py:5",
+      "ultralytics/solutions/security_alarm.py:6",
+      "ultralytics/solutions/security_alarm.py:7",
+      "ultralytics/solutions/similarity_search.py:12",
+      "ultralytics/solutions/similarity_search.py:13",
+      "ultralytics/solutions/similarity_search.py:14",
+      "ultralytics/solutions/similarity_search.py:15",
+      "ultralytics/solutions/similarity_search.py:52",
+      "ultralytics/solutions/similarity_search.py:60",
+      "ultralytics/solutions/similarity_search.py:63",
+      "ultralytics/solutions/solutions.py:14",
+      "ultralytics/solutions/solutions.py:15",
+      "ultralytics/solutions/solutions.py:16",
+      "ultralytics/solutions/solutions.py:17",
+      "ultralytics/solutions/solutions.py:18",
+      "ultralytics/solutions/solutions.py:125",
+      "ultralytics/solutions/speed_estimation.py:7",
+      "ultralytics/solutions/speed_estimation.py:8",
+      "ultralytics/solutions/streamlit_inference.py:10",
+      "ultralytics/solutions/streamlit_inference.py:11",
+      "ultralytics/solutions/streamlit_inference.py:12",
+      "ultralytics/solutions/streamlit_inference.py:13",
+      "ultralytics/solutions/streamlit_inference.py:128",
+      "ultralytics/solutions/trackzone.py:8",
+      "ultralytics/solutions/trackzone.py:9",
+      "ultralytics/solutions/vision_eye.py:5",
+      "ultralytics/solutions/vision_eye.py:6",
+      "ultralytics/trackers/fast_tracker.py:10",
+      "ultralytics/trackers/track.py:8",
+      "ultralytics/trackers/track.py:9",
+      "ultralytics/trackers/track.py:10",
+      "ultralytics/trackers/track.py:63",
+      "ultralytics/trackers/track_tracker.py:12",
+      "ultralytics/trackers/track_tracker.py:160",
+      "ultralytics/trackers/track_tracker.py:161",
+      "ultralytics/trackers/track_tracker.py:409",
+      "ultralytics/trackers/utils/gmc.py:10",
+      "ultralytics/trackers/utils/matching.py:5",
+      "ultralytics/trackers/utils/matching.py:12",
+      "ultralytics/trackers/utils/matching.py:48",
+      "ultralytics/trackers/utils/reid.py:16",
+      "ultralytics/trackers/utils/reid.py:17",
+      "ultralytics/trackers/utils/reid.py:18",
+      "ultralytics/trackers/utils/reid.py:19",
+      "ultralytics/trackers/utils/reid.py:47",
+      "ultralytics/trackers/utils/reid.py:57",
+      "ultralytics/utils/__init__.py:28",
+      "ultralytics/utils/__init__.py:29",
+      "ultralytics/utils/__init__.py:30",
+      "ultralytics/utils/__init__.py:31",
+      "ultralytics/utils/__init__.py:32",
+      "ultralytics/utils/__init__.py:1399",
+      "ultralytics/utils/autobatch.py:11",
+      "ultralytics/utils/autobatch.py:12",
+      "ultralytics/utils/autodevice.py:8",
+      "ultralytics/utils/benchmarks.py:42",
+      "ultralytics/utils/benchmarks.py:43",
+      "ultralytics/utils/benchmarks.py:44",
+      "ultralytics/utils/benchmarks.py:45",
+      "ultralytics/utils/benchmarks.py:46",
+      "ultralytics/utils/benchmarks.py:58",
+      "ultralytics/utils/benchmarks.py:59",
+      "ultralytics/utils/benchmarks.py:60",
+      "ultralytics/utils/benchmarks.py:99",
+      "ultralytics/utils/benchmarks.py:499",
+      "ultralytics/utils/callbacks/base.py:185",
+      "ultralytics/utils/callbacks/clearml.py:3",
+      "ultralytics/utils/callbacks/clearml.py:109",
+      "ultralytics/utils/callbacks/comet.py:12",
+      "ultralytics/utils/callbacks/comet.py:13",
+      "ultralytics/utils/callbacks/comet.py:565",
+      "ultralytics/utils/callbacks/dvc.py:5",
+      "ultralytics/utils/callbacks/dvc.py:143",
+      "ultralytics/utils/callbacks/mlflow.py:25",
+      "ultralytics/utils/callbacks/platform.py:13",
+      "ultralytics/utils/callbacks/platform.py:159",
+      "ultralytics/utils/callbacks/platform.py:225",
+      "ultralytics/utils/callbacks/platform.py:226",
+      "ultralytics/utils/callbacks/platform.py:296",
+      "ultralytics/utils/callbacks/platform.py:393",
+      "ultralytics/utils/callbacks/platform.py:408",
+      "ultralytics/utils/callbacks/raytune.py:3",
+      "ultralytics/utils/callbacks/tensorboard.py:3",
+      "ultralytics/utils/callbacks/tensorboard.py:4",
+      "ultralytics/utils/callbacks/wb.py:3",
+      "ultralytics/utils/callbacks/wb.py:4",
+      "ultralytics/utils/checks.py:26",
+      "ultralytics/utils/checks.py:97",
+      "ultralytics/utils/checks.py:98",
+      "ultralytics/utils/checks.py:410",
+      "ultralytics/utils/checks.py:868",
+      "ultralytics/utils/checks.py:903",
+      "ultralytics/utils/checks.py:904",
+      "ultralytics/utils/checks.py:973",
+      "ultralytics/utils/checks.py:1007",
+      "ultralytics/utils/checks.py:1008",
+      "ultralytics/utils/checks.py:1144",
+      "ultralytics/utils/dist.py:17",
+      "ultralytics/utils/downloads.py:15",
+      "ultralytics/utils/downloads.py:522",
+      "ultralytics/utils/events.py:10",
+      "ultralytics/utils/events.py:11",
+      "ultralytics/utils/events.py:12",
+      "ultralytics/utils/events.py:23",
+      "ultralytics/utils/export/ascend.py:11",
+      "ultralytics/utils/export/axelera.py:17",
+      "ultralytics/utils/export/axelera.py:18",
+      "ultralytics/utils/export/coreai.py:9",
+      "ultralytics/utils/export/coreai.py:10",
+      "ultralytics/utils/export/coreml.py:12",
+      "ultralytics/utils/export/coreml.py:13",
+      "ultralytics/utils/export/coreml.py:14",
+      "ultralytics/utils/export/coreml.py:224",
+      "ultralytics/utils/export/deepx.py:8",
+      "ultralytics/utils/export/deepx.py:9",
+      "ultralytics/utils/export/engine.py:12",
+      "ultralytics/utils/export/engine.py:13",
+      "ultralytics/utils/export/engine.py:14",
+      "ultralytics/utils/export/executorch.py:10",
+      "ultralytics/utils/export/executorch.py:11",
+      "ultralytics/utils/export/executorch.py:12",
+      "ultralytics/utils/export/imx.py:15",
+      "ultralytics/utils/export/imx.py:16",
+      "ultralytics/utils/export/imx.py:17",
+      "ultralytics/utils/export/imx.py:18",
+      "ultralytics/utils/export/imx.py:19",
+      "ultralytics/utils/export/imx.py:20",
+      "ultralytics/utils/export/litert.py:12",
+      "ultralytics/utils/export/litert.py:13",
+      "ultralytics/utils/export/litert.py:14",
+      "ultralytics/utils/export/litert.py:61",
+      "ultralytics/utils/export/mnn.py:8",
+      "ultralytics/utils/export/mnn.py:30",
+      "ultralytics/utils/export/mnn.py:31",
+      "ultralytics/utils/export/ncnn.py:9",
+      "ultralytics/utils/export/ncnn.py:35",
+      "ultralytics/utils/export/onnx.py:5",
+      "ultralytics/utils/export/openvino.py:10",
+      "ultralytics/utils/export/paddle.py:9",
+      "ultralytics/utils/export/paddle.py:32",
+      "ultralytics/utils/export/qnn.py:7",
+      "ultralytics/utils/export/qnn.py:8",
+      "ultralytics/utils/export/qnn.py:83",
+      "ultralytics/utils/export/rknn.py:7",
+      "ultralytics/utils/export/rknn.py:56",
+      "ultralytics/utils/export/tensorflow.py:12",
+      "ultralytics/utils/export/tensorflow.py:13",
+      "ultralytics/utils/export/tensorflow.py:14",
+      "ultralytics/utils/export/tensorflow.py:21",
+      "ultralytics/utils/export/tensorflow.py:22",
+      "ultralytics/utils/export/torchscript.py:10",
+      "ultralytics/utils/files.py:200",
+      "ultralytics/utils/files.py:201",
+      "ultralytics/utils/files.py:202",
+      "ultralytics/utils/logger.py:14",
+      "ultralytics/utils/loss.py:13",
+      "ultralytics/utils/loss.py:14",
+      "ultralytics/utils/loss.py:15",
+      "ultralytics/utils/loss.py:16",
+      "ultralytics/utils/metrics.py:15",
+      "ultralytics/utils/metrics.py:16",
+      "ultralytics/utils/nms.py:8",
+      "ultralytics/utils/nms.py:9",
+      "ultralytics/utils/nms.py:10",
+      "ultralytics/utils/ops.py:15",
+      "ultralytics/utils/ops.py:16",
+      "ultralytics/utils/ops.py:17",
+      "ultralytics/utils/ops.py:676",
+      "ultralytics/utils/patches.py:80",
+      "ultralytics/utils/patches.py:196",
+      "ultralytics/utils/patches.py:250",
+      "ultralytics/utils/plotting.py:17",
+      "ultralytics/utils/plotting.py:18",
+      "ultralytics/utils/plotting.py:19",
+      "ultralytics/utils/plotting.py:20",
+      "ultralytics/utils/torch_utils.py:24",
+      "ultralytics/utils/torch_utils.py:25",
+      "ultralytics/utils/torch_utils.py:37",
+      "ultralytics/utils/torch_utils.py:38",
+      "ultralytics/utils/torch_utils.py:39",
+      "ultralytics/utils/torch_utils.py:220",
+      "ultralytics/utils/torch_utils.py:599",
+      "ultralytics/utils/torch_utils.py:648",
+      "ultralytics/utils/torch_utils.py:649",
+      "ultralytics/utils/torch_utils.py:921",
+      "ultralytics/utils/tqdm.py:120",
+      "ultralytics/utils/tuner.py:7",
+      "ultralytics/utils/tuner.py:8",
+      "ultralytics/utils/uploads.py:10"
+    ],
+    "ast": [
+      "docs/build_reference.py:13",
+      "ultralytics/cfg/__init__.py:5",
+      "ultralytics/nn/backends/base.py:5",
+      "ultralytics/nn/tasks.py:1725",
+      "ultralytics/nn/tasks.py:2008",
+      "ultralytics/utils/checks.py:5",
+      "ultralytics/utils/triton.py:5"
+    ],
+    "html": [
+      "docs/build_reference.py:14"
+    ],
+    "re": [
+      "docs/build_reference.py:15",
+      "ultralytics/engine/predictor.py:43",
+      "ultralytics/models/yolo/obb/val.py:253",
+      "ultralytics/nn/tasks.py:8",
+      "ultralytics/utils/__init__.py:12",
+      "ultralytics/utils/callbacks/clearml.py:24",
+      "ultralytics/utils/callbacks/dvc.py:15",
+      "ultralytics/utils/callbacks/platform.py:5",
+      "ultralytics/utils/checks.py:12",
+      "ultralytics/utils/cpu.py:7",
+      "ultralytics/utils/downloads.py:5",
+      "ultralytics/utils/export/engine.py:6",
+      "ultralytics/utils/export/imx.py:5",
+      "ultralytics/utils/metrics.py:635",
+      "ultralytics/utils/ops.py:7"
+    ],
+    "textwrap": [
+      "docs/build_reference.py:17"
+    ],
+    "collections": [
+      "docs/build_reference.py:18",
+      "docs/build_reference.py:19",
+      "examples/YOLO-Axelera-Python/yolo11-seg.py:22",
+      "examples/YOLOv8-Action-Recognition/action_recognition.py:7",
+      "examples/YOLOv8-Region-Counter/yolov8_region_counter.py:6",
+      "tests/test_engine.py:4",
+      "ultralytics/data/build.py:8",
+      "ultralytics/data/converter.py:11",
+      "ultralytics/data/dataset.py:6",
+      "ultralytics/engine/model.py:6",
+      "ultralytics/models/sam/amg.py:6",
+      "ultralytics/models/sam/predict.py:13",
+      "ultralytics/models/sam/sam3/text_encoder_ve.py:7",
+      "ultralytics/models/yolo/obb/val.py:254",
+      "ultralytics/nn/backends/tensorrt.py:5",
+      "ultralytics/solutions/ai_gym.py:3",
+      "ultralytics/solutions/analytics.py:123",
+      "ultralytics/solutions/object_counter.py:5",
+      "ultralytics/solutions/solutions.py:6",
+      "ultralytics/solutions/speed_estimation.py:3",
+      "ultralytics/trackers/fast_tracker.py:5",
+      "ultralytics/trackers/track_tracker.py:5",
+      "ultralytics/utils/callbacks/base.py:4",
+      "ultralytics/utils/callbacks/comet.py:5",
+      "ultralytics/utils/export/axelera.py:10",
+      "ultralytics/utils/instance.py:5",
+      "ultralytics/utils/metrics.py:8",
+      "ultralytics/utils/plotting.py:7"
+    ],
+    "dataclasses": [
+      "docs/build_reference.py:20",
+      "ultralytics/data/loaders.py:10",
+      "ultralytics/solutions/config.py:5"
+    ],
+    "typing": [
+      "docs/build_reference.py:22",
+      "examples/YOLOv8-OpenCV-ONNX-Python/main.py:6",
+      "examples/YOLOv8-Region-Counter/yolov8_region_counter.py:8",
+      "ultralytics/__init__.py:8",
+      "ultralytics/cfg/__init__.py:12",
+      "ultralytics/data/augment.py:8",
+      "ultralytics/data/base.py:12",
+      "ultralytics/data/build.py:11",
+      "ultralytics/data/dataset.py:10",
+      "ultralytics/data/loaders.py:16",
+      "ultralytics/data/split_dota.py:9",
+      "ultralytics/data/utils.py:12",
+      "ultralytics/engine/model.py:8",
+      "ultralytics/engine/predictor.py:47",
+      "ultralytics/engine/results.py:13",
+      "ultralytics/models/fastsam/model.py:6",
+      "ultralytics/models/llm.py:7",
+      "ultralytics/models/nas/model.py:6",
+      "ultralytics/models/rtdetr/val.py:6",
+      "ultralytics/models/sam/amg.py:8",
+      "ultralytics/models/sam/modules/utils.py:6",
+      "ultralytics/models/sam/predict.py:15",
+      "ultralytics/models/sam/sam3/text_encoder_ve.py:8",
+      "ultralytics/models/sam/sam3/vitdet.py:19",
+      "ultralytics/models/utils/loss.py:5",
+      "ultralytics/models/utils/ops.py:5",
+      "ultralytics/models/yolo/classify/train.py:6",
+      "ultralytics/models/yolo/classify/val.py:6",
+      "ultralytics/models/yolo/depth/calibrate.py:18",
+      "ultralytics/models/yolo/depth/predict.py:6",
+      "ultralytics/models/yolo/depth/train.py:8",
+      "ultralytics/models/yolo/depth/val.py:7",
+      "ultralytics/models/yolo/detect/train.py:8",
+      "ultralytics/models/yolo/detect/val.py:7",
+      "ultralytics/models/yolo/model.py:6",
+      "ultralytics/models/yolo/obb/val.py:6",
+      "ultralytics/models/yolo/pose/train.py:7",
+      "ultralytics/models/yolo/pose/val.py:6",
+      "ultralytics/models/yolo/segment/val.py:6",
+      "ultralytics/models/yolo/semantic/train.py:6",
+      "ultralytics/models/yolo/semantic/val.py:6",
+      "ultralytics/models/yolo/world/train.py:7",
+      "ultralytics/models/yolo/yoloe/val.py:6",
+      "ultralytics/nn/autobackend.py:8",
+      "ultralytics/nn/backends/base.py:10",
+      "ultralytics/nn/backends/pytorch.py:6",
+      "ultralytics/solutions/ai_gym.py:4",
+      "ultralytics/solutions/analytics.py:6",
+      "ultralytics/solutions/config.py:6",
+      "ultralytics/solutions/distance_calculation.py:4",
+      "ultralytics/solutions/heatmap.py:5",
+      "ultralytics/solutions/instance_segmentation.py:3",
+      "ultralytics/solutions/object_blurrer.py:3",
+      "ultralytics/solutions/object_counter.py:6",
+      "ultralytics/solutions/object_cropper.py:4",
+      "ultralytics/solutions/parking_management.py:6",
+      "ultralytics/solutions/queue_management.py:3",
+      "ultralytics/solutions/region_counter.py:5",
+      "ultralytics/solutions/security_alarm.py:3",
+      "ultralytics/solutions/similarity_search.py:7",
+      "ultralytics/solutions/solutions.py:8",
+      "ultralytics/solutions/speed_estimation.py:5",
+      "ultralytics/solutions/streamlit_inference.py:5",
+      "ultralytics/solutions/trackzone.py:3",
+      "ultralytics/solutions/vision_eye.py:3",
+      "ultralytics/trackers/basetrack.py:4",
+      "ultralytics/trackers/bot_sort.py:5",
+      "ultralytics/trackers/byte_tracker.py:5",
+      "ultralytics/trackers/deep_oc_sort.py:5",
+      "ultralytics/trackers/fast_tracker.py:6",
+      "ultralytics/trackers/oc_sort.py:5",
+      "ultralytics/trackers/track_tracker.py:7",
+      "ultralytics/utils/autodevice.py:6",
+      "ultralytics/utils/callbacks/comet.py:7",
+      "ultralytics/utils/dist.py:10",
+      "ultralytics/utils/export/axelera.py:12",
+      "ultralytics/utils/export/coreml.py:7",
+      "ultralytics/utils/export/openvino.py:6",
+      "ultralytics/utils/loss.py:7",
+      "ultralytics/utils/metrics.py:10",
+      "ultralytics/utils/patches.py:10",
+      "ultralytics/utils/plotting.py:9",
+      "ultralytics/utils/torch_utils.py:15",
+      "ultralytics/utils/tqdm.py:11"
+    ],
+    "json": [
+      "docs/model_data.py:352",
+      "tests/test_cli.py:3",
+      "tests/test_ndjson_converter.py:4",
+      "tests/test_python.py:832",
+      "ultralytics/data/converter.py:7",
+      "ultralytics/data/dataset.py:5",
+      "ultralytics/engine/exporter.py:69",
+      "ultralytics/engine/trainer.py:1347",
+      "ultralytics/engine/tuner.py:19",
+      "ultralytics/engine/validator.py:33",
+      "ultralytics/models/yolo/obb/val.py:252",
+      "ultralytics/nn/backends/base.py:7",
+      "ultralytics/nn/backends/mnn.py:5",
+      "ultralytics/solutions/parking_management.py:5",
+      "ultralytics/utils/__init__.py:8",
+      "ultralytics/utils/events.py:3",
+      "ultralytics/utils/export/deepx.py:5",
+      "ultralytics/utils/export/engine.py:5",
+      "ultralytics/utils/export/litert.py:5",
+      "ultralytics/utils/export/mnn.py:5",
+      "ultralytics/utils/export/torchscript.py:5",
+      "ultralytics/utils/logger.py:3",
+      "ultralytics/utils/plotting.py:1240"
+    ],
+    "argparse": [
+      "examples/RTDETR-ONNXRuntime-Python/main.py:5",
+      "examples/YOLO-Axelera-Python/yolo11-seg.py:21",
+      "examples/YOLO-Axelera-Python/yolo26-pose-tracker.py:32",
+      "examples/YOLOv8-Action-Recognition/action_recognition.py:5",
+      "examples/YOLOv8-ONNXRuntime/main.py:5",
+      "examples/YOLOv8-OpenCV-ONNX-Python/main.py:5",
+      "examples/YOLOv8-Region-Counter/yolov8_region_counter.py:5",
+      "examples/YOLOv8-SAHI-Inference-Video/yolov8_sahi.py:3",
+      "examples/YOLOv8-Segmentation-ONNXRuntime-Python/main.py:5",
+      "tests/cache_test_assets.py:11"
+    ],
+    "cv2": [
+      "examples/RTDETR-ONNXRuntime-Python/main.py:8",
+      "examples/YOLO-Axelera-Python/yolo26-pose-tracker.py:35",
+      "examples/YOLO-Interactive-Tracking-UI/interactive_tracker.py:7",
+      "examples/YOLOv8-Action-Recognition/action_recognition.py:10",
+      "examples/YOLOv8-ONNXRuntime/main.py:7",
+      "examples/YOLOv8-OpenCV-ONNX-Python/main.py:8",
+      "examples/YOLOv8-Region-Counter/yolov8_region_counter.py:10",
+      "examples/YOLOv8-SAHI-Inference-Video/yolov8_sahi.py:5",
+      "examples/YOLOv8-Segmentation-ONNXRuntime-Python/main.py:7",
+      "tests/test_ndjson_converter.py:9",
+      "tests/test_python.py:14",
+      "tests/test_solutions.py:9",
+      "ultralytics/cfg/__init__.py:872",
+      "ultralytics/data/augment.py:10",
+      "ultralytics/data/base.py:14",
+      "ultralytics/data/converter.py:15",
+      "ultralytics/data/dataset.py:12",
+      "ultralytics/data/loaders.py:18",
+      "ultralytics/data/split_dota.py:11",
+      "ultralytics/data/utils.py:14",
+      "ultralytics/engine/predictor.py:49",
+      "ultralytics/models/llm.py:9",
+      "ultralytics/models/sam/amg.py:215",
+      "ultralytics/models/sam/predict.py:17",
+      "ultralytics/models/yolo/classify/predict.py:5",
+      "ultralytics/models/yolo/semantic/val.py:8",
+      "ultralytics/nn/backends/onnx.py:70",
+      "ultralytics/solutions/analytics.py:8",
+      "ultralytics/solutions/config.py:8",
+      "ultralytics/solutions/distance_calculation.py:6",
+      "ultralytics/solutions/heatmap.py:7",
+      "ultralytics/solutions/object_blurrer.py:5",
+      "ultralytics/solutions/parking_management.py:8",
+      "ultralytics/solutions/security_alarm.py:90",
+      "ultralytics/solutions/solutions.py:10",
+      "ultralytics/solutions/streamlit_inference.py:7",
+      "ultralytics/solutions/trackzone.py:5",
+      "ultralytics/trackers/utils/gmc.py:7",
+      "ultralytics/utils/__init__.py:24",
+      "ultralytics/utils/callbacks/comet.py:9",
+      "ultralytics/utils/checks.py:22",
+      "ultralytics/utils/instance.py:9",
+      "ultralytics/utils/ops.py:10",
+      "ultralytics/utils/patches.py:12",
+      "ultralytics/utils/plotting.py:11"
+    ],
+    "numpy": [
+      "examples/RTDETR-ONNXRuntime-Python/main.py:9",
+      "examples/YOLO-Axelera-Python/yolo26-pose-tracker.py:36",
+      "examples/YOLOv8-Action-Recognition/action_recognition.py:11",
+      "examples/YOLOv8-ONNXRuntime/main.py:8",
+      "examples/YOLOv8-OpenCV-ONNX-Python/main.py:9",
+      "examples/YOLOv8-Region-Counter/yolov8_region_counter.py:11",
+      "examples/YOLOv8-Segmentation-ONNXRuntime-Python/main.py:8",
+      "tests/conftest.py:6",
+      "tests/test_exports.py:599",
+      "tests/test_ndjson_converter.py:10",
+      "tests/test_python.py:15",
+      "tests/test_solutions.py:10",
+      "ultralytics/data/augment.py:11",
+      "ultralytics/data/base.py:15",
+      "ultralytics/data/build.py:14",
+      "ultralytics/data/converter.py:16",
+      "ultralytics/data/dataset.py:13",
+      "ultralytics/data/loaders.py:19",
+      "ultralytics/data/split_dota.py:12",
+      "ultralytics/data/utils.py:15",
+      "ultralytics/engine/exporter.py:78",
+      "ultralytics/engine/model.py:10",
+      "ultralytics/engine/predictor.py:50",
+      "ultralytics/engine/results.py:15",
+      "ultralytics/engine/trainer.py:22",
+      "ultralytics/engine/tuner.py:24",
+      "ultralytics/engine/validator.py:38",
+      "ultralytics/models/llm.py:10",
+      "ultralytics/models/sam/amg.py:10",
+      "ultralytics/models/sam/modules/blocks.py:9",
+      "ultralytics/models/sam/predict.py:18",
+      "ultralytics/models/sam/sam3/decoder.py:11",
+      "ultralytics/models/sam/sam3/model_misc.py:11",
+      "ultralytics/models/yolo/classify/predict.py:6",
+      "ultralytics/models/yolo/depth/calibrate.py:20",
+      "ultralytics/models/yolo/depth/predict.py:8",
+      "ultralytics/models/yolo/depth/train.py:70",
+      "ultralytics/models/yolo/detect/train.py:10",
+      "ultralytics/models/yolo/detect/val.py:9",
+      "ultralytics/models/yolo/model.py:8",
+      "ultralytics/models/yolo/obb/val.py:8",
+      "ultralytics/models/yolo/obb/val.py:222",
+      "ultralytics/models/yolo/pose/val.py:8",
+      "ultralytics/models/yolo/segment/val.py:8",
+      "ultralytics/models/yolo/semantic/train.py:8",
+      "ultralytics/models/yolo/semantic/val.py:9",
+      "ultralytics/models/yolo/yoloe/predict.py:3",
+      "ultralytics/nn/autobackend.py:10",
+      "ultralytics/nn/backends/ascend.py:7",
+      "ultralytics/nn/backends/axelera.py:7",
+      "ultralytics/nn/backends/coreml.py:7",
+      "ultralytics/nn/backends/deepx.py:7",
+      "ultralytics/nn/backends/hailo.py:9",
+      "ultralytics/nn/backends/litert.py:7",
+      "ultralytics/nn/backends/mnn.py:9",
+      "ultralytics/nn/backends/ncnn.py:7",
+      "ultralytics/nn/backends/onnx.py:7",
+      "ultralytics/nn/backends/openvino.py:8",
+      "ultralytics/nn/backends/paddle.py:7",
+      "ultralytics/nn/backends/tensorflow.py:8",
+      "ultralytics/nn/backends/tensorrt.py:8",
+      "ultralytics/nn/modules/conv.py:8",
+      "ultralytics/nn/modules/utils.py:5",
+      "ultralytics/nn/tasks.py:13",
+      "ultralytics/solutions/analytics.py:9",
+      "ultralytics/solutions/heatmap.py:8",
+      "ultralytics/solutions/parking_management.py:9",
+      "ultralytics/solutions/region_counter.py:7",
+      "ultralytics/solutions/similarity_search.py:9",
+      "ultralytics/solutions/solutions.py:11",
+      "ultralytics/solutions/trackzone.py:6",
+      "ultralytics/trackers/bot_sort.py:7",
+      "ultralytics/trackers/byte_tracker.py:7",
+      "ultralytics/trackers/deep_oc_sort.py:7",
+      "ultralytics/trackers/fast_tracker.py:8",
+      "ultralytics/trackers/oc_sort.py:7",
+      "ultralytics/trackers/track_tracker.py:9",
+      "ultralytics/trackers/utils/gmc.py:8",
+      "ultralytics/trackers/utils/kalman_filter.py:5",
+      "ultralytics/trackers/utils/matching.py:3",
+      "ultralytics/trackers/utils/reid.py:13",
+      "ultralytics/trackers/utils/stracks.py:12",
+      "ultralytics/utils/__init__.py:25",
+      "ultralytics/utils/autobatch.py:8",
+      "ultralytics/utils/benchmarks.py:39",
+      "ultralytics/utils/callbacks/comet.py:10",
+      "ultralytics/utils/callbacks/platform.py:40",
+      "ultralytics/utils/callbacks/wb.py:82",
+      "ultralytics/utils/checks.py:23",
+      "ultralytics/utils/export/axelera.py:14",
+      "ultralytics/utils/export/imx.py:12",
+      "ultralytics/utils/export/onnx.py:3",
+      "ultralytics/utils/export/tensorflow.py:9",
+      "ultralytics/utils/instance.py:10",
+      "ultralytics/utils/metrics.py:12",
+      "ultralytics/utils/ops.py:11",
+      "ultralytics/utils/patches.py:13",
+      "ultralytics/utils/plotting.py:12",
+      "ultralytics/utils/torch_utils.py:17",
+      "ultralytics/utils/triton.py:8",
+      "ultralytics/utils/tuner.py:5"
+    ],
+    "onnxruntime": [
+      "examples/RTDETR-ONNXRuntime-Python/main.py:10",
+      "examples/YOLOv8-ONNXRuntime/main.py:9",
+      "examples/YOLOv8-Segmentation-ONNXRuntime-Python/main.py:9",
+      "tests/test_exports.py:96",
+      "tests/test_exports.py:642",
+      "ultralytics/engine/exporter.py:1171",
+      "ultralytics/nn/backends/onnx.py:77",
+      "ultralytics/nn/backends/onnx.py:187",
+      "ultralytics/nn/backends/qnn.py:33",
+      "ultralytics/utils/benchmarks.py:497",
+      "ultralytics/utils/export/onnx.py:14",
+      "ultralytics/utils/export/onnx.py:48",
+      "ultralytics/utils/export/qnn.py:26",
+      "ultralytics/utils/export/qnn.py:78",
+      "ultralytics/utils/export/qnn.py:79",
+      "ultralytics/utils/export/qnn.py:80",
+      "ultralytics/utils/export/qnn.py:81"
+    ],
+    "requests": [
+      "examples/RTDETR-ONNXRuntime-Python/main.py:11",
+      "ultralytics/data/loaders.py:675",
+      "ultralytics/utils/callbacks/platform.py:100",
+      "ultralytics/utils/callbacks/platform.py:170",
+      "ultralytics/utils/checks.py:391",
+      "ultralytics/utils/downloads.py:75",
+      "ultralytics/utils/downloads.py:277",
+      "ultralytics/utils/downloads.py:343",
+      "ultralytics/utils/downloads.py:479",
+      "ultralytics/utils/logger.py:219",
+      "ultralytics/utils/uploads.py:62"
+    ],
+    "axelera": [
+      "examples/YOLO-Axelera-Python/yolo11-seg.py:25",
+      "examples/YOLO-Axelera-Python/yolo26-pose-tracker.py:37",
+      "ultralytics/nn/backends/axelera.py:34",
+      "ultralytics/utils/export/axelera.py:67",
+      "ultralytics/utils/export/axelera.py:68",
+      "ultralytics/utils/export/axelera.py:69"
+    ],
+    "colorsys": [
+      "examples/YOLO-Axelera-Python/yolo26-pose-tracker.py:33"
+    ],
+    "time": [
+      "examples/YOLO-Interactive-Tracking-UI/interactive_tracker.py:5",
+      "examples/YOLOv8-Action-Recognition/action_recognition.py:6",
+      "tests/test_exports.py:8",
+      "tests/test_integrations.py:5",
+      "ultralytics/data/loaders.py:8",
+      "ultralytics/data/utils.py:8",
+      "ultralytics/engine/exporter.py:72",
+      "ultralytics/engine/trainer.py:15",
+      "ultralytics/engine/tuner.py:21",
+      "ultralytics/engine/validator.py:34",
+      "ultralytics/utils/__init__.py:16",
+      "ultralytics/utils/benchmarks.py:35",
+      "ultralytics/utils/callbacks/platform.py:11",
+      "ultralytics/utils/checks.py:17",
+      "ultralytics/utils/events.py:5",
+      "ultralytics/utils/git.py:162",
+      "ultralytics/utils/logger.py:10",
+      "ultralytics/utils/nms.py:4",
+      "ultralytics/utils/ops.py:8",
+      "ultralytics/utils/patches.py:6",
+      "ultralytics/utils/torch_utils.py:10",
+      "ultralytics/utils/tqdm.py:8",
+      "ultralytics/utils/tqdm.py:419",
+      "ultralytics/utils/uploads.py:8"
+    ],
+    "urllib": [
+      "examples/YOLOv8-Action-Recognition/action_recognition.py:8",
+      "tests/test_python.py:9",
+      "ultralytics/data/build.py:12",
+      "ultralytics/data/loaders.py:9",
+      "ultralytics/engine/model.py:187",
+      "ultralytics/nn/autobackend.py:405",
+      "ultralytics/utils/__init__.py:22",
+      "ultralytics/utils/downloads.py:12",
+      "ultralytics/utils/events.py:8",
+      "ultralytics/utils/triton.py:6"
+    ],
+    "torch": [
+      "examples/YOLOv8-Action-Recognition/action_recognition.py:12",
+      "examples/YOLOv8-ONNXRuntime/main.py:10",
+      "examples/YOLOv8-Segmentation-ONNXRuntime-Python/main.py:10",
+      "tests/cache_test_assets.py:14",
+      "tests/test_cuda.py:8",
+      "tests/test_engine.py:10",
+      "tests/test_exports.py:18",
+      "tests/test_python.py:17",
+      "tests/test_solutions.py:12",
+      "ultralytics/data/augment.py:12",
+      "ultralytics/data/augment.py:14",
+      "ultralytics/data/base.py:16",
+      "ultralytics/data/build.py:15",
+      "ultralytics/data/build.py:16",
+      "ultralytics/data/build.py:18",
+      "ultralytics/data/dataset.py:14",
+      "ultralytics/data/dataset.py:16",
+      "ultralytics/data/loaders.py:20",
+      "ultralytics/engine/exporter.py:79",
+      "ultralytics/engine/model.py:11",
+      "ultralytics/engine/predictor.py:51",
+      "ultralytics/engine/results.py:16",
+      "ultralytics/engine/trainer.py:23",
+      "ultralytics/engine/trainer.py:24",
+      "ultralytics/engine/trainer.py:25",
+      "ultralytics/engine/validator.py:39",
+      "ultralytics/engine/validator.py:40",
+      "ultralytics/models/fastsam/predict.py:7",
+      "ultralytics/models/nas/model.py:8",
+      "ultralytics/models/nas/predict.py:3",
+      "ultralytics/models/nas/val.py:3",
+      "ultralytics/models/rtdetr/predict.py:3",
+      "ultralytics/models/rtdetr/val.py:8",
+      "ultralytics/models/sam/amg.py:11",
+      "ultralytics/models/sam/build.py:11",
+      "ultralytics/models/sam/build_sam3.py:5",
+      "ultralytics/models/sam/modules/blocks.py:10",
+      "ultralytics/models/sam/modules/blocks.py:11",
+      "ultralytics/models/sam/modules/blocks.py:12",
+      "ultralytics/models/sam/modules/decoders.py:5",
+      "ultralytics/models/sam/modules/decoders.py:6",
+      "ultralytics/models/sam/modules/encoders.py:5",
+      "ultralytics/models/sam/modules/encoders.py:6",
+      "ultralytics/models/sam/modules/encoders.py:7",
+      "ultralytics/models/sam/modules/memory_attention.py:7",
+      "ultralytics/models/sam/modules/memory_attention.py:8",
+      "ultralytics/models/sam/modules/sam.py:8",
+      "ultralytics/models/sam/modules/sam.py:9",
+      "ultralytics/models/sam/modules/sam.py:10",
+      "ultralytics/models/sam/modules/sam.py:11",
+      "ultralytics/models/sam/modules/tiny_encoder.py:16",
+      "ultralytics/models/sam/modules/tiny_encoder.py:17",
+      "ultralytics/models/sam/modules/tiny_encoder.py:18",
+      "ultralytics/models/sam/modules/transformer.py:7",
+      "ultralytics/models/sam/modules/transformer.py:8",
+      "ultralytics/models/sam/modules/utils.py:8",
+      "ultralytics/models/sam/modules/utils.py:9",
+      "ultralytics/models/sam/predict.py:19",
+      "ultralytics/models/sam/predict.py:20",
+      "ultralytics/models/sam/sam3/decoder.py:12",
+      "ultralytics/models/sam/sam3/decoder.py:13",
+      "ultralytics/models/sam/sam3/encoder.py:7",
+      "ultralytics/models/sam/sam3/encoder.py:8",
+      "ultralytics/models/sam/sam3/geometry_encoders.py:5",
+      "ultralytics/models/sam/sam3/geometry_encoders.py:6",
+      "ultralytics/models/sam/sam3/maskformer_segmentation.py:9",
+      "ultralytics/models/sam/sam3/maskformer_segmentation.py:10",
+      "ultralytics/models/sam/sam3/maskformer_segmentation.py:11",
+      "ultralytics/models/sam/sam3/maskformer_segmentation.py:12",
+      "ultralytics/models/sam/sam3/model_misc.py:12",
+      "ultralytics/models/sam/sam3/model_misc.py:13",
+      "ultralytics/models/sam/sam3/necks.py:11",
+      "ultralytics/models/sam/sam3/necks.py:12",
+      "ultralytics/models/sam/sam3/sam3_image.py:9",
+      "ultralytics/models/sam/sam3/text_encoder_ve.py:10",
+      "ultralytics/models/sam/sam3/text_encoder_ve.py:11",
+      "ultralytics/models/sam/sam3/text_encoder_ve.py:12",
+      "ultralytics/models/sam/sam3/vitdet.py:21",
+      "ultralytics/models/sam/sam3/vitdet.py:22",
+      "ultralytics/models/sam/sam3/vitdet.py:23",
+      "ultralytics/models/sam/sam3/vitdet.py:24",
+      "ultralytics/models/sam/sam3/vl_combiner.py:11",
+      "ultralytics/models/sam/sam3/vl_combiner.py:12",
+      "ultralytics/models/sam/sam3/vl_combiner.py:13",
+      "ultralytics/models/utils/loss.py:7",
+      "ultralytics/models/utils/loss.py:8",
+      "ultralytics/models/utils/loss.py:9",
+      "ultralytics/models/utils/ops.py:7",
+      "ultralytics/models/utils/ops.py:8",
+      "ultralytics/models/utils/ops.py:9",
+      "ultralytics/models/yolo/classify/predict.py:7",
+      "ultralytics/models/yolo/classify/train.py:8",
+      "ultralytics/models/yolo/classify/val.py:8",
+      "ultralytics/models/yolo/classify/val.py:9",
+      "ultralytics/models/yolo/depth/calibrate.py:21",
+      "ultralytics/models/yolo/depth/calibrate.py:22",
+      "ultralytics/models/yolo/depth/predict.py:9",
+      "ultralytics/models/yolo/depth/val.py:9",
+      "ultralytics/models/yolo/depth/val.py:10",
+      "ultralytics/models/yolo/depth/val.py:11",
+      "ultralytics/models/yolo/detect/predict.py:85",
+      "ultralytics/models/yolo/detect/train.py:11",
+      "ultralytics/models/yolo/detect/train.py:12",
+      "ultralytics/models/yolo/detect/val.py:10",
+      "ultralytics/models/yolo/detect/val.py:11",
+      "ultralytics/models/yolo/model.py:9",
+      "ultralytics/models/yolo/obb/predict.py:5",
+      "ultralytics/models/yolo/obb/val.py:9",
+      "ultralytics/models/yolo/pose/val.py:9",
+      "ultralytics/models/yolo/segment/val.py:9",
+      "ultralytics/models/yolo/segment/val.py:10",
+      "ultralytics/models/yolo/semantic/predict.py:5",
+      "ultralytics/models/yolo/semantic/predict.py:6",
+      "ultralytics/models/yolo/semantic/val.py:10",
+      "ultralytics/models/yolo/semantic/val.py:11",
+      "ultralytics/models/yolo/semantic/val.py:12",
+      "ultralytics/models/yolo/world/train.py:9",
+      "ultralytics/models/yolo/world/val.py:5",
+      "ultralytics/models/yolo/yoloe/predict.py:4",
+      "ultralytics/models/yolo/yoloe/train.py:8",
+      "ultralytics/models/yolo/yoloe/val.py:8",
+      "ultralytics/models/yolo/yoloe/val.py:9",
+      "ultralytics/nn/autobackend.py:11",
+      "ultralytics/nn/autobackend.py:12",
+      "ultralytics/nn/backends/ascend.py:8",
+      "ultralytics/nn/backends/axelera.py:8",
+      "ultralytics/nn/backends/base.py:12",
+      "ultralytics/nn/backends/coreai.py:8",
+      "ultralytics/nn/backends/coreml.py:8",
+      "ultralytics/nn/backends/deepx.py:8",
+      "ultralytics/nn/backends/executorch.py:7",
+      "ultralytics/nn/backends/hailo.py:10",
+      "ultralytics/nn/backends/litert.py:8",
+      "ultralytics/nn/backends/mnn.py:10",
+      "ultralytics/nn/backends/ncnn.py:8",
+      "ultralytics/nn/backends/onnx.py:8",
+      "ultralytics/nn/backends/openvino.py:9",
+      "ultralytics/nn/backends/paddle.py:8",
+      "ultralytics/nn/backends/pytorch.py:8",
+      "ultralytics/nn/backends/pytorch.py:9",
+      "ultralytics/nn/backends/qnn.py:7",
+      "ultralytics/nn/backends/rknn.py:7",
+      "ultralytics/nn/backends/tensorflow.py:9",
+      "ultralytics/nn/backends/tensorrt.py:9",
+      "ultralytics/nn/backends/triton.py:7",
+      "ultralytics/nn/distill_model.py:7",
+      "ultralytics/nn/distill_model.py:8",
+      "ultralytics/nn/distill_model.py:9",
+      "ultralytics/nn/modules/activation.py:4",
+      "ultralytics/nn/modules/activation.py:5",
+      "ultralytics/nn/modules/block.py:8",
+      "ultralytics/nn/modules/block.py:9",
+      "ultralytics/nn/modules/block.py:10",
+      "ultralytics/nn/modules/conv.py:9",
+      "ultralytics/nn/modules/conv.py:10",
+      "ultralytics/nn/modules/head.py:9",
+      "ultralytics/nn/modules/head.py:10",
+      "ultralytics/nn/modules/head.py:11",
+      "ultralytics/nn/modules/head.py:12",
+      "ultralytics/nn/modules/transformer.py:8",
+      "ultralytics/nn/modules/transformer.py:9",
+      "ultralytics/nn/modules/transformer.py:10",
+      "ultralytics/nn/modules/transformer.py:11",
+      "ultralytics/nn/modules/utils.py:6",
+      "ultralytics/nn/modules/utils.py:7",
+      "ultralytics/nn/modules/utils.py:8",
+      "ultralytics/nn/tasks.py:14",
+      "ultralytics/nn/tasks.py:15",
+      "ultralytics/nn/text_model.py:8",
+      "ultralytics/nn/text_model.py:10",
+      "ultralytics/optim/muon.py:5",
+      "ultralytics/optim/muon.py:6",
+      "ultralytics/solutions/heatmap.py:9",
+      "ultralytics/solutions/solutions.py:12",
+      "ultralytics/solutions/streamlit_inference.py:8",
+      "ultralytics/trackers/track.py:6",
+      "ultralytics/trackers/track_tracker.py:10",
+      "ultralytics/trackers/utils/reid.py:14",
+      "ultralytics/utils/__init__.py:26",
+      "ultralytics/utils/autobatch.py:9",
+      "ultralytics/utils/benchmarks.py:40",
+      "ultralytics/utils/callbacks/platform.py:223",
+      "ultralytics/utils/callbacks/tensorboard.py:15",
+      "ultralytics/utils/callbacks/tensorboard.py:16",
+      "ultralytics/utils/checks.py:24",
+      "ultralytics/utils/export/axelera.py:15",
+      "ultralytics/utils/export/coreai.py:7",
+      "ultralytics/utils/export/coreml.py:9",
+      "ultralytics/utils/export/coreml.py:10",
+      "ultralytics/utils/export/engine.py:10",
+      "ultralytics/utils/export/executorch.py:8",
+      "ultralytics/utils/export/imx.py:13",
+      "ultralytics/utils/export/litert.py:10",
+      "ultralytics/utils/export/ncnn.py:7",
+      "ultralytics/utils/export/openvino.py:8",
+      "ultralytics/utils/export/paddle.py:7",
+      "ultralytics/utils/export/tensorflow.py:10",
+      "ultralytics/utils/export/torchscript.py:8",
+      "ultralytics/utils/logger.py:481",
+      "ultralytics/utils/loss.py:9",
+      "ultralytics/utils/loss.py:10",
+      "ultralytics/utils/loss.py:11",
+      "ultralytics/utils/metrics.py:13",
+      "ultralytics/utils/nms.py:6",
+      "ultralytics/utils/ops.py:12",
+      "ultralytics/utils/ops.py:13",
+      "ultralytics/utils/patches.py:14",
+      "ultralytics/utils/plotting.py:13",
+      "ultralytics/utils/tal.py:5",
+      "ultralytics/utils/tal.py:6",
+      "ultralytics/utils/torch_utils.py:18",
+      "ultralytics/utils/torch_utils.py:19",
+      "ultralytics/utils/torch_utils.py:20",
+      "ultralytics/utils/torch_utils.py:21",
+      "ultralytics/utils/torch_utils.py:22",
+      "ultralytics/utils/torch_utils.py:1185"
+    ],
+    "transformers": [
+      "examples/YOLOv8-Action-Recognition/action_recognition.py:13"
+    ],
+    "torchvision": [
+      "examples/YOLOv8-Action-Recognition/action_recognition.py:49",
+      "examples/YOLOv8-Action-Recognition/action_recognition.py:109",
+      "examples/YOLOv8-Action-Recognition/action_recognition.py:221",
+      "ultralytics/data/augment.py:2887",
+      "ultralytics/data/augment.py:2951",
+      "ultralytics/data/dataset.py:1172",
+      "ultralytics/engine/exporter.py:1015",
+      "ultralytics/engine/exporter.py:1923",
+      "ultralytics/engine/predictor.py:289",
+      "ultralytics/engine/validator.py:119",
+      "ultralytics/models/sam/predict.py:384",
+      "ultralytics/models/sam/predict.py:640",
+      "ultralytics/models/sam/predict.py:2327",
+      "ultralytics/models/sam/predict.py:2403",
+      "ultralytics/models/sam/sam3/decoder.py:266",
+      "ultralytics/models/sam/sam3/geometry_encoders.py:296",
+      "ultralytics/models/yolo/classify/predict.py:57",
+      "ultralytics/models/yolo/classify/train.py:100",
+      "ultralytics/nn/autobackend.py:357",
+      "ultralytics/nn/backends/pytorch.py:122",
+      "ultralytics/nn/modules/block.py:1615",
+      "ultralytics/nn/tasks.py:1686",
+      "ultralytics/nn/tasks.py:1687",
+      "ultralytics/utils/nms.py:158"
+    ],
+    "shapely": [
+      "examples/YOLOv8-Region-Counter/yolov8_region_counter.py:12",
+      "examples/YOLOv8-Region-Counter/yolov8_region_counter.py:13",
+      "ultralytics/data/split_dota.py:36",
+      "ultralytics/solutions/solutions.py:86",
+      "ultralytics/solutions/solutions.py:87"
+    ],
+    "sahi": [
+      "examples/YOLOv8-SAHI-Inference-Video/yolov8_sahi.py:6",
+      "examples/YOLOv8-SAHI-Inference-Video/yolov8_sahi.py:7"
+    ],
+    "sys": [
+      "tests/cache_test_assets.py:10",
+      "tests/test_cli.py:6",
+      "tests/test_engine.py:3",
+      "tests/test_exports.py:6",
+      "ultralytics/__init__.py:7",
+      "ultralytics/cfg/__init__.py:9",
+      "ultralytics/nn/tasks.py:1595",
+      "ultralytics/solutions/streamlit_inference.py:254",
+      "ultralytics/utils/__init__.py:14",
+      "ultralytics/utils/callbacks/platform.py:7",
+      "ultralytics/utils/checks.py:16",
+      "ultralytics/utils/checks.py:1033",
+      "ultralytics/utils/cpu.py:8",
+      "ultralytics/utils/dist.py:7",
+      "ultralytics/utils/export/imx.py:7",
+      "ultralytics/utils/logger.py:8",
+      "ultralytics/utils/nms.py:3",
+      "ultralytics/utils/tqdm.py:7"
+    ],
+    "tests": [
+      "tests/cache_test_assets.py:17",
+      "tests/conftest.py:13",
+      "tests/conftest.py:116",
+      "tests/test_cli.py:12",
+      "tests/test_cuda.py:10",
+      "tests/test_engine.py:12",
+      "tests/test_exports.py:20",
+      "tests/test_exports.py:21",
+      "tests/test_integrations.py:10",
+      "tests/test_python.py:21",
+      "tests/test_solutions.py:14"
+    ],
+    "pytest": [
+      "tests/conftest.py:7",
+      "tests/test_cli.py:9",
+      "tests/test_cuda.py:7",
+      "tests/test_engine.py:9",
+      "tests/test_exports.py:17",
+      "tests/test_integrations.py:8",
+      "tests/test_ndjson_converter.py:11",
+      "tests/test_python.py:16",
+      "tests/test_solutions.py:11"
+    ],
+    "PIL": [
+      "tests/test_cli.py:10",
+      "tests/test_python.py:18",
+      "tests/test_solutions.py:419",
+      "ultralytics/data/augment.py:13",
+      "ultralytics/data/build.py:17",
+      "ultralytics/data/converter.py:18",
+      "ultralytics/data/dataset.py:15",
+      "ultralytics/data/loaders.py:21",
+      "ultralytics/data/split_dota.py:13",
+      "ultralytics/data/utils.py:16",
+      "ultralytics/engine/model.py:12",
+      "ultralytics/models/fastsam/predict.py:8",
+      "ultralytics/models/llm.py:11",
+      "ultralytics/models/yolo/classify/predict.py:8",
+      "ultralytics/models/yolo/semantic/val.py:13",
+      "ultralytics/nn/backends/coreml.py:9",
+      "ultralytics/nn/text_model.py:9",
+      "ultralytics/solutions/parking_management.py:112",
+      "ultralytics/solutions/similarity_search.py:10",
+      "ultralytics/utils/patches.py:15",
+      "ultralytics/utils/plotting.py:14",
+      "ultralytics/utils/plotting.py:15"
+    ],
+    "itertools": [
+      "tests/test_cuda.py:4",
+      "tests/test_exports.py:10",
+      "ultralytics/data/dataset.py:7",
+      "ultralytics/data/split_dota.py:5",
+      "ultralytics/models/sam/amg.py:7",
+      "ultralytics/models/sam/modules/tiny_encoder.py:14",
+      "ultralytics/models/yolo/world/train.py:5",
+      "ultralytics/solutions/analytics.py:5",
+      "ultralytics/utils/downloads.py:9",
+      "ultralytics/utils/instance.py:6"
+    ],
+    "tensorrt": [
+      "tests/test_cuda.py:92",
+      "ultralytics/engine/exporter.py:695",
+      "ultralytics/nn/backends/tensorrt.py:36",
+      "ultralytics/nn/backends/tensorrt.py:39",
+      "ultralytics/utils/export/engine.py:244",
+      "ultralytics/utils/export/engine.py:247"
+    ],
+    "types": [
+      "tests/test_engine.py:6",
+      "tests/test_exports.py:12",
+      "tests/test_python.py:312",
+      "tests/test_python.py:658",
+      "tests/test_python.py:682",
+      "tests/test_python.py:963",
+      "tests/test_python.py:1482",
+      "tests/test_python.py:1622",
+      "tests/test_python.py:1673",
+      "ultralytics/cfg/__init__.py:11",
+      "ultralytics/engine/trainer.py:1254",
+      "ultralytics/utils/__init__.py:21",
+      "ultralytics/utils/callbacks/comet.py:6",
+      "ultralytics/utils/checks.py:20",
+      "ultralytics/utils/export/coreml.py:5",
+      "ultralytics/utils/export/engine.py:7",
+      "ultralytics/utils/export/executorch.py:17",
+      "ultralytics/utils/export/imx.py:8",
+      "ultralytics/utils/export/litert.py:6",
+      "ultralytics/utils/export/tensorflow.py:30"
+    ],
+    "unittest": [
+      "tests/test_engine.py:7",
+      "tests/test_python.py:1827",
+      "tests/test_solutions.py:7"
+    ],
+    "io": [
+      "tests/test_exports.py:3",
+      "tests/test_solutions.py:377",
+      "ultralytics/data/loaders.py:12",
+      "ultralytics/engine/trainer.py:743",
+      "ultralytics/solutions/parking_management.py:170",
+      "ultralytics/solutions/streamlit_inference.py:3",
+      "ultralytics/utils/__init__.py:505"
+    ],
+    "threading": [
+      "tests/test_exports.py:7",
+      "tests/test_ndjson_converter.py:5",
+      "tests/test_python.py:833",
+      "ultralytics/data/loaders.py:15",
+      "ultralytics/engine/predictor.py:44",
+      "ultralytics/nn/tasks.py:9",
+      "ultralytics/utils/__init__.py:15",
+      "ultralytics/utils/__init__.py:20",
+      "ultralytics/utils/events.py:7",
+      "ultralytics/utils/export/axelera.py:9",
+      "ultralytics/utils/logger.py:9"
+    ],
+    "contextlib": [
+      "tests/test_exports.py:9",
+      "tests/test_integrations.py:3",
+      "tests/test_python.py:3",
+      "ultralytics/nn/backends/base.py:6",
+      "ultralytics/nn/backends/hailo.py:6",
+      "ultralytics/nn/tasks.py:5",
+      "ultralytics/utils/__init__.py:5",
+      "ultralytics/utils/export/tensorflow.py:5",
+      "ultralytics/utils/files.py:5",
+      "ultralytics/utils/files.py:10",
+      "ultralytics/utils/ops.py:5",
+      "ultralytics/utils/patches.py:7",
+      "ultralytics/utils/plotting.py:5",
+      "ultralytics/utils/torch_utils.py:11"
+    ],
+    "onnx": [
+      "tests/test_exports.py:69",
+      "tests/test_exports.py:70",
+      "tests/test_exports.py:95",
+      "ultralytics/engine/exporter.py:1075",
+      "ultralytics/utils/export/engine.py:144",
+      "ultralytics/utils/export/engine.py:236",
+      "ultralytics/utils/export/imx.py:277",
+      "ultralytics/utils/export/onnx.py:47",
+      "ultralytics/utils/export/qnn.py:94",
+      "ultralytics/utils/export/qnn.py:155",
+      "ultralytics/utils/export/tensorflow.py:150"
+    ],
+    "coremltools": [
+      "tests/test_exports.py:410",
+      "tests/test_exports.py:443",
+      "ultralytics/engine/exporter.py:1318",
+      "ultralytics/nn/backends/coreml.py:31",
+      "ultralytics/utils/export/coreml.py:77",
+      "ultralytics/utils/export/coreml.py:202",
+      "ultralytics/utils/export/coreml.py:242"
+    ],
+    "ai_edge_litert": [
+      "tests/test_exports.py:600",
+      "ultralytics/nn/backends/litert.py:32"
+    ],
+    "importlib": [
+      "tests/test_exports.py:637",
+      "ultralytics/__init__.py:5",
+      "ultralytics/nn/tasks.py:6",
+      "ultralytics/nn/tasks.py:1596",
+      "ultralytics/utils/__init__.py:6",
+      "ultralytics/utils/__init__.py:886",
+      "ultralytics/utils/checks.py:18",
+      "ultralytics/utils/export/tensorflow.py:162"
+    ],
+    "mlflow": [
+      "tests/test_integrations.py:35",
+      "tests/test_integrations.py:50",
+      "ultralytics/utils/callbacks/mlflow.py:30"
+    ],
+    "tritonclient": [
+      "tests/test_integrations.py:81",
+      "ultralytics/utils/triton.py:62",
+      "ultralytics/utils/triton.py:67"
+    ],
+    "asyncio": [
+      "tests/test_ndjson_converter.py:3",
+      "tests/test_python.py:831",
+      "ultralytics/data/converter.py:5",
+      "ultralytics/data/utils.py:543",
+      "ultralytics/nn/backends/coreai.py:5"
+    ],
+    "functools": [
+      "tests/test_ndjson_converter.py:6",
+      "ultralytics/data/loaders.py:11",
+      "ultralytics/engine/exporter.py:75",
+      "ultralytics/engine/results.py:11",
+      "ultralytics/engine/trainer.py:19",
+      "ultralytics/models/sam/build.py:9",
+      "ultralytics/models/sam/modules/blocks.py:7",
+      "ultralytics/models/sam/sam3/vitdet.py:18",
+      "ultralytics/nn/backends/openvino.py:5",
+      "ultralytics/solutions/solutions.py:7",
+      "ultralytics/trackers/track.py:3",
+      "ultralytics/trackers/track_tracker.py:6",
+      "ultralytics/utils/__init__.py:18",
+      "ultralytics/utils/__init__.py:557",
+      "ultralytics/utils/checks.py:6",
+      "ultralytics/utils/export/executorch.py:5",
+      "ultralytics/utils/export/tensorflow.py:6",
+      "ultralytics/utils/git.py:6",
+      "ultralytics/utils/torch_utils.py:5",
+      "ultralytics/utils/tqdm.py:10"
+    ],
+    "http": [
+      "tests/test_ndjson_converter.py:7"
+    ],
+    "csv": [
+      "tests/test_python.py:4"
+    ],
+    "platform": [
+      "tests/test_python.py:6",
+      "ultralytics/engine/predictor.py:42",
+      "ultralytics/nn/autobackend.py:5",
+      "ultralytics/nn/backends/tensorflow.py:5",
+      "ultralytics/solutions/parking_management.py:57",
+      "ultralytics/utils/__init__.py:11",
+      "ultralytics/utils/benchmarks.py:33",
+      "ultralytics/utils/callbacks/platform.py:4",
+      "ultralytics/utils/checks.py:11",
+      "ultralytics/utils/cpu.py:6"
+    ],
+    "tarfile": [
+      "tests/test_python.py:8",
+      "ultralytics/data/utils.py:11",
+      "ultralytics/utils/downloads.py:8"
+    ],
+    "zipfile": [
+      "tests/test_python.py:10",
+      "ultralytics/data/utils.py:9",
+      "ultralytics/engine/exporter.py:1804",
+      "ultralytics/nn/backends/base.py:168",
+      "ultralytics/utils/downloads.py:131",
+      "ultralytics/utils/downloads.py:179",
+      "ultralytics/utils/downloads.py:425",
+      "ultralytics/utils/export/litert.py:7"
+    ],
+    "copy": [
+      "tests/test_python.py:11",
+      "tests/test_python.py:1446",
+      "ultralytics/data/augment.py:7",
+      "ultralytics/data/base.py:9",
+      "ultralytics/data/build.py:9",
+      "ultralytics/engine/exporter.py:73",
+      "ultralytics/engine/model.py:367",
+      "ultralytics/engine/predictor.py:45",
+      "ultralytics/engine/results.py:10",
+      "ultralytics/engine/trainer.py:17",
+      "ultralytics/engine/validator.py:35",
+      "ultralytics/models/rtdetr/train.py:5",
+      "ultralytics/models/sam/modules/blocks.py:5",
+      "ultralytics/models/sam/modules/memory_attention.py:5",
+      "ultralytics/models/sam/predict.py:14",
+      "ultralytics/models/sam/sam3/necks.py:9",
+      "ultralytics/models/sam/sam3/sam3_image.py:7",
+      "ultralytics/models/sam/sam3/vl_combiner.py:9",
+      "ultralytics/models/yolo/classify/train.py:5",
+      "ultralytics/models/yolo/depth/calibrate.py:303",
+      "ultralytics/models/yolo/depth/train.py:6",
+      "ultralytics/models/yolo/detect/train.py:7",
+      "ultralytics/models/yolo/obb/train.py:5",
+      "ultralytics/models/yolo/pose/train.py:5",
+      "ultralytics/models/yolo/segment/train.py:5",
+      "ultralytics/models/yolo/semantic/train.py:5",
+      "ultralytics/models/yolo/yoloe/train.py:5",
+      "ultralytics/nn/autobackend.py:6",
+      "ultralytics/nn/modules/head.py:6",
+      "ultralytics/nn/modules/utils.py:3",
+      "ultralytics/nn/tasks.py:10",
+      "ultralytics/trackers/utils/gmc.py:5",
+      "ultralytics/utils/autobatch.py:6",
+      "ultralytics/utils/benchmarks.py:36",
+      "ultralytics/utils/callbacks/base.py:5",
+      "ultralytics/utils/callbacks/tensorboard.py:13",
+      "ultralytics/utils/patches.py:8",
+      "ultralytics/utils/torch_utils.py:12"
+    ],
+    "concurrent": [
+      "tests/test_python.py:245",
+      "tests/test_python.py:834",
+      "ultralytics/data/converter.py:12",
+      "ultralytics/utils/callbacks/platform.py:8"
+    ],
+    "aiohttp": [
+      "tests/test_python.py:836",
+      "ultralytics/data/converter.py:890"
+    ],
+    "ultralytics_platform": [
+      "ultralytics/__init__.py:36"
+    ],
+    "difflib": [
+      "ultralytics/cfg/__init__.py:655",
+      "ultralytics/engine/exporter.py:597"
+    ],
+    "math": [
+      "ultralytics/data/augment.py:5",
+      "ultralytics/data/base.py:6",
+      "ultralytics/data/build.py:5",
+      "ultralytics/data/converter.py:8",
+      "ultralytics/data/loaders.py:6",
+      "ultralytics/data/split_dota.py:7",
+      "ultralytics/engine/trainer.py:12",
+      "ultralytics/models/sam/amg.py:5",
+      "ultralytics/models/sam/modules/blocks.py:6",
+      "ultralytics/models/sam/modules/transformer.py:5",
+      "ultralytics/models/sam/modules/utils.py:5",
+      "ultralytics/models/sam/sam3/maskformer_segmentation.py:7",
+      "ultralytics/models/sam/sam3/model_misc.py:9",
+      "ultralytics/models/sam/sam3/vitdet.py:17",
+      "ultralytics/models/yolo/detect/train.py:5",
+      "ultralytics/nn/backends/hailo.py:5",
+      "ultralytics/nn/modules/block.py:6",
+      "ultralytics/nn/modules/conv.py:6",
+      "ultralytics/nn/modules/head.py:7",
+      "ultralytics/nn/modules/transformer.py:6",
+      "ultralytics/solutions/distance_calculation.py:3",
+      "ultralytics/solutions/solutions.py:5",
+      "ultralytics/solutions/speed_estimation.py:4",
+      "ultralytics/utils/callbacks/platform.py:9",
+      "ultralytics/utils/checks.py:9",
+      "ultralytics/utils/loss.py:5",
+      "ultralytics/utils/metrics.py:6",
+      "ultralytics/utils/ops.py:6",
+      "ultralytics/utils/plotting.py:6",
+      "ultralytics/utils/torch_utils.py:7"
+    ],
+    "random": [
+      "ultralytics/data/augment.py:6",
+      "ultralytics/data/base.py:8",
+      "ultralytics/data/build.py:7",
+      "ultralytics/data/converter.py:9",
+      "ultralytics/data/split.py:5",
+      "ultralytics/data/utils.py:6",
+      "ultralytics/models/yolo/detect/train.py:6",
+      "ultralytics/utils/autodevice.py:5",
+      "ultralytics/utils/dist.py:34",
+      "ultralytics/utils/events.py:4",
+      "ultralytics/utils/torch_utils.py:9",
+      "ultralytics/utils/tqdm.py:453"
+    ],
+    "albumentations": [
+      "ultralytics/data/augment.py:2091",
+      "ultralytics/engine/trainer.py:140"
+    ],
+    "glob": [
+      "ultralytics/data/base.py:5",
+      "ultralytics/data/loaders.py:5",
+      "ultralytics/data/split_dota.py:6",
+      "ultralytics/utils/benchmarks.py:32",
+      "ultralytics/utils/checks.py:7",
+      "ultralytics/utils/files.py:6"
+    ],
+    "multiprocessing": [
+      "ultralytics/data/base.py:10",
+      "ultralytics/data/dataset.py:8",
+      "ultralytics/data/loaders.py:13",
+      "ultralytics/models/fastsam/predict.py:5",
+      "ultralytics/utils/downloads.py:10"
+    ],
+    "hashlib": [
+      "ultralytics/data/converter.py:6",
+      "ultralytics/utils/__init__.py:1396"
+    ],
+    "filelock": [
+      "ultralytics/data/converter.py:17"
+    ],
+    "mss": [
+      "ultralytics/data/loaders.py:272"
+    ],
+    "pytubefix": [
+      "ultralytics/data/loaders.py:718"
+    ],
+    "pafy": [
+      "ultralytics/data/loaders.py:728"
+    ],
+    "yt_dlp": [
+      "ultralytics/data/loaders.py:734"
+    ],
+    "matplotlib": [
+      "ultralytics/data/utils.py:409",
+      "ultralytics/models/yolo/depth/train.py:69",
+      "ultralytics/models/yolo/semantic/train.py:116",
+      "ultralytics/solutions/analytics.py:55",
+      "ultralytics/solutions/analytics.py:56",
+      "ultralytics/solutions/analytics.py:57",
+      "ultralytics/utils/__init__.py:406",
+      "ultralytics/utils/__init__.py:410",
+      "ultralytics/utils/callbacks/clearml.py:43",
+      "ultralytics/utils/callbacks/clearml.py:44",
+      "ultralytics/utils/checks.py:435",
+      "ultralytics/utils/metrics.py:547",
+      "ultralytics/utils/metrics.py:686",
+      "ultralytics/utils/metrics.py:734",
+      "ultralytics/utils/metrics.py:1782",
+      "ultralytics/utils/plotting.py:725",
+      "ultralytics/utils/plotting.py:727",
+      "ultralytics/utils/plotting.py:1061",
+      "ultralytics/utils/plotting.py:1118",
+      "ultralytics/utils/plotting.py:1151",
+      "ultralytics/utils/plotting.py:1242"
+    ],
+    "gc": [
+      "ultralytics/data/utils.py:811",
+      "ultralytics/engine/trainer.py:11",
+      "ultralytics/utils/torch_utils.py:6"
+    ],
+    "datetime": [
+      "ultralytics/engine/exporter.py:74",
+      "ultralytics/engine/model.py:368",
+      "ultralytics/engine/trainer.py:18",
+      "ultralytics/engine/tuner.py:22",
+      "ultralytics/utils/callbacks/wb.py:131",
+      "ultralytics/utils/files.py:11",
+      "ultralytics/utils/logger.py:11",
+      "ultralytics/utils/torch_utils.py:13"
+    ],
+    "onnxslim": [
+      "ultralytics/engine/exporter.py:1139"
+    ],
+    "openvino": [
+      "ultralytics/engine/exporter.py:1203",
+      "ultralytics/nn/backends/openvino.py:32",
+      "ultralytics/utils/export/openvino.py:38"
+    ],
+    "nncf": [
+      "ultralytics/engine/exporter.py:1225",
+      "ultralytics/utils/export/openvino.py:50"
+    ],
+    "tensorflow": [
+      "ultralytics/engine/exporter.py:1656",
+      "ultralytics/nn/backends/tensorflow.py:43",
+      "ultralytics/nn/backends/tensorflow.py:70",
+      "ultralytics/nn/backends/tensorflow.py:107",
+      "ultralytics/utils/export/tensorflow.py:97",
+      "ultralytics/utils/export/tensorflow.py:100",
+      "ultralytics/utils/export/tensorflow.py:219",
+      "ultralytics/utils/export/tensorflow.py:220"
+    ],
+    "hailo_sdk_client": [
+      "ultralytics/engine/exporter.py:1657"
+    ],
+    "inspect": [
+      "ultralytics/engine/model.py:5",
+      "ultralytics/nn/backends/coreai.py:62",
+      "ultralytics/utils/__init__.py:7",
+      "ultralytics/utils/checks.py:8",
+      "ultralytics/utils/export/tensorflow.py:163"
+    ],
+    "warnings": [
+      "ultralytics/engine/trainer.py:16",
+      "ultralytics/utils/__init__.py:17",
+      "ultralytics/utils/metrics.py:7"
+    ],
+    "torch_npu": [
+      "ultralytics/engine/trainer.py:405",
+      "ultralytics/utils/torch_utils.py:145",
+      "ultralytics/utils/torch_utils.py:279"
+    ],
+    "polars": [
+      "ultralytics/engine/trainer.py:726",
+      "ultralytics/utils/__init__.py:220",
+      "ultralytics/utils/__init__.py:234",
+      "ultralytics/utils/benchmarks.py:105",
+      "ultralytics/utils/callbacks/wb.py:36",
+      "ultralytics/utils/callbacks/wb.py:37",
+      "ultralytics/utils/plotting.py:726",
+      "ultralytics/utils/plotting.py:1062"
+    ],
+    "pymongo": [
+      "ultralytics/engine/tuner.py:158",
+      "ultralytics/engine/tuner.py:159",
+      "ultralytics/engine/tuner.py:382"
+    ],
+    "base64": [
+      "ultralytics/models/llm.py:5"
+    ],
+    "openai": [
+      "ultralytics/models/llm.py:181",
+      "ultralytics/models/llm.py:191"
+    ],
+    "super_gradients": [
+      "ultralytics/models/nas/model.py:56"
+    ],
+    "clip": [
+      "ultralytics/models/sam/build_sam3.py:147",
+      "ultralytics/models/sam/build_sam3.py:152",
+      "ultralytics/nn/tasks.py:1692",
+      "ultralytics/nn/text_model.py:16",
+      "ultralytics/nn/text_model.py:19"
+    ],
+    "timm": [
+      "ultralytics/models/sam/sam3/vitdet.py:264"
+    ],
+    "faster_coco_eval": [
+      "ultralytics/models/yolo/detect/val.py:591",
+      "ultralytics/utils/callbacks/comet.py:257"
+    ],
+    "ais_bench": [
+      "ultralytics/nn/backends/ascend.py:33"
+    ],
+    "abc": [
+      "ultralytics/nn/backends/base.py:8",
+      "ultralytics/nn/text_model.py:5"
+    ],
+    "mmap": [
+      "ultralytics/nn/backends/base.py:27"
+    ],
+    "coreai": [
+      "ultralytics/nn/backends/coreai.py:31",
+      "ultralytics/nn/backends/coreai.py:52",
+      "ultralytics/utils/export/coreai.py:47"
+    ],
+    "dx_engine": [
+      "ultralytics/nn/backends/deepx.py:32"
+    ],
+    "executorch": [
+      "ultralytics/nn/backends/executorch.py:31",
+      "ultralytics/utils/export/executorch.py:61",
+      "ultralytics/utils/export/executorch.py:62",
+      "ultralytics/utils/export/executorch.py:63"
+    ],
+    "hailo_platform": [
+      "ultralytics/nn/backends/hailo.py:23"
+    ],
+    "MNN": [
+      "ultralytics/nn/backends/mnn.py:33",
+      "ultralytics/utils/export/mnn.py:37",
+      "ultralytics/utils/export/mnn.py:38"
+    ],
+    "ncnn": [
+      "ultralytics/nn/backends/ncnn.py:31",
+      "ultralytics/utils/export/ncnn.py:40"
+    ],
+    "mct_quantizers": [
+      "ultralytics/nn/backends/onnx.py:186"
+    ],
+    "edgemdt_cl": [
+      "ultralytics/nn/backends/onnx.py:188",
+      "ultralytics/utils/export/imx.py:183"
+    ],
+    "paddle": [
+      "ultralytics/nn/backends/paddle.py:38"
+    ],
+    "rknnlite": [
+      "ultralytics/nn/backends/rknn.py:37"
+    ],
+    "tflite_runtime": [
+      "ultralytics/nn/backends/tensorflow.py:66"
+    ],
+    "pickle": [
+      "ultralytics/nn/tasks.py:7"
+    ],
+    "thop": [
+      "ultralytics/nn/tasks.py:223",
+      "ultralytics/utils/torch_utils.py:640",
+      "ultralytics/utils/torch_utils.py:1017"
+    ],
+    "enum": [
+      "ultralytics/nn/tasks.py:1751"
+    ],
+    "mobileclip": [
+      "ultralytics/nn/text_model.py:198",
+      "ultralytics/nn/text_model.py:202"
+    ],
+    "tkinter": [
+      "ultralytics/solutions/parking_management.py:54",
+      "ultralytics/solutions/parking_management.py:55"
+    ],
+    "smtplib": [
+      "ultralytics/solutions/security_alarm.py:63"
+    ],
+    "email": [
+      "ultralytics/solutions/security_alarm.py:86",
+      "ultralytics/solutions/security_alarm.py:87",
+      "ultralytics/solutions/security_alarm.py:88"
+    ],
+    "flask": [
+      "ultralytics/solutions/similarity_search.py:199"
+    ],
+    "streamlit": [
+      "ultralytics/solutions/streamlit_inference.py:62"
+    ],
+    "lap": [
+      "ultralytics/trackers/utils/matching.py:8",
+      "ultralytics/trackers/utils/matching.py:15"
+    ],
+    "logging": [
+      "ultralytics/utils/__init__.py:9",
+      "ultralytics/utils/logger.py:4"
+    ],
+    "socket": [
+      "ultralytics/utils/__init__.py:13",
+      "ultralytics/utils/callbacks/platform.py:6",
+      "ultralytics/utils/dist.py:35"
+    ],
+    "sentry_sdk": [
+      "ultralytics/utils/__init__.py:1233"
+    ],
+    "uuid": [
+      "ultralytics/utils/__init__.py:1397",
+      "ultralytics/utils/downloads.py:13"
+    ],
+    "pynvml": [
+      "ultralytics/utils/autodevice.py:52",
+      "ultralytics/utils/logger.py:475"
+    ],
+    "clearml": [
+      "ultralytics/utils/callbacks/clearml.py:8",
+      "ultralytics/utils/callbacks/clearml.py:9",
+      "ultralytics/utils/callbacks/clearml.py:62",
+      "ultralytics/utils/callbacks/clearml.py:63"
+    ],
+    "comet_ml": [
+      "ultralytics/utils/callbacks/comet.py:18"
+    ],
+    "dvclive": [
+      "ultralytics/utils/callbacks/dvc.py:10"
+    ],
+    "psutil": [
+      "ultralytics/utils/callbacks/platform.py:222",
+      "ultralytics/utils/checks.py:866",
+      "ultralytics/utils/checks.py:901",
+      "ultralytics/utils/logger.py:448",
+      "ultralytics/utils/logger.py:536"
+    ],
+    "ray": [
+      "ultralytics/utils/callbacks/raytune.py:7",
+      "ultralytics/utils/tuner.py:86",
+      "ultralytics/utils/tuner.py:108",
+      "ultralytics/utils/tuner.py:134",
+      "ultralytics/utils/tuner.py:135",
+      "ultralytics/utils/tuner.py:136",
+      "ultralytics/utils/tuner.py:190",
+      "ultralytics/utils/tuner.py:210",
+      "ultralytics/utils/tuner.py:229",
+      "ultralytics/utils/tuner.py:230",
+      "ultralytics/utils/tuner.py:231",
+      "ultralytics/utils/tuner.py:256",
+      "ultralytics/utils/tuner.py:327",
+      "ultralytics/utils/tuner.py:339",
+      "ultralytics/utils/tuner.py:385",
+      "ultralytics/utils/tuner.py:386",
+      "ultralytics/utils/tuner.py:387",
+      "ultralytics/utils/tuner.py:388"
+    ],
+    "wandb": [
+      "ultralytics/utils/callbacks/wb.py:9"
+    ],
+    "shlex": [
+      "ultralytics/utils/checks.py:13",
+      "ultralytics/utils/export/ascend.py:5",
+      "ultralytics/utils/export/tensorflow.py:249"
+    ],
+    "httpx": [
+      "ultralytics/utils/checks.py:107"
+    ],
+    "IPython": [
+      "ultralytics/utils/checks.py:880"
+    ],
+    "ctypes": [
+      "ultralytics/utils/cpu.py:5"
+    ],
+    "winreg": [
+      "ultralytics/utils/cpu.py:70"
+    ],
+    "cloudpickle": [
+      "ultralytics/utils/dist.py:70"
+    ],
+    "sysconfig": [
+      "ultralytics/utils/export/axelera.py:7"
+    ],
+    "coreai_torch": [
+      "ultralytics/utils/export/coreai.py:46",
+      "ultralytics/utils/export/coreai.py:48"
+    ],
+    "dx_com": [
+      "ultralytics/utils/export/deepx.py:35",
+      "ultralytics/utils/export/deepx.py:38"
+    ],
+    "modelopt": [
+      "ultralytics/utils/export/engine.py:148",
+      "ultralytics/utils/export/engine.py:176",
+      "ultralytics/utils/torch_utils.py:443",
+      "ultralytics/utils/torch_utils.py:486",
+      "ultralytics/utils/torch_utils.py:503",
+      "ultralytics/utils/torch_utils.py:504",
+      "ultralytics/utils/torch_utils.py:517"
+    ],
+    "model_compression_toolkit": [
+      "ultralytics/utils/export/imx.py:276"
+    ],
+    "edgemdt_tpc": [
+      "ultralytics/utils/export/imx.py:278"
+    ],
+    "litert_torch": [
+      "ultralytics/utils/export/litert.py:64"
+    ],
+    "ai_edge_quantizer": [
+      "ultralytics/utils/export/litert.py:101"
+    ],
+    "pnnx": [
+      "ultralytics/utils/export/ncnn.py:41"
+    ],
+    "x2paddle": [
+      "ultralytics/utils/export/paddle.py:50",
+      "ultralytics/utils/export/paddle.py:51",
+      "ultralytics/utils/export/paddle.py:52"
+    ],
+    "onnxruntime_qnn": [
+      "ultralytics/utils/export/qnn.py:22"
+    ],
+    "builtins": [
+      "ultralytics/utils/export/rknn.py:64"
+    ],
+    "rknn": [
+      "ultralytics/utils/export/rknn.py:68"
+    ],
+    "struct": [
+      "ultralytics/utils/export/tensorflow.py:153"
+    ],
+    "onnx2tf": [
+      "ultralytics/utils/export/tensorflow.py:166",
+      "ultralytics/utils/export/tensorflow.py:180"
+    ],
+    "zlib": [
+      "ultralytics/utils/git.py:5"
+    ],
+    "numbers": [
+      "ultralytics/utils/instance.py:7"
+    ],
+    "plistlib": [
+      "ultralytics/utils/logger.py:5"
+    ],
+    "scipy": [
+      "ultralytics/utils/ops.py:768"
+    ],
+    "pi_heif": [
+      "ultralytics/utils/patches.py:83"
+    ],
+    "unicodedata": [
+      "ultralytics/utils/tqdm.py:9"
+    ],
+    "typing_extensions": [
+      "ultralytics/utils/tqdm.py:13"
+    ],
+    "ax": [
+      "ultralytics/utils/tuner.py:106",
+      "ultralytics/utils/tuner.py:107"
+    ],
+    "ConfigSpace": [
+      "ultralytics/utils/tuner.py:133"
+    ],
+    "nevergrad": [
+      "ultralytics/utils/tuner.py:209"
+    ],
+    "optuna": [
+      "ultralytics/utils/tuner.py:326"
+    ]
+  },
+  "requirement_files": [
+    "examples/RTDETR-ONNXRuntime-Python/requirements.txt",
+    "examples/YOLOv8-Action-Recognition/requirements.txt",
+    "examples/YOLOv8-ONNXRuntime/requirements.txt",
+    "examples/YOLOv8-OpenCV-ONNX-Python/requirements.txt"
+  ],
+  "selected_requirements": "@none",
+  "requirement_sources": {},
+  "toml_groups": [
+    "Runtime",
+    "Extra: dev",
+    "Extra: export-base",
+    "Extra: export-openvino",
+    "Extra: export-legacy-torch",
+    "Extra: export-tensorflow",
+    "Extra: export-coreai",
+    "Extra: export-coreml",
+    "Extra: export-executorch",
+    "Extra: export-deepx",
+    "Extra: export-litert",
+    "Extra: export",
+    "Extra: solutions",
+    "Extra: llm",
+    "Extra: logging",
+    "Extra: extra",
+    "Extra: typing"
+  ],
+  "selected_group": "Runtime",
+  "import_scope": "Runtime",
+  "source_requirements": {},
+  "table": [
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "__future__",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "abc",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "ai_edge_litert",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "ai_edge_quantizer",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "aiohttp",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "ais_bench",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "albumentations",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "argparse",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "ast",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "asyncio",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "ax",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "axelera",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "base64",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "build_reference",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "builtins",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "clearml",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "clip",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [
+        [
+          "cloudpickle",
+          ">=3.1.1",
+          "missing"
+        ]
+      ],
+      [
+        [
+          "cloudpickle",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "collections",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "colorsys",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "comet_ml",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "concurrent",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "ConfigSpace",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "contextlib",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "copy",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "coreai",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "coreai_torch",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "coremltools",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "csv",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "ctypes",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "dataclasses",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "datetime",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "difflib",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "dvclive",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "dx_com",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "dx_engine",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "edgemdt_cl",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "edgemdt_tpc",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "email",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "enum",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "executorch",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "faster_coco_eval",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [
+        [
+          "filelock",
+          ">=3.16.1",
+          "missing"
+        ]
+      ],
+      [
+        [
+          "filelock",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "flask",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "functools",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "gc",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "glob",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "hailo_platform",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "hailo_sdk_client",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "hashlib",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "html",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "http",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "httpx",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "importlib",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "inspect",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "io",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "IPython",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "itertools",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "json",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "lap",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "litert_torch",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "logging",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "math",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [
+        [
+          "matplotlib",
+          ">=3.3.0",
+          "missing"
+        ]
+      ],
+      [
+        [
+          "matplotlib",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "mct_quantizers",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "minijinja",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "mlflow",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "mmap",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "MNN",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "mobileclip",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "model_compression_toolkit",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "modelopt",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "mss",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "multiprocessing",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "ncnn",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "nevergrad",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "nncf",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "numbers",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [
+        [
+          "numpy",
+          "!=2.0.*,!=2.1.*,!=2.2.*,!=2.3.0,!=2.3.1,!=2.3.2,!=2.3.3,!=2.3.4,>=1.23.0; platform_system == \"Darwin\"",
+          "missing"
+        ],
+        [
+          "numpy",
+          ">=1.23.0; platform_system != \"Darwin\"",
+          "missing"
+        ]
+      ],
+      [
+        [
+          "numpy",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [
+        [
+          "nvidia-ml-py",
+          ">=12.0.0",
+          "missing"
+        ]
+      ],
+      []
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "onnx",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "onnx2tf",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "onnxruntime",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "onnxruntime_qnn",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "onnxslim",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "openai",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [
+        [
+          "opencv-python",
+          "!=4.13.0.90,>=4.7.0",
+          "missing"
+        ]
+      ],
+      [
+        [
+          "cv2",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "openvino",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "optuna",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "os",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "paddle",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "pafy",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "pathlib",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "pi_heif",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "pickle",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [
+        [
+          "pillow",
+          ">=7.1.2",
+          "missing"
+        ]
+      ],
+      [
+        [
+          "PIL",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "platform",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "plistlib",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "pnnx",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [
+        [
+          "polars",
+          ">=0.20.0",
+          "missing"
+        ]
+      ],
+      [
+        [
+          "polars",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [
+        [
+          "psutil",
+          ">=5.8.0",
+          "missing"
+        ]
+      ],
+      [
+        [
+          "psutil",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "pymongo",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "pynvml",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "pytest",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "pytubefix",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [
+        [
+          "pyyaml",
+          ">=5.3.1",
+          "missing"
+        ]
+      ],
+      [
+        [
+          "yaml",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "random",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "ray",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "re",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [
+        [
+          "requests",
+          ">=2.23.0",
+          "missing"
+        ]
+      ],
+      [
+        [
+          "requests",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "rknn",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "rknnlite",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "sahi",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "scipy",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "sentry_sdk",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "shapely",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "shlex",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "shutil",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "smtplib",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "socket",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "streamlit",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "struct",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "subprocess",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "super_gradients",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "sys",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "sysconfig",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "tarfile",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "tempfile",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "tensorflow",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "tensorrt",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "tests",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "textwrap",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "tflite_runtime",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "thop",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "threading",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "time",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "timm",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "tkinter",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [
+        [
+          "torch",
+          "!=2.4.0,>=1.8.0; sys_platform == \"win32\"",
+          "missing"
+        ],
+        [
+          "torch",
+          ">=1.8.0",
+          "missing"
+        ]
+      ],
+      [
+        [
+          "torch",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "torch_npu",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [
+        [
+          "torchvision",
+          ">=0.9.0",
+          "missing"
+        ]
+      ],
+      [
+        [
+          "torchvision",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "transformers",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "tritonclient",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "types",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "typing",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "typing_extensions",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "ultralytics",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [
+        [
+          "ultralytics-platform",
+          ">=0.1.32; python_version >= \"3.11\"",
+          "missing"
+        ]
+      ],
+      [
+        [
+          "ultralytics_platform",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [
+        [
+          "ultralytics-thop",
+          ">=2.1.6",
+          "missing"
+        ]
+      ],
+      []
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "unicodedata",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "unittest",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "urllib",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "uuid",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "wandb",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "warnings",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "winreg",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "x2paddle",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "yt_dlp",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "zipfile",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "zlib",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ]
+  ],
+  "fixes": [
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [
+        "cloudpickle>=3.1.1"
+      ],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [
+        "filelock>=3.16.1"
+      ],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [
+        "matplotlib>=3.3.0"
+      ],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [
+        "numpy!=2.0.*,!=2.1.*,!=2.2.*,!=2.3.0,!=2.3.1,!=2.3.2,!=2.3.3,!=2.3.4,>=1.23.0; platform_system == \"Darwin\"",
+        "numpy>=1.23.0; platform_system != \"Darwin\""
+      ],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [
+        "nvidia-ml-py>=12.0.0"
+      ],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [
+        "opencv-python!=4.13.0.90,>=4.7.0"
+      ],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [
+        "pillow>=7.1.2"
+      ],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [
+        "polars>=0.20.0"
+      ],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [
+        "psutil>=5.8.0"
+      ],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [
+        "pyyaml>=5.3.1"
+      ],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [
+        "requests>=2.23.0"
+      ],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [
+        "torch!=2.4.0,>=1.8.0; sys_platform == \"win32\"",
+        "torch>=1.8.0"
+      ],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [
+        "torchvision>=0.9.0"
+      ],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [
+        "ultralytics-platform>=0.1.32; python_version >= \"3.11\""
+      ],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [
+        "ultralytics-thop>=2.1.6"
+      ],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    }
+  ],
+  "torch": {
+    "message": "Torch: install torch>=1.8.0,!=2.4.0,>=1.8.0 using uv\u2019s automatic hardware selection.",
+    "action": "install",
+    "spec": "torch>=1.8.0,!=2.4.0,>=1.8.0",
+    "backend": "auto"
+  },
+  "seconds": 0.9397908710016054,
+  "commit": "9aa41d679d121afb8b4cc512d7a162f4f36886c3"
+}

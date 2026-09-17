@@ -4,19 +4,20 @@
     melty-code-editor                    open an empty editor (no tabs)
     melty-code-editor FILE [FILE ...]    open them as tabs (the first is selected)
 
-The window is one ``@glfw_window`` render func drawing melty's
-``draw_code_editor`` with the app's ``OpenFiles`` (the tab list) as its
-value. A tab per file along the bottom, the editor above it with Python
+The window is one ``@glfw_window`` hosting a persisted tiled workspace.
+Drag a tile corner inward to split it; each tile's dropdown selects an
+editor or placeholder. Editors share ``OpenFiles`` with independent view
+state. A tab per file along the bottom, the editor above it with Python
 syntax analysis, folds, search and autocomplete, a Compare With dropdown
 (git HEAD, the file on disk, any recent commit) and the nav back / forward
 buttons. Search → Search… (Ctrl+Shift+F) is melty's global search, its
-Code tab over the app's projects (`melty.global_search`): the folders
+Code tab over the app's projects (`meltygui_pro.global_search`): the folders
 marked as projects (Projects → Add Folder…, or a right-click in the Open
 dialog; the flag lives in melty's shared file-meta store, so every melty
-app sees it) plus the implicit project of each open tab outside them.
+app sees it). Open tabs do not add unmarked projects to search.
 melty draws the file hosts each frame (load, reparse) and writes
 their queued saves when the window closes; this script only owns the list
-of files to open, which persists between runs (`melty.persisted`): the
+of files to open, which persists between runs (`meltygui.persisted`): the
 tabs of the last run come back, plus whatever the command line names.
 
 The sibling melty_text_editor draws ``draw_text``, one file and nothing
@@ -29,18 +30,23 @@ if len(sys.argv) > 1 and sys.argv[1] in ('-h', '--help'):
     print(__doc__.strip())
     sys.exit(2)
 
-import melty
-melty.boot(app_id='melty-code-editor')
-# Resolve the view through melty: it waits for the import worker, whose work
+import meltygui
+import meltygui_pro
+meltygui.boot(app_id='melty-code-editor')
+# Resolve the view through the package APIs: it waits for the import worker, whose work
 # overlaps the fresh EGL context above, before importing the code-editor views.
-from melty import glfw_window, pressed, draw_code_editor, window_api as glfw
-import imgui
-from src.lsd.gl_gui.view.core_views.core_render import render_func
-from src.lsd.gl_gui.model.open_files import OpenFiles
-from src.lsd.gl_gui.melty import Melty
-from src.lsd.gl_gui.view.core_conversion.address import writable_file_refusal
-from src.lsd.gl_gui.view.core_views.headers import draw_header
-from src.lsd.gl_gui.model.file_meta import mark_project, project_roots as marked_projects, project_for
+from meltygui import glfw_window, pressed, imgui, window_api as glfw
+# Register tensor views for inline captures, including project-process arrays.
+from meltygui import draw_voxels, draw_line_graph
+from app_model import EditorAppModel
+from tile_views import draw_editor_workspace, draw_placeholder
+from meltygui.core.core_render import render_func
+from meltygui_pro.models.open_files import OpenFiles
+from meltygui_pro.models.project_run_state import ProjectRunState
+from meltygui.core.melty import Melty
+from meltygui.code.fileref import writable_file_refusal
+from meltygui.view.header_view import draw_header
+from meltygui_pro.models.projects import mark_project, project_roots as marked_projects, project_for
 
 paths = [pathlib.Path(arg).expanduser().resolve() for arg in sys.argv[1:]]
 for path in paths:
@@ -53,11 +59,13 @@ for path in paths:
         sys.exit(f'melty-code-editor: {path}: not editable — {refusal}')
 
 # The tab list: one shared code_file_io host per file, kept between runs
-# (melty.persisted: last run's tabs come back, minus deleted files; the
+# (meltygui.persisted: last run's tabs come back, minus deleted files; the
 # selected tab is the window's own state and comes back with it). Files on
 # the command line are added, and the first is posted as the pending jump,
 # which selects its tab; with no files the editor draws last run's tabs.
-open_files = melty.persisted('open_files', OpenFiles, app_id='melty-code-editor')
+open_files = meltygui.persisted('open_files', OpenFiles, app_id='melty-code-editor')
+app_model = meltygui.persisted('tile_layout', EditorAppModel, app_id='melty-code-editor')
+app_model.bind_open_files(open_files)
 for path in paths:
     open_files.open_file(path)
 if paths:
@@ -72,18 +80,12 @@ def real_open_paths():
 
 
 def project_roots():
-    """What global search's Code tab covers: every folder marked as a
-    project (melty.mark_project, the shared file-meta store) plus the
-    IMPLICIT project of every open tab outside them — its git repo or
-    nearest project marker, else its directory — each once. Read on every
-    search, so a project marked or a tab opened later joins."""
-    roots = [str(root) for root in marked_projects()]
-    for path in real_open_paths():
-        root = project_for(path)
-        root = str(root) if root else str(pathlib.Path(path).parent)
-        if root not in roots:
-            roots.append(root)
-    return roots
+    """Search only explicitly marked projects that still exist on disk.
+
+    Open tabs remain editable after unmarking their project, but no longer
+    silently put that project back into global search.
+    """
+    return [str(root) for root in marked_projects()]
 
 
 def implicit_projects():
@@ -100,11 +102,11 @@ def implicit_projects():
 # Global search (Search → Search…, Ctrl+Shift+F): melty draws the studio's
 # search window over this window; picks open in the editor through
 # open_files. Code only: the app has no studio windows, toggles or actions.
-search = melty.global_search(categories=('Code',), roots=project_roots, open_files=open_files)
+search = meltygui_pro.global_search(categories=('Code',), roots=project_roots, open_files=open_files)
 
 open_requested = False
+run_requested = False
 add_project_requested = False
-browse = None            # the Open dialog's pending (directory, token), see the body
 open_error = None
 # The New… path field's draft, or None while it is closed; new_opened is
 # True for the one frame after File → New… / Ctrl+N so the field takes focus.
@@ -188,6 +190,8 @@ def new_file_commit():
     open_file(path)
     if open_error is None:
         new_draft = None
+        open_files.jump_to_line = 1
+        open_files.jump_no_focus = False
 
 
 def open_file(filename):
@@ -206,7 +210,13 @@ def open_file(filename):
         open_error = f'Cannot open {path}: {error}'
         return
     open_files.jump_to_path = str(path)
+    open_files.jump_to_instance = open_files.active_instance
     open_error = None
+
+
+def request_run_file():
+    global run_requested
+    run_requested = True
 
 
 def quit_window():
@@ -217,7 +227,7 @@ def draw_new_field(width):
     """The one-line path field: Enter creates + opens, Esc closes. Returns its height."""
     global new_draft, new_opened
     opened, new_opened = new_opened, False
-    changed, draft = melty.draw_text(new_draft, name='new-file', single_line=True,
+    changed, draft = meltygui.draw_text(new_draft, name='new-file', single_line=True,
                                      syntax_highlight=False, autocomplete=False, wrap=False,
                                      request_focus=opened, select_all_on_focus=opened,
                                      width=width - 10, height=NEW_FIELD_HEIGHT, show_header=False,
@@ -232,34 +242,28 @@ def draw_new_field(width):
 
 
 @glfw_window(name=paths[0].name if len(paths) == 1 else 'Code Editor', app_id='melty-code-editor',
-             with_header=draw_header, bg_offset=-2, tint=(0.54, 0.57, 0.67))
+             with_header=draw_header, bg_offset=-2, tint=(0.11, 0.12, 0.17))
 @render_func()
-def editor(_, draw_state):
-    global open_requested, add_project_requested, browse
+def editor(input_value: object, draw_state, run_state: ProjectRunState = None):
+    global open_requested, add_project_requested, run_requested
     menu_height = 25.0
-    # The editor's shortcuts column was clicked: open the Open dialog there.
-    # The request is kept (with a fresh token) until the next one — the
-    # dialog is an OS child whose body runs on its own frames.
-    if open_files.browse_request:
-        browse = (open_files.browse_request, (browse[1] + 1) if browse else 0)
-        open_files.browse_request = None
-        open_requested = True
-    melty.draw_menu_bar({'File': {'New…': request_new, 'Open…': request_open},
+    meltygui.draw_menu_bar({'File': {'New…': request_new, 'Open…': request_open},
+                         'Run': {'Run file (F5)': request_run_file},
                          'Projects': projects_menu(),
                          'Search': {'Search…': search.open}},
                         name='menu', bar_height=menu_height)
     if new_draft is None and pressed('ctrl+n'):
         request_new()
-    changed, path = melty.draw_file_selector(
+    changed, path = meltygui.draw_file_selector(
         str(paths[0].parent) if paths else None, name='Open file', glfw_window=True,
         open_requested=open_requested or pressed('ctrl+o'), context_menu=FOLDER_MENU,
-        window_size=(720, 640), browse=browse)
+        window_size=(720, 640))
     open_requested = False
     if changed:
         open_file(path)
     # Projects → Add Folder…: the same explorer as a folder picker; the
     # chosen folder (or a right-clicked one) is marked in the shared store.
-    changed, folder = melty.draw_file_selector(
+    changed, folder = meltygui.draw_file_selector(
         str(default_new_dir()), name='Add project folder', glfw_window=True,
         open_requested=add_project_requested, choose_folder=True, context_menu=FOLDER_MENU,
         window_size=(720, 640))
@@ -271,7 +275,23 @@ def editor(_, draw_state):
     if open_error:
         imgui.text_wrapped(open_error)
         menu_height += imgui.get_item_rect_size()[1]
-    draw_code_editor(open_files, name='code-editor', disable_scroll=True, use_cache=False,
-                     show_shortcuts=True,
-                     width=draw_state.width - 10, height=draw_state.height - draw_state.header_height - menu_height - 1)
-    return False, None
+    app_model.reconcile_editors(open_files)
+    layout_changed, _ = draw_editor_workspace(
+        app_model, name='workspace', open_requested=True, window_pos=(0, 0),
+        width=draw_state.width - 10,
+        height=draw_state.height - draw_state.header_height - menu_height - 1)
+    app_model.reconcile_editors(open_files)
+    if run_requested or pressed('f5'):
+        run_requested = False
+        selected = open_files.active_path
+        if selected and pathlib.Path(selected).is_file():
+            run_state.start(selected)
+    from meltygui_pro.editor.run_console import draw_project_run_console
+    from meltygui.core.rendering.mode import Mode
+    _, _, console_state = draw_project_run_console(run_state, name='Run file', mode=Mode.WINDOW,
+                             closed=not run_state.opened, parent_window=draw_state,
+                             min_width=620, width=650, height=340, keep_in_view=True,
+                             window_pos=(max(10, draw_state.width - 680), 210), return_extras=True)
+    if run_state.opened and console_state.closed:
+        run_state.opened = False
+    return layout_changed, input_value

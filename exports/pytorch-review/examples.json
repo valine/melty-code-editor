@@ -1,0 +1,2629 @@
+{
+  "context": [
+    "/home/lukas/Desktop/pytorch-review/examples",
+    null
+  ],
+  "installed": [],
+  "declared": [],
+  "toml": [],
+  "imported": [
+    [
+      "__future__",
+      "\u2014"
+    ],
+    [
+      "argparse",
+      "\u2014"
+    ],
+    [
+      "boto3",
+      "\u2014"
+    ],
+    [
+      "char_dataset",
+      "\u2014"
+    ],
+    [
+      "checkpoint",
+      "\u2014"
+    ],
+    [
+      "collections",
+      "\u2014"
+    ],
+    [
+      "configs",
+      "\u2014"
+    ],
+    [
+      "copy",
+      "\u2014"
+    ],
+    [
+      "data",
+      "\u2014"
+    ],
+    [
+      "dataclasses",
+      "\u2014"
+    ],
+    [
+      "dataset",
+      "\u2014"
+    ],
+    [
+      "datautils",
+      "\u2014"
+    ],
+    [
+      "datetime",
+      "\u2014"
+    ],
+    [
+      "enum",
+      "\u2014"
+    ],
+    [
+      "errno",
+      "\u2014"
+    ],
+    [
+      "fsspec",
+      "\u2014"
+    ],
+    [
+      "functools",
+      "\u2014"
+    ],
+    [
+      "glob",
+      "\u2014"
+    ],
+    [
+      "gymnasium",
+      "\u2014"
+    ],
+    [
+      "gzip",
+      "\u2014"
+    ],
+    [
+      "hydra",
+      "\u2014"
+    ],
+    [
+      "io",
+      "\u2014"
+    ],
+    [
+      "itertools",
+      "\u2014"
+    ],
+    [
+      "json",
+      "\u2014"
+    ],
+    [
+      "llama2_model",
+      "\u2014"
+    ],
+    [
+      "log_utils",
+      "\u2014"
+    ],
+    [
+      "logging",
+      "\u2014"
+    ],
+    [
+      "math",
+      "\u2014"
+    ],
+    [
+      "matplotlib",
+      "\u2014"
+    ],
+    [
+      "model",
+      "\u2014"
+    ],
+    [
+      "model_checkpointing",
+      "\u2014"
+    ],
+    [
+      "nlp",
+      "\u2014"
+    ],
+    [
+      "numpy",
+      "\u2014"
+    ],
+    [
+      "omegaconf",
+      "\u2014"
+    ],
+    [
+      "onnxruntime",
+      "\u2014"
+    ],
+    [
+      "operator",
+      "\u2014"
+    ],
+    [
+      "os",
+      "\u2014"
+    ],
+    [
+      "pandas",
+      "\u2014"
+    ],
+    [
+      "pathlib",
+      "\u2014"
+    ],
+    [
+      "PIL",
+      "\u2014"
+    ],
+    [
+      "pkg_resources",
+      "\u2014"
+    ],
+    [
+      "policies",
+      "\u2014"
+    ],
+    [
+      "pytorch_sphinx_theme",
+      "\u2014"
+    ],
+    [
+      "random",
+      "\u2014"
+    ],
+    [
+      "re",
+      "\u2014"
+    ],
+    [
+      "requests",
+      "\u2014"
+    ],
+    [
+      "rnn",
+      "\u2014"
+    ],
+    [
+      "shutil",
+      "\u2014"
+    ],
+    [
+      "six",
+      "\u2014"
+    ],
+    [
+      "src",
+      "\u2014"
+    ],
+    [
+      "string",
+      "\u2014"
+    ],
+    [
+      "summarization_dataset",
+      "\u2014"
+    ],
+    [
+      "sys",
+      "\u2014"
+    ],
+    [
+      "tarfile",
+      "\u2014"
+    ],
+    [
+      "tempfile",
+      "\u2014"
+    ],
+    [
+      "threading",
+      "\u2014"
+    ],
+    [
+      "time",
+      "\u2014"
+    ],
+    [
+      "torch",
+      "\u2014"
+    ],
+    [
+      "torchtext",
+      "\u2014"
+    ],
+    [
+      "torchvision",
+      "\u2014"
+    ],
+    [
+      "tqdm",
+      "\u2014"
+    ],
+    [
+      "train",
+      "\u2014"
+    ],
+    [
+      "trainer",
+      "\u2014"
+    ],
+    [
+      "transformer_net",
+      "\u2014"
+    ],
+    [
+      "transformers",
+      "\u2014"
+    ],
+    [
+      "typing",
+      "\u2014"
+    ],
+    [
+      "urllib",
+      "\u2014"
+    ],
+    [
+      "urllib2",
+      "\u2014"
+    ],
+    [
+      "util",
+      "\u2014"
+    ],
+    [
+      "utils",
+      "\u2014"
+    ],
+    [
+      "vgg",
+      "\u2014"
+    ],
+    [
+      "warnings",
+      "\u2014"
+    ],
+    [
+      "zipfile",
+      "\u2014"
+    ]
+  ],
+  "errors": [
+    "No virtual environment selected"
+  ],
+  "standard_library": [
+    "__future__",
+    "_abc",
+    "_aix_support",
+    "_ast",
+    "_asyncio",
+    "_bisect",
+    "_blake2",
+    "_bz2",
+    "_codecs",
+    "_codecs_cn",
+    "_codecs_hk",
+    "_codecs_iso2022",
+    "_codecs_jp",
+    "_codecs_kr",
+    "_codecs_tw",
+    "_collections",
+    "_collections_abc",
+    "_compat_pickle",
+    "_compression",
+    "_contextvars",
+    "_crypt",
+    "_csv",
+    "_ctypes",
+    "_curses",
+    "_curses_panel",
+    "_datetime",
+    "_dbm",
+    "_decimal",
+    "_elementtree",
+    "_frozen_importlib",
+    "_frozen_importlib_external",
+    "_functools",
+    "_gdbm",
+    "_hashlib",
+    "_heapq",
+    "_imp",
+    "_io",
+    "_json",
+    "_locale",
+    "_lsprof",
+    "_lzma",
+    "_markupbase",
+    "_md5",
+    "_msi",
+    "_multibytecodec",
+    "_multiprocessing",
+    "_opcode",
+    "_operator",
+    "_osx_support",
+    "_overlapped",
+    "_pickle",
+    "_posixshmem",
+    "_posixsubprocess",
+    "_py_abc",
+    "_pydatetime",
+    "_pydecimal",
+    "_pyio",
+    "_pylong",
+    "_queue",
+    "_random",
+    "_scproxy",
+    "_sha1",
+    "_sha2",
+    "_sha3",
+    "_signal",
+    "_sitebuiltins",
+    "_socket",
+    "_sqlite3",
+    "_sre",
+    "_ssl",
+    "_stat",
+    "_statistics",
+    "_string",
+    "_strptime",
+    "_struct",
+    "_symtable",
+    "_thread",
+    "_threading_local",
+    "_tkinter",
+    "_tokenize",
+    "_tracemalloc",
+    "_typing",
+    "_uuid",
+    "_warnings",
+    "_weakref",
+    "_weakrefset",
+    "_winapi",
+    "_zoneinfo",
+    "abc",
+    "aifc",
+    "antigravity",
+    "argparse",
+    "array",
+    "ast",
+    "asyncio",
+    "atexit",
+    "audioop",
+    "base64",
+    "bdb",
+    "binascii",
+    "bisect",
+    "builtins",
+    "bz2",
+    "cProfile",
+    "calendar",
+    "cgi",
+    "cgitb",
+    "chunk",
+    "cmath",
+    "cmd",
+    "code",
+    "codecs",
+    "codeop",
+    "collections",
+    "colorsys",
+    "compileall",
+    "concurrent",
+    "configparser",
+    "contextlib",
+    "contextvars",
+    "copy",
+    "copyreg",
+    "crypt",
+    "csv",
+    "ctypes",
+    "curses",
+    "dataclasses",
+    "datetime",
+    "dbm",
+    "decimal",
+    "difflib",
+    "dis",
+    "doctest",
+    "email",
+    "encodings",
+    "ensurepip",
+    "enum",
+    "errno",
+    "faulthandler",
+    "fcntl",
+    "filecmp",
+    "fileinput",
+    "fnmatch",
+    "fractions",
+    "ftplib",
+    "functools",
+    "gc",
+    "genericpath",
+    "getopt",
+    "getpass",
+    "gettext",
+    "glob",
+    "graphlib",
+    "grp",
+    "gzip",
+    "hashlib",
+    "heapq",
+    "hmac",
+    "html",
+    "http",
+    "idlelib",
+    "imaplib",
+    "imghdr",
+    "importlib",
+    "inspect",
+    "io",
+    "ipaddress",
+    "itertools",
+    "json",
+    "keyword",
+    "lib2to3",
+    "linecache",
+    "locale",
+    "logging",
+    "lzma",
+    "mailbox",
+    "mailcap",
+    "marshal",
+    "math",
+    "mimetypes",
+    "mmap",
+    "modulefinder",
+    "msilib",
+    "msvcrt",
+    "multiprocessing",
+    "netrc",
+    "nis",
+    "nntplib",
+    "nt",
+    "ntpath",
+    "nturl2path",
+    "numbers",
+    "opcode",
+    "operator",
+    "optparse",
+    "os",
+    "ossaudiodev",
+    "pathlib",
+    "pdb",
+    "pickle",
+    "pickletools",
+    "pipes",
+    "pkgutil",
+    "platform",
+    "plistlib",
+    "poplib",
+    "posix",
+    "posixpath",
+    "pprint",
+    "profile",
+    "pstats",
+    "pty",
+    "pwd",
+    "py_compile",
+    "pyclbr",
+    "pydoc",
+    "pydoc_data",
+    "pyexpat",
+    "queue",
+    "quopri",
+    "random",
+    "re",
+    "readline",
+    "reprlib",
+    "resource",
+    "rlcompleter",
+    "runpy",
+    "sched",
+    "secrets",
+    "select",
+    "selectors",
+    "shelve",
+    "shlex",
+    "shutil",
+    "signal",
+    "site",
+    "smtplib",
+    "sndhdr",
+    "socket",
+    "socketserver",
+    "spwd",
+    "sqlite3",
+    "sre_compile",
+    "sre_constants",
+    "sre_parse",
+    "ssl",
+    "stat",
+    "statistics",
+    "string",
+    "stringprep",
+    "struct",
+    "subprocess",
+    "sunau",
+    "symtable",
+    "sys",
+    "sysconfig",
+    "syslog",
+    "tabnanny",
+    "tarfile",
+    "telnetlib",
+    "tempfile",
+    "termios",
+    "textwrap",
+    "this",
+    "threading",
+    "time",
+    "timeit",
+    "tkinter",
+    "token",
+    "tokenize",
+    "tomllib",
+    "trace",
+    "traceback",
+    "tracemalloc",
+    "tty",
+    "turtle",
+    "turtledemo",
+    "types",
+    "typing",
+    "unicodedata",
+    "unittest",
+    "urllib",
+    "uu",
+    "uuid",
+    "venv",
+    "warnings",
+    "wave",
+    "weakref",
+    "webbrowser",
+    "winreg",
+    "winsound",
+    "wsgiref",
+    "xdrlib",
+    "xml",
+    "xmlrpc",
+    "zipapp",
+    "zipfile",
+    "zipimport",
+    "zlib",
+    "zoneinfo"
+  ],
+  "optional_imports": [],
+  "import_sources": {
+    "__future__": [
+      "cpp/dcgan/display_samples.py:1",
+      "cpp/dcgan/display_samples.py:2",
+      "cpp/tools/download_mnist.py:1",
+      "cpp/tools/download_mnist.py:2",
+      "dcgan/main.py:1",
+      "mnist_hogwild/main.py:1",
+      "mnist_rnn/main.py:1",
+      "regression/main.py:2",
+      "siamese_network/main.py:1",
+      "super_resolution/main.py:1",
+      "super_resolution/super_resolve.py:1",
+      "time_sequence_prediction/train.py:1",
+      "vae/main.py:1"
+    ],
+    "argparse": [
+      "cpp/dcgan/display_samples.py:4",
+      "cpp/tools/download_mnist.py:4",
+      "dcgan/main.py:2",
+      "distributed/FSDP/T5_training.py:2",
+      "distributed/FSDP/summarization_dataset.py:1",
+      "distributed/FSDP2/example.py:1",
+      "distributed/ddp-tutorial-series/multigpu.py:96",
+      "distributed/ddp-tutorial-series/multigpu_torchrun.py:104",
+      "distributed/ddp-tutorial-series/multinode.py:105",
+      "distributed/ddp-tutorial-series/single_gpu.py:74",
+      "distributed/ddp/example.py:1",
+      "distributed/rpc/batch/reinforce.py:1",
+      "distributed/rpc/parameter_server/rpc_parameter_server.py:1",
+      "distributed/rpc/rl/main.py:1",
+      "fast_neural_style/neural_style/neural_style.py:1",
+      "gat/main.py:6",
+      "gcn/main.py:6",
+      "imagenet/main.py:1",
+      "language_translation/main.py:11",
+      "legacy/snli/util.py:2",
+      "mnist/main.py:1",
+      "mnist_forward_forward/main.py:5",
+      "mnist_hogwild/main.py:2",
+      "mnist_rnn/main.py:3",
+      "reinforcement_learning/actor_critic.py:1",
+      "reinforcement_learning/reinforce.py:1",
+      "siamese_network/main.py:2",
+      "super_resolution/main.py:2",
+      "super_resolution/super_resolve.py:2",
+      "time_sequence_prediction/train.py:2",
+      "vae/main.py:2",
+      "word_language_model/generate.py:7",
+      "word_language_model/main.py:2"
+    ],
+    "matplotlib": [
+      "cpp/dcgan/display_samples.py:6",
+      "time_sequence_prediction/train.py:7",
+      "time_sequence_prediction/train.py:9"
+    ],
+    "torch": [
+      "cpp/dcgan/display_samples.py:7",
+      "cpp/transfer-learning/convert.py:4",
+      "dcgan/main.py:5",
+      "dcgan/main.py:6",
+      "dcgan/main.py:7",
+      "dcgan/main.py:8",
+      "dcgan/main.py:9",
+      "dcgan/main.py:10",
+      "distributed/FSDP/T5_training.py:3",
+      "distributed/FSDP/T5_training.py:4",
+      "distributed/FSDP/T5_training.py:5",
+      "distributed/FSDP/T5_training.py:6",
+      "distributed/FSDP/T5_training.py:10",
+      "distributed/FSDP/T5_training.py:11",
+      "distributed/FSDP/T5_training.py:12",
+      "distributed/FSDP/T5_training.py:13",
+      "distributed/FSDP/T5_training.py:14",
+      "distributed/FSDP/T5_training.py:15",
+      "distributed/FSDP/T5_training.py:19",
+      "distributed/FSDP/T5_training.py:30",
+      "distributed/FSDP/configs/fsdp.py:3",
+      "distributed/FSDP/configs/fsdp.py:4",
+      "distributed/FSDP/model_checkpointing/checkpoint_handler.py:3",
+      "distributed/FSDP/model_checkpointing/checkpoint_handler.py:6",
+      "distributed/FSDP/model_checkpointing/checkpoint_handler.py:14",
+      "distributed/FSDP/model_checkpointing/checkpoint_handler.py:20",
+      "distributed/FSDP/model_checkpointing/checkpoint_handler.py:26",
+      "distributed/FSDP/model_checkpointing/checkpoint_handler.py:27",
+      "distributed/FSDP/model_checkpointing/checkpoint_handler.py:28",
+      "distributed/FSDP/policies/activation_checkpointing_functions.py:1",
+      "distributed/FSDP/policies/activation_checkpointing_functions.py:3",
+      "distributed/FSDP/policies/activation_checkpointing_functions.py:4",
+      "distributed/FSDP/policies/mixed_precision.py:1",
+      "distributed/FSDP/policies/mixed_precision.py:3",
+      "distributed/FSDP/policies/wrapping.py:4",
+      "distributed/FSDP/policies/wrapping.py:5",
+      "distributed/FSDP/policies/wrapping.py:6",
+      "distributed/FSDP/policies/wrapping.py:10",
+      "distributed/FSDP/policies/wrapping.py:16",
+      "distributed/FSDP/summarization_dataset.py:14",
+      "distributed/FSDP/summarization_dataset.py:15",
+      "distributed/FSDP/utils/environment.py:13",
+      "distributed/FSDP/utils/environment.py:14",
+      "distributed/FSDP/utils/environment.py:15",
+      "distributed/FSDP/utils/train_utils.py:2",
+      "distributed/FSDP/utils/train_utils.py:3",
+      "distributed/FSDP2/checkpoint.py:4",
+      "distributed/FSDP2/checkpoint.py:5",
+      "distributed/FSDP2/checkpoint.py:6",
+      "distributed/FSDP2/checkpoint.py:14",
+      "distributed/FSDP2/checkpoint.py:15",
+      "distributed/FSDP2/example.py:4",
+      "distributed/FSDP2/example.py:7",
+      "distributed/FSDP2/model.py:3",
+      "distributed/FSDP2/model.py:4",
+      "distributed/FSDP2/model.py:5",
+      "distributed/FSDP2/utils.py:1",
+      "distributed/FSDP2/utils.py:3",
+      "distributed/FSDP2/utils.py:4",
+      "distributed/ddp-tutorial-series/datautils.py:1",
+      "distributed/ddp-tutorial-series/datautils.py:2",
+      "distributed/ddp-tutorial-series/multigpu.py:1",
+      "distributed/ddp-tutorial-series/multigpu.py:2",
+      "distributed/ddp-tutorial-series/multigpu.py:3",
+      "distributed/ddp-tutorial-series/multigpu.py:6",
+      "distributed/ddp-tutorial-series/multigpu.py:7",
+      "distributed/ddp-tutorial-series/multigpu.py:8",
+      "distributed/ddp-tutorial-series/multigpu.py:9",
+      "distributed/ddp-tutorial-series/multigpu_torchrun.py:1",
+      "distributed/ddp-tutorial-series/multigpu_torchrun.py:2",
+      "distributed/ddp-tutorial-series/multigpu_torchrun.py:3",
+      "distributed/ddp-tutorial-series/multigpu_torchrun.py:6",
+      "distributed/ddp-tutorial-series/multigpu_torchrun.py:7",
+      "distributed/ddp-tutorial-series/multigpu_torchrun.py:8",
+      "distributed/ddp-tutorial-series/multigpu_torchrun.py:9",
+      "distributed/ddp-tutorial-series/multinode.py:1",
+      "distributed/ddp-tutorial-series/multinode.py:2",
+      "distributed/ddp-tutorial-series/multinode.py:3",
+      "distributed/ddp-tutorial-series/multinode.py:6",
+      "distributed/ddp-tutorial-series/multinode.py:7",
+      "distributed/ddp-tutorial-series/multinode.py:8",
+      "distributed/ddp-tutorial-series/multinode.py:9",
+      "distributed/ddp-tutorial-series/single_gpu.py:1",
+      "distributed/ddp-tutorial-series/single_gpu.py:2",
+      "distributed/ddp-tutorial-series/single_gpu.py:3",
+      "distributed/ddp/example.py:7",
+      "distributed/ddp/example.py:8",
+      "distributed/ddp/example.py:9",
+      "distributed/ddp/example.py:10",
+      "distributed/ddp/example.py:12",
+      "distributed/minGPT-ddp/mingpt/char_dataset.py:1",
+      "distributed/minGPT-ddp/mingpt/char_dataset.py:2",
+      "distributed/minGPT-ddp/mingpt/main.py:3",
+      "distributed/minGPT-ddp/mingpt/main.py:4",
+      "distributed/minGPT-ddp/mingpt/main.py:5",
+      "distributed/minGPT-ddp/mingpt/model.py:9",
+      "distributed/minGPT-ddp/mingpt/model.py:10",
+      "distributed/minGPT-ddp/mingpt/model.py:11",
+      "distributed/minGPT-ddp/mingpt/trainer.py:11",
+      "distributed/minGPT-ddp/mingpt/trainer.py:12",
+      "distributed/minGPT-ddp/mingpt/trainer.py:13",
+      "distributed/minGPT-ddp/mingpt/trainer.py:14",
+      "distributed/rpc/batch/parameter_server.py:6",
+      "distributed/rpc/batch/parameter_server.py:7",
+      "distributed/rpc/batch/parameter_server.py:8",
+      "distributed/rpc/batch/parameter_server.py:9",
+      "distributed/rpc/batch/parameter_server.py:10",
+      "distributed/rpc/batch/parameter_server.py:11",
+      "distributed/rpc/batch/reinforce.py:11",
+      "distributed/rpc/batch/reinforce.py:12",
+      "distributed/rpc/batch/reinforce.py:13",
+      "distributed/rpc/batch/reinforce.py:14",
+      "distributed/rpc/batch/reinforce.py:15",
+      "distributed/rpc/batch/reinforce.py:16",
+      "distributed/rpc/batch/reinforce.py:17",
+      "distributed/rpc/batch/reinforce.py:18",
+      "distributed/rpc/ddp_rpc/main.py:3",
+      "distributed/rpc/ddp_rpc/main.py:4",
+      "distributed/rpc/ddp_rpc/main.py:5",
+      "distributed/rpc/ddp_rpc/main.py:6",
+      "distributed/rpc/ddp_rpc/main.py:7",
+      "distributed/rpc/ddp_rpc/main.py:8",
+      "distributed/rpc/ddp_rpc/main.py:9",
+      "distributed/rpc/ddp_rpc/main.py:10",
+      "distributed/rpc/ddp_rpc/main.py:11",
+      "distributed/rpc/ddp_rpc/main.py:12",
+      "distributed/rpc/ddp_rpc/main.py:13",
+      "distributed/rpc/parameter_server/rpc_parameter_server.py:5",
+      "distributed/rpc/parameter_server/rpc_parameter_server.py:6",
+      "distributed/rpc/parameter_server/rpc_parameter_server.py:7",
+      "distributed/rpc/parameter_server/rpc_parameter_server.py:8",
+      "distributed/rpc/parameter_server/rpc_parameter_server.py:9",
+      "distributed/rpc/parameter_server/rpc_parameter_server.py:10",
+      "distributed/rpc/parameter_server/rpc_parameter_server.py:11",
+      "distributed/rpc/parameter_server/rpc_parameter_server.py:12",
+      "distributed/rpc/pipeline/main.py:7",
+      "distributed/rpc/pipeline/main.py:8",
+      "distributed/rpc/pipeline/main.py:9",
+      "distributed/rpc/pipeline/main.py:10",
+      "distributed/rpc/pipeline/main.py:11",
+      "distributed/rpc/pipeline/main.py:12",
+      "distributed/rpc/pipeline/main.py:13",
+      "distributed/rpc/rl/main.py:7",
+      "distributed/rpc/rl/main.py:8",
+      "distributed/rpc/rl/main.py:9",
+      "distributed/rpc/rl/main.py:10",
+      "distributed/rpc/rl/main.py:11",
+      "distributed/rpc/rl/main.py:12",
+      "distributed/rpc/rl/main.py:13",
+      "distributed/rpc/rl/main.py:14",
+      "distributed/rpc/rnn/main.py:3",
+      "distributed/rpc/rnn/main.py:4",
+      "distributed/rpc/rnn/main.py:5",
+      "distributed/rpc/rnn/main.py:6",
+      "distributed/rpc/rnn/main.py:7",
+      "distributed/rpc/rnn/main.py:8",
+      "distributed/rpc/rnn/rnn.py:1",
+      "distributed/rpc/rnn/rnn.py:2",
+      "distributed/rpc/rnn/rnn.py:3",
+      "distributed/rpc/rnn/rnn.py:4",
+      "distributed/tensor_parallelism/fsdp_tp_example.py:34",
+      "distributed/tensor_parallelism/fsdp_tp_example.py:35",
+      "distributed/tensor_parallelism/fsdp_tp_example.py:36",
+      "distributed/tensor_parallelism/fsdp_tp_example.py:37",
+      "distributed/tensor_parallelism/fsdp_tp_example.py:51",
+      "distributed/tensor_parallelism/fsdp_tp_example.py:52",
+      "distributed/tensor_parallelism/fsdp_tp_example.py:53",
+      "distributed/tensor_parallelism/fsdp_tp_example.py:54",
+      "distributed/tensor_parallelism/llama2_model.py:7",
+      "distributed/tensor_parallelism/llama2_model.py:8",
+      "distributed/tensor_parallelism/llama2_model.py:9",
+      "distributed/tensor_parallelism/log_utils.py:2",
+      "distributed/tensor_parallelism/sequence_parallel_example.py:22",
+      "distributed/tensor_parallelism/sequence_parallel_example.py:23",
+      "distributed/tensor_parallelism/sequence_parallel_example.py:25",
+      "distributed/tensor_parallelism/sequence_parallel_example.py:26",
+      "distributed/tensor_parallelism/sequence_parallel_example.py:28",
+      "distributed/tensor_parallelism/sequence_parallel_example.py:45",
+      "distributed/tensor_parallelism/tensor_parallel_example.py:37",
+      "distributed/tensor_parallelism/tensor_parallel_example.py:38",
+      "distributed/tensor_parallelism/tensor_parallel_example.py:39",
+      "distributed/tensor_parallelism/tensor_parallel_example.py:40",
+      "distributed/tensor_parallelism/tensor_parallel_example.py:55",
+      "fast_neural_style/download_saved_models.py:13",
+      "fast_neural_style/download_saved_models.py:16",
+      "fast_neural_style/download_saved_models.py:18",
+      "fast_neural_style/neural_style/neural_style.py:8",
+      "fast_neural_style/neural_style/neural_style.py:9",
+      "fast_neural_style/neural_style/neural_style.py:10",
+      "fast_neural_style/neural_style/neural_style.py:13",
+      "fast_neural_style/neural_style/transformer_net.py:1",
+      "fast_neural_style/neural_style/utils.py:1",
+      "fast_neural_style/neural_style/vgg.py:3",
+      "fx/custom_tracer.py:1",
+      "fx/custom_tracer.py:2",
+      "fx/inline_function.py:1",
+      "fx/inline_function.py:2",
+      "fx/inline_function.py:3",
+      "fx/invert.py:1",
+      "fx/invert.py:2",
+      "fx/module_tracer.py:11",
+      "fx/module_tracer.py:12",
+      "fx/native_interpreter/use_interpreter.py:1",
+      "fx/native_interpreter/use_interpreter.py:2",
+      "fx/primitive_library.py:1",
+      "fx/primitive_library.py:2",
+      "fx/profiling_tracer.py:12",
+      "fx/profiling_tracer.py:13",
+      "fx/proxy_based_graph_creation.py:1",
+      "fx/proxy_based_graph_creation.py:2",
+      "fx/replace_op.py:1",
+      "fx/replace_op.py:2",
+      "fx/subgraph_rewriter_basic_use.py:1",
+      "fx/subgraph_rewriter_basic_use.py:2",
+      "fx/wrap_output_dynamically.py:4",
+      "fx/wrap_output_dynamically.py:5",
+      "gat/main.py:8",
+      "gat/main.py:9",
+      "gat/main.py:10",
+      "gat/main.py:11",
+      "gcn/main.py:8",
+      "gcn/main.py:9",
+      "gcn/main.py:10",
+      "gcn/main.py:11",
+      "imagenet/main.py:9",
+      "imagenet/main.py:10",
+      "imagenet/main.py:11",
+      "imagenet/main.py:12",
+      "imagenet/main.py:13",
+      "imagenet/main.py:14",
+      "imagenet/main.py:15",
+      "imagenet/main.py:16",
+      "imagenet/main.py:17",
+      "imagenet/main.py:21",
+      "imagenet/main.py:22",
+      "language_translation/main.py:6",
+      "language_translation/src/data.py:1",
+      "language_translation/src/data.py:2",
+      "language_translation/src/data.py:3",
+      "language_translation/src/model.py:3",
+      "language_translation/src/model.py:4",
+      "language_translation/src/model.py:5",
+      "legacy/snli/model.py:1",
+      "legacy/snli/model.py:2",
+      "legacy/snli/train.py:5",
+      "legacy/snli/train.py:6",
+      "legacy/snli/train.py:7",
+      "mnist/main.py:2",
+      "mnist/main.py:3",
+      "mnist/main.py:4",
+      "mnist/main.py:5",
+      "mnist/main.py:7",
+      "mnist_forward_forward/main.py:6",
+      "mnist_forward_forward/main.py:7",
+      "mnist_forward_forward/main.py:10",
+      "mnist_forward_forward/main.py:11",
+      "mnist_hogwild/main.py:3",
+      "mnist_hogwild/main.py:4",
+      "mnist_hogwild/main.py:5",
+      "mnist_hogwild/main.py:6",
+      "mnist_hogwild/main.py:7",
+      "mnist_hogwild/train.py:2",
+      "mnist_hogwild/train.py:3",
+      "mnist_hogwild/train.py:4",
+      "mnist_rnn/main.py:5",
+      "mnist_rnn/main.py:6",
+      "mnist_rnn/main.py:7",
+      "mnist_rnn/main.py:8",
+      "mnist_rnn/main.py:9",
+      "regression/main.py:5",
+      "regression/main.py:6",
+      "reinforcement_learning/actor_critic.py:7",
+      "reinforcement_learning/actor_critic.py:8",
+      "reinforcement_learning/actor_critic.py:9",
+      "reinforcement_learning/actor_critic.py:10",
+      "reinforcement_learning/actor_critic.py:11",
+      "reinforcement_learning/reinforce.py:6",
+      "reinforcement_learning/reinforce.py:7",
+      "reinforcement_learning/reinforce.py:8",
+      "reinforcement_learning/reinforce.py:9",
+      "reinforcement_learning/reinforce.py:10",
+      "siamese_network/main.py:5",
+      "siamese_network/main.py:6",
+      "siamese_network/main.py:7",
+      "siamese_network/main.py:8",
+      "siamese_network/main.py:10",
+      "siamese_network/main.py:13",
+      "super_resolution/dataset.py:1",
+      "super_resolution/main.py:5",
+      "super_resolution/main.py:6",
+      "super_resolution/main.py:7",
+      "super_resolution/main.py:8",
+      "super_resolution/model.py:1",
+      "super_resolution/model.py:2",
+      "super_resolution/model.py:3",
+      "super_resolution/super_resolve.py:3",
+      "time_sequence_prediction/generate_sine_wave.py:2",
+      "time_sequence_prediction/train.py:3",
+      "time_sequence_prediction/train.py:4",
+      "time_sequence_prediction/train.py:5",
+      "vae/main.py:3",
+      "vae/main.py:4",
+      "vae/main.py:5",
+      "vae/main.py:6",
+      "word_language_model/data.py:3",
+      "word_language_model/generate.py:8",
+      "word_language_model/main.py:6",
+      "word_language_model/main.py:7",
+      "word_language_model/main.py:8",
+      "word_language_model/model.py:2",
+      "word_language_model/model.py:3",
+      "word_language_model/model.py:4"
+    ],
+    "gzip": [
+      "cpp/tools/download_mnist.py:5"
+    ],
+    "os": [
+      "cpp/tools/download_mnist.py:6",
+      "dcgan/main.py:3",
+      "distributed/FSDP/T5_training.py:1",
+      "distributed/FSDP/policies/activation_checkpointing_functions.py:2",
+      "distributed/FSDP/summarization_dataset.py:3",
+      "distributed/FSDP/utils/train_utils.py:1",
+      "distributed/FSDP2/checkpoint.py:1",
+      "distributed/FSDP2/example.py:2",
+      "distributed/ddp-tutorial-series/multigpu.py:10",
+      "distributed/ddp-tutorial-series/multigpu_torchrun.py:10",
+      "distributed/ddp-tutorial-series/multinode.py:10",
+      "distributed/ddp/example.py:2",
+      "distributed/minGPT-ddp/mingpt/main.py:1",
+      "distributed/minGPT-ddp/mingpt/trainer.py:9",
+      "distributed/rpc/batch/parameter_server.py:1",
+      "distributed/rpc/batch/reinforce.py:3",
+      "distributed/rpc/parameter_server/rpc_parameter_server.py:2",
+      "distributed/rpc/pipeline/main.py:1",
+      "distributed/rpc/rl/main.py:4",
+      "distributed/rpc/rnn/main.py:1",
+      "distributed/tensor_parallelism/fsdp_tp_example.py:33",
+      "distributed/tensor_parallelism/sequence_parallel_example.py:20",
+      "distributed/tensor_parallelism/tensor_parallel_example.py:35",
+      "docs/source/conf.py:20",
+      "fast_neural_style/download_saved_models.py:1",
+      "fast_neural_style/neural_style/neural_style.py:2",
+      "gat/main.py:1",
+      "gcn/main.py:1",
+      "imagenet/main.py:2",
+      "language_translation/main.py:2",
+      "legacy/snli/train.py:1",
+      "legacy/snli/util.py:1",
+      "legacy/snli/util.py:8",
+      "mnist_hogwild/train.py:1",
+      "super_resolution/data.py:1",
+      "super_resolution/data.py:2",
+      "super_resolution/dataset.py:3",
+      "super_resolution/dataset.py:4",
+      "word_language_model/data.py:1",
+      "word_language_model/main.py:5"
+    ],
+    "sys": [
+      "cpp/tools/download_mnist.py:7",
+      "distributed/ddp/example.py:3",
+      "distributed/minGPT-ddp/mingpt/main.py:2",
+      "distributed/tensor_parallelism/fsdp_tp_example.py:32",
+      "distributed/tensor_parallelism/sequence_parallel_example.py:21",
+      "distributed/tensor_parallelism/tensor_parallel_example.py:36",
+      "docs/source/conf.py:21",
+      "fast_neural_style/neural_style/neural_style.py:3"
+    ],
+    "urllib": [
+      "cpp/tools/download_mnist.py:8",
+      "cpp/tools/download_mnist.py:11",
+      "cpp/tools/download_mnist.py:12",
+      "cpp/tools/download_mnist.py:15",
+      "distributed/ddp/example.py:5",
+      "distributed/minGPT-ddp/mingpt/trainer.py:17"
+    ],
+    "urllib2": [
+      "cpp/tools/download_mnist.py:14"
+    ],
+    "torchvision": [
+      "cpp/transfer-learning/convert.py:5",
+      "dcgan/main.py:11",
+      "dcgan/main.py:12",
+      "dcgan/main.py:13",
+      "distributed/rpc/batch/parameter_server.py:13",
+      "distributed/rpc/parameter_server/rpc_parameter_server.py:13",
+      "distributed/rpc/pipeline/main.py:15",
+      "fast_neural_style/neural_style/neural_style.py:11",
+      "fast_neural_style/neural_style/neural_style.py:12",
+      "fast_neural_style/neural_style/vgg.py:4",
+      "fx/module_tracer.py:63",
+      "imagenet/main.py:18",
+      "imagenet/main.py:19",
+      "imagenet/main.py:20",
+      "mnist/main.py:6",
+      "mnist_forward_forward/main.py:8",
+      "mnist_forward_forward/main.py:9",
+      "mnist_hogwild/main.py:8",
+      "mnist_rnn/main.py:10",
+      "siamese_network/main.py:9",
+      "siamese_network/main.py:11",
+      "siamese_network/main.py:12",
+      "super_resolution/data.py:5",
+      "super_resolution/super_resolve.py:5",
+      "vae/main.py:7",
+      "vae/main.py:8"
+    ],
+    "random": [
+      "dcgan/main.py:4",
+      "distributed/FSDP/summarization_dataset.py:7",
+      "distributed/rpc/ddp_rpc/main.py:1",
+      "imagenet/main.py:3",
+      "siamese_network/main.py:2"
+    ],
+    "transformers": [
+      "distributed/FSDP/T5_training.py:7",
+      "distributed/FSDP/T5_training.py:8",
+      "distributed/FSDP/T5_training.py:16",
+      "distributed/FSDP/T5_training.py:40",
+      "distributed/FSDP/policies/activation_checkpointing_functions.py:10",
+      "distributed/FSDP/policies/wrapping.py:8",
+      "distributed/FSDP/summarization_dataset.py:19",
+      "distributed/FSDP/utils/train_utils.py:6",
+      "distributed/FSDP/utils/train_utils.py:7"
+    ],
+    "functools": [
+      "distributed/FSDP/T5_training.py:9",
+      "distributed/FSDP/T5_training.py:29",
+      "distributed/FSDP/policies/activation_checkpointing_functions.py:12",
+      "distributed/FSDP/policies/wrapping.py:23",
+      "distributed/rpc/pipeline/main.py:5"
+    ],
+    "nlp": [
+      "distributed/FSDP/T5_training.py:17",
+      "distributed/FSDP/summarization_dataset.py:17"
+    ],
+    "pathlib": [
+      "distributed/FSDP/T5_training.py:31",
+      "distributed/FSDP/model_checkpointing/checkpoint_handler.py:1"
+    ],
+    "summarization_dataset": [
+      "distributed/FSDP/T5_training.py:32"
+    ],
+    "policies": [
+      "distributed/FSDP/T5_training.py:33"
+    ],
+    "model_checkpointing": [
+      "distributed/FSDP/T5_training.py:34"
+    ],
+    "configs": [
+      "distributed/FSDP/T5_training.py:35"
+    ],
+    "utils": [
+      "distributed/FSDP/T5_training.py:36",
+      "distributed/FSDP2/example.py:8",
+      "fast_neural_style/neural_style/neural_style.py:15"
+    ],
+    "typing": [
+      "distributed/FSDP/T5_training.py:41",
+      "distributed/FSDP/configs/fsdp.py:2",
+      "distributed/FSDP/configs/training.py:2",
+      "distributed/FSDP/policies/wrapping.py:24",
+      "distributed/minGPT-ddp/mingpt/trainer.py:8",
+      "distributed/tensor_parallelism/llama2_model.py:5",
+      "fx/custom_tracer.py:3",
+      "fx/module_tracer.py:13"
+    ],
+    "time": [
+      "distributed/FSDP/T5_training.py:42",
+      "distributed/FSDP/model_checkpointing/checkpoint_handler.py:4",
+      "distributed/FSDP/summarization_dataset.py:5",
+      "distributed/FSDP2/checkpoint.py:2",
+      "distributed/rpc/batch/reinforce.py:5",
+      "distributed/rpc/pipeline/main.py:3",
+      "fast_neural_style/neural_style/neural_style.py:4",
+      "gat/main.py:2",
+      "gcn/main.py:2",
+      "imagenet/main.py:5",
+      "language_translation/main.py:1",
+      "legacy/snli/train.py:2",
+      "word_language_model/main.py:3"
+    ],
+    "tqdm": [
+      "distributed/FSDP/T5_training.py:43",
+      "distributed/FSDP/utils/train_utils.py:5",
+      "language_translation/main.py:7"
+    ],
+    "datetime": [
+      "distributed/FSDP/T5_training.py:44",
+      "distributed/FSDP/model_checkpointing/checkpoint_handler.py:2",
+      "distributed/FSDP/utils/train_utils.py:4",
+      "distributed/rpc/batch/parameter_server.py:3",
+      "language_translation/main.py:4"
+    ],
+    "dataclasses": [
+      "distributed/FSDP/configs/fsdp.py:1",
+      "distributed/FSDP/configs/training.py:1",
+      "distributed/FSDP2/model.py:1",
+      "distributed/minGPT-ddp/mingpt/char_dataset.py:4",
+      "distributed/minGPT-ddp/mingpt/model.py:6",
+      "distributed/minGPT-ddp/mingpt/trainer.py:6",
+      "distributed/tensor_parallelism/llama2_model.py:4"
+    ],
+    "glob": [
+      "distributed/FSDP/summarization_dataset.py:2",
+      "legacy/snli/train.py:3"
+    ],
+    "json": [
+      "distributed/FSDP/summarization_dataset.py:4"
+    ],
+    "logging": [
+      "distributed/FSDP/summarization_dataset.py:6",
+      "distributed/tensor_parallelism/log_utils.py:1",
+      "language_translation/main.py:3"
+    ],
+    "re": [
+      "distributed/FSDP/summarization_dataset.py:8",
+      "fast_neural_style/neural_style/neural_style.py:5"
+    ],
+    "itertools": [
+      "distributed/FSDP/summarization_dataset.py:9",
+      "distributed/rpc/rl/main.py:5",
+      "regression/main.py:3",
+      "reinforcement_learning/actor_critic.py:4",
+      "reinforcement_learning/reinforce.py:4"
+    ],
+    "string": [
+      "distributed/FSDP/summarization_dataset.py:10"
+    ],
+    "pandas": [
+      "distributed/FSDP/summarization_dataset.py:12"
+    ],
+    "numpy": [
+      "distributed/FSDP/summarization_dataset.py:13",
+      "distributed/rpc/rl/main.py:3",
+      "fast_neural_style/neural_style/neural_style.py:7",
+      "gat/main.py:5",
+      "gcn/main.py:5",
+      "reinforcement_learning/actor_critic.py:3",
+      "reinforcement_learning/reinforce.py:3",
+      "siamese_network/main.py:3",
+      "super_resolution/super_resolve.py:8",
+      "time_sequence_prediction/generate_sine_wave.py:1",
+      "time_sequence_prediction/train.py:6"
+    ],
+    "pkg_resources": [
+      "distributed/FSDP/utils/environment.py:12"
+    ],
+    "checkpoint": [
+      "distributed/FSDP2/example.py:5"
+    ],
+    "model": [
+      "distributed/FSDP2/example.py:6",
+      "distributed/FSDP2/utils.py:2",
+      "distributed/minGPT-ddp/mingpt/main.py:6",
+      "legacy/snli/train.py:12",
+      "super_resolution/main.py:9",
+      "super_resolution/super_resolve.py:6",
+      "word_language_model/generate.py:11",
+      "word_language_model/main.py:11"
+    ],
+    "datautils": [
+      "distributed/ddp-tutorial-series/multigpu.py:4",
+      "distributed/ddp-tutorial-series/multigpu_torchrun.py:4",
+      "distributed/ddp-tutorial-series/multinode.py:4",
+      "distributed/ddp-tutorial-series/single_gpu.py:4"
+    ],
+    "tempfile": [
+      "distributed/ddp/example.py:4"
+    ],
+    "fsspec": [
+      "distributed/minGPT-ddp/mingpt/char_dataset.py:3",
+      "distributed/minGPT-ddp/mingpt/trainer.py:18"
+    ],
+    "trainer": [
+      "distributed/minGPT-ddp/mingpt/main.py:7"
+    ],
+    "char_dataset": [
+      "distributed/minGPT-ddp/mingpt/main.py:8"
+    ],
+    "omegaconf": [
+      "distributed/minGPT-ddp/mingpt/main.py:9"
+    ],
+    "hydra": [
+      "distributed/minGPT-ddp/mingpt/main.py:10"
+    ],
+    "math": [
+      "distributed/minGPT-ddp/mingpt/model.py:7",
+      "language_translation/src/model.py:1",
+      "super_resolution/main.py:3",
+      "word_language_model/main.py:4",
+      "word_language_model/model.py:1"
+    ],
+    "collections": [
+      "distributed/minGPT-ddp/mingpt/trainer.py:7",
+      "fast_neural_style/neural_style/vgg.py:1",
+      "reinforcement_learning/actor_critic.py:5",
+      "reinforcement_learning/reinforce.py:5"
+    ],
+    "boto3": [
+      "distributed/minGPT-ddp/mingpt/trainer.py:16"
+    ],
+    "io": [
+      "distributed/minGPT-ddp/mingpt/trainer.py:19",
+      "word_language_model/data.py:2"
+    ],
+    "threading": [
+      "distributed/rpc/batch/parameter_server.py:2",
+      "distributed/rpc/batch/reinforce.py:4",
+      "distributed/rpc/parameter_server/rpc_parameter_server.py:3",
+      "distributed/rpc/pipeline/main.py:2"
+    ],
+    "warnings": [
+      "distributed/rpc/batch/parameter_server.py:4",
+      "distributed/rpc/batch/reinforce.py:6",
+      "distributed/rpc/pipeline/main.py:4",
+      "imagenet/main.py:6"
+    ],
+    "gymnasium": [
+      "distributed/rpc/batch/reinforce.py:2",
+      "distributed/rpc/rl/main.py:2",
+      "reinforcement_learning/actor_critic.py:2",
+      "reinforcement_learning/reinforce.py:2"
+    ],
+    "rnn": [
+      "distributed/rpc/rnn/main.py:10"
+    ],
+    "log_utils": [
+      "distributed/tensor_parallelism/fsdp_tp_example.py:39",
+      "distributed/tensor_parallelism/sequence_parallel_example.py:34",
+      "distributed/tensor_parallelism/tensor_parallel_example.py:45"
+    ],
+    "llama2_model": [
+      "distributed/tensor_parallelism/fsdp_tp_example.py:49"
+    ],
+    "pytorch_sphinx_theme": [
+      "docs/source/conf.py:23"
+    ],
+    "zipfile": [
+      "fast_neural_style/download_saved_models.py:2"
+    ],
+    "transformer_net": [
+      "fast_neural_style/neural_style/neural_style.py:16"
+    ],
+    "vgg": [
+      "fast_neural_style/neural_style/neural_style.py:17"
+    ],
+    "onnxruntime": [
+      "fast_neural_style/neural_style/neural_style.py:173"
+    ],
+    "PIL": [
+      "fast_neural_style/neural_style/utils.py:2",
+      "super_resolution/dataset.py:5",
+      "super_resolution/super_resolve.py:4"
+    ],
+    "operator": [
+      "fx/native_interpreter/use_interpreter.py:3",
+      "fx/replace_op.py:3"
+    ],
+    "enum": [
+      "fx/wrap_output_dynamically.py:2",
+      "imagenet/main.py:7"
+    ],
+    "requests": [
+      "gat/main.py:3",
+      "gcn/main.py:3"
+    ],
+    "tarfile": [
+      "gat/main.py:4",
+      "gcn/main.py:4",
+      "super_resolution/data.py:4"
+    ],
+    "shutil": [
+      "imagenet/main.py:4"
+    ],
+    "src": [
+      "language_translation/main.py:9",
+      "language_translation/main.py:10"
+    ],
+    "torchtext": [
+      "language_translation/src/data.py:4",
+      "language_translation/src/data.py:5",
+      "language_translation/src/data.py:6",
+      "legacy/snli/train.py:9",
+      "legacy/snli/train.py:10"
+    ],
+    "util": [
+      "legacy/snli/train.py:13"
+    ],
+    "errno": [
+      "legacy/snli/util.py:8"
+    ],
+    "train": [
+      "mnist_hogwild/main.py:10"
+    ],
+    "copy": [
+      "siamese_network/main.py:2"
+    ],
+    "six": [
+      "super_resolution/data.py:3"
+    ],
+    "dataset": [
+      "super_resolution/data.py:7"
+    ],
+    "data": [
+      "super_resolution/main.py:10",
+      "word_language_model/generate.py:10",
+      "word_language_model/main.py:10"
+    ]
+  },
+  "table": [
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "__future__",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "argparse",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "boto3",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "char_dataset",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "checkpoint",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "collections",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "configs",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "copy",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "data",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "dataclasses",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "dataset",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "datautils",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "datetime",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "enum",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "errno",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "fsspec",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "functools",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "glob",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "gymnasium",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "gzip",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "hydra",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "io",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "itertools",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "json",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "llama2_model",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "log_utils",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "logging",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "math",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "matplotlib",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "model",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "model_checkpointing",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "nlp",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "numpy",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "omegaconf",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "onnxruntime",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "operator",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "os",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "pandas",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "pathlib",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "PIL",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "pkg_resources",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "policies",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "pytorch_sphinx_theme",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "random",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "re",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "requests",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "rnn",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "shutil",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "six",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "src",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "string",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "summarization_dataset",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "sys",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "tarfile",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "tempfile",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "threading",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "time",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "torch",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "torchtext",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "torchvision",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "tqdm",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "train",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "trainer",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "transformer_net",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "transformers",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "typing",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "urllib",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "urllib2",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "util",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "utils",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "vgg",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "warnings",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "zipfile",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ]
+  ],
+  "fixes": [
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    }
+  ],
+  "torch": {
+    "message": "Torch: install torch using uv\u2019s automatic hardware selection.",
+    "action": "install",
+    "spec": "torch",
+    "backend": "auto"
+  },
+  "seconds": 0.1265657409967389,
+  "commit": "acc295dc7b90714f1bf47f06004fc19a7fe235c4"
+}

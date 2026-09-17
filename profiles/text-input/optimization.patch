@@ -1,0 +1,916 @@
+diff --git a/src/lsd/gl_gui/fim.py b/src/lsd/gl_gui/fim.py
+index dfa3348a..b0e3a622 100644
+--- a/src/lsd/gl_gui/fim.py
++++ b/src/lsd/gl_gui/fim.py
+@@ -953,7 +953,6 @@ class FimState:
+         if t is not None:
+             t.cancel()
+         if delay <= 0:
+-            self._refresh_context(view, now)
+             self._submit(text, cursor, view, gen, continuation)
+             return
+         self._armed = (gen, now + delay)
+@@ -982,7 +981,6 @@ class FimState:
+         self._armed = None
+         if gen != self._gen:
+             return False
+-        self._refresh_context(view, now)
+         self._submit(text, cursor, view, gen, False)
+         return True
+ 
+@@ -1004,6 +1002,7 @@ class FimState:
+         if fn is None:
+             self.error = f"no provider for profile {self.profile_name!r}"
+             return
++        self._refresh_context(view, time.monotonic())
+         head = view.file_head if view is not None else ""
+         tail = view.file_tail if view is not None else ""
+         with self._lock:
+@@ -1230,4 +1229,4 @@ def assemble_context(view: EditorView, budget_tokens=None) -> FimContext:
+         spent += used
+     kept.sort(key=lambda it: (TIERS.index(it.tier) if it.tier in TIERS else 9,
+                               order_of.get(it.kind, 100), repr(it.key)))
+-    return FimContext(kept, context_key_for(view))
+\ No newline at end of file
++    return FimContext(kept, context_key_for(view))
+diff --git a/src/lsd/gl_gui/model/core_model/draw_state.py b/src/lsd/gl_gui/model/core_model/draw_state.py
+index 027edf57..0bc0f99b 100644
+--- a/src/lsd/gl_gui/model/core_model/draw_state.py
++++ b/src/lsd/gl_gui/model/core_model/draw_state.py
+@@ -162,6 +162,9 @@ class TextEditorState(DictConversion):
+     def __init__(self):
+         super().__init__()
+         self._completion_explicit = False
++        self._token_matches = None
++        self._completion_buffer = None
++        self._completion_anchor = None
+         self._signature_dismissed = None
+         # {def_name: True} — whether that function's parameter window is
+         # visible. The def widget reads/writes this bool DIRECTLY each
+diff --git a/src/lsd/gl_gui/view/core_conversion/code_checks.py b/src/lsd/gl_gui/view/core_conversion/code_checks.py
+index a24ed61b..46a444dd 100644
+--- a/src/lsd/gl_gui/view/core_conversion/code_checks.py
++++ b/src/lsd/gl_gui/view/core_conversion/code_checks.py
+@@ -1657,7 +1657,7 @@ def _tokenize_lenient(slice_text):
+     return out
+ 
+ 
+-def _scan_slice(slice_text, line_offset, bound, path):
++def _scan_slice(slice_text, line_offset, bound, path, cached_only=False):
+     """{absolute 1-based line: [import stmts]} for one text slice — the
+     tokenize-based candidate pass shared by the full and incremental scans.
+     Base identifiers only (not attributes after a dot, not assignment
+@@ -1697,10 +1697,20 @@ def _scan_slice(slice_text, line_offset, bound, path):
+                 if not file_binds_ready:
+                     # Lazy: most slices resolve every name via builtins/bound
+                     # and never need the (cached/throttled) file parse.
+-                    file_binds = _module_text_binds(path) if path else None
++                    if cached_only:
++                        # The render-thread incremental path must not parse the
++                        # module or discover imports. A miss belongs to relint.
++                        hit = _file_binds_cache.get(str(path)) if path else None
++                        if path and hit is None:
++                            return None
++                        file_binds = hit[2] if hit else None
++                    else:
++                        file_binds = _module_text_binds(path) if path else None
+                     file_binds_ready = True
+                 if not (file_binds is not None and s in file_binds):
+                     try:
++                        if cached_only and s not in _import_suggestion_cache:
++                            return None
+                         stmts = _suggest_import(s) or None
+                     except Exception:
+                         stmts = None
+@@ -1759,7 +1769,7 @@ def collect_import_suggestions(text, path=None, full=False,
+         old = st["text"]
+         if old is text or old == text:
+             return st["result"]
+-        inc = _incremental_scan(st, old, text, path)
++        inc = _incremental_scan(st, old, text, path, cached_only=incremental_only)
+         if inc is not None:
+             if key:
+                 _inc_scan_state[key] = inc
+@@ -1773,7 +1783,7 @@ def collect_import_suggestions(text, path=None, full=False,
+     return result
+ 
+ 
+-def _incremental_scan(st, old, text, path):
++def _incremental_scan(st, old, text, path, cached_only=False):
+     """The O(changed region) path: new state dict, or None → run a full scan.
+ 
+     The changed region is the line span between the common prefix and common
+@@ -1826,7 +1836,9 @@ def _incremental_scan(st, old, text, path):
+         region_bound = _buffer_bound_names(slice_text)
+         if region_bound - bound:
+             bound = bound | region_bound
+-        findings = _scan_slice(slice_text, pre_lines, bound, path)
++        findings = _scan_slice(slice_text, pre_lines, bound, path, cached_only=cached_only)
++        if findings is None:
++            return None
+         for ln, stmts in findings.items():
+             result[ln] = stmts
+     return {"text": text, "result": result, "bound": bound}
+diff --git a/src/lsd/gl_gui/view/core_conversion/new_converters.py b/src/lsd/gl_gui/view/core_conversion/new_converters.py
+index b43c9ef4..c9cdb60f 100644
+--- a/src/lsd/gl_gui/view/core_conversion/new_converters.py
++++ b/src/lsd/gl_gui/view/core_conversion/new_converters.py
+@@ -1003,14 +1003,17 @@ def _region_compile_check(old, new, max_chars):
+     a = old.split("\n")
+     b = new.split("\n")
+     na, nb = len(a), len(b)
+-    pre = 0
+-    m = min(na, nb)
+-    while pre < m and a[pre] == b[pre]:
+-        pre += 1
+-    if pre == na and pre == nb:
++    from src.lsd.gl_gui.view.core_views.text_editor import _text_splice
++    edit = _text_splice(old, new)
++    if edit is None:
+         return "skip", None, None
+-    suf = 0
+-    while suf < (na - pre) and suf < (nb - pre) and a[na - 1 - suf] == b[nb - 1 - suf]:
++    pre, end_line = edit[4], edit[5]
++    # Character boundaries can sit on an unchanged empty line. Refine only
++    # those boundary rows; the common prefix/suffix already proved the rest.
++    while pre < min(na, nb) and a[pre] == b[pre]:
++        pre += 1
++    suf = max(0, min(na - end_line - 1, na - pre, nb - pre))
++    while suf < min(na - pre, nb - pre) and a[na - 1 - suf] == b[nb - 1 - suf]:
+         suf += 1
+     lo, hi = pre, nb - suf
+     # Expand to enclosing top-level block(s): up to the nearest column-0 line
+@@ -1709,7 +1712,7 @@ def convert_in_and_out(input_value, draw_state, view_func=None, chain_in=None, c
+         # dedented to parse, so chain_out must restore it. Computed here (not inside
+         # the chain) because only the live buffer knows the indent; "" for top-level
+         # source, so a no-op for the class/function/module codecs.
+-        indent = _common_indent(input_value)
++        indent = _common_indent(input_value) if co_start else ""
+         co_changed, co_payload = run_in_background(
+             _run_chain_out,
+             child_kwargs={"input_value": converted_edit if co_start else None,
+@@ -1896,7 +1899,7 @@ def convert_in_and_out_value(input_value, draw_state, view_func=None, chain_in=N
+     # ── (identical) chain_out in background ───────────────────────────────────────
+     if chain_out:
+         co_start = converted_edit is not UNSET
+-        indent = _common_indent(input_value)
++        indent = _common_indent(input_value) if co_start else ""
+         # The edit that produced converted_edit is THIS frame's (the view_func reported it
+         # now, same frame bubbling stamped the held value), so its generation is the
+         # current frame. Threaded through the worker snapshot so the produced string is
+diff --git a/src/lsd/gl_gui/view/core_conversion/symbol_roster.py b/src/lsd/gl_gui/view/core_conversion/symbol_roster.py
+index fbd9c31b..66a71f5e 100644
+--- a/src/lsd/gl_gui/view/core_conversion/symbol_roster.py
++++ b/src/lsd/gl_gui/view/core_conversion/symbol_roster.py
+@@ -212,7 +212,12 @@ def tint_line_index(lines):
+     return [i for i, l in enumerate(lines) if "tint" in l and _TINT_ASSIGN_RE.search(l)]
+ 
+ 
+-def extract_table(path, text, key=None, with_tints=True):
++# Identity-keyed scan state pins its table; bounded separately from the
++# published tables so this optimization adds no slots to live FileTables.
++_EXTRACT_SCANS = {}
++
++
++def extract_table(path, text, key=None, with_tints=True, previous=None):
+     """Build a FileTable from `text` in ONE indent-stack pass (same shape as
+     text_index._extract_symbols, plus qualnames, assignments and imports).
+     Defs nest by indent: a def inside a def is an entry ("outer.inner" — a
+@@ -226,7 +231,31 @@ def extract_table(path, text, key=None, with_tints=True):
+     imports, stars = {}, []
+     pending_import = None   # joined multi-line import statement being collected
+     paren_depth = 0
+-    for i, ln in enumerate(lines):
++    start = 0
++    checkpoints = []
++    scan = _EXTRACT_SCANS.get(id(previous)) if with_tints else None
++    if scan is not None and scan[0] is previous:
++        old_text = scan[1]
++        # The caller already found a generation/identity miss. Locate the
++        # edit to resume a scan; this comparison is not cache invalidation.
++        prefix = 0
++        limit = min(len(old_text), len(text))
++        for step in (65536, 4096, 256, 16, 1):
++            while prefix + step <= limit and old_text[prefix:prefix + step] == text[prefix:prefix + step]:
++                prefix += step
++        # Tint lookup can look ahead 40 lines. Start earlier so edits to
++        # a class-body tint also refresh the class's preceding entry.
++        before = max(0, text.count('\n', 0, prefix) - 64)
++        for checkpoint in scan[2]:
++            if checkpoint[0] > before:
++                break
++            checkpoints.append(checkpoint)
++        if checkpoints:
++            start, count, saved_imports, saved_stars = checkpoints.pop()
++            entries = list(previous.entries[:count])
++            imports, stars = dict(saved_imports), list(saved_stars)
++    for i in range(start, len(lines)):
++        ln = lines[i]
+         s = ln.strip()
+         if pending_import is not None:
+             pending_import += " " + s.rstrip("\\").strip()
+@@ -240,7 +269,9 @@ def extract_table(path, text, key=None, with_tints=True):
+         indent = len(ln) - len(ln.lstrip())
+         while open_ix and entries[open_ix[-1]].indent >= indent:
+             entries[open_ix.pop()].end = i          # 1-based inclusive: i+1 is outside
+-        m = _DEF_RE.match(ln)
++        if with_tints and indent == 0 and not open_ix:
++            checkpoints.append((i, len(entries), dict(imports), tuple(stars)))
++        m = _DEF_RE.match(ln) if s.startswith(('def', 'class', 'async')) else None
+         if m is not None:
+             name = m.group(3)
+             parent = entries[open_ix[-1]] if open_ix else None
+@@ -260,11 +291,13 @@ def extract_table(path, text, key=None, with_tints=True):
+             else:
+                 _parse_import(s, path, imports, stars)
+             continue
+-        m = _ASSIGN_RE.match(ln)
++        # Local assignments never enter the roster. Avoid running the
++        # assignment regexp over every expression in a large function.
++        if open_ix and any(entries[ix].kind == "def" for ix in open_ix):
++            continue
++        m = _ASSIGN_RE.match(ln) if '=' in s else None
+         if m is not None:
+             # Module level or directly in a class body (no def on the stack).
+-            if open_ix and any(entries[ix].kind == "def" for ix in open_ix):
+-                continue
+             parent = entries[open_ix[-1]] if open_ix else None
+             name = m.group(2)
+             qn = f"{parent.qualname}.{name}" if parent is not None else name
+@@ -283,7 +316,12 @@ def extract_table(path, text, key=None, with_tints=True):
+         last -= 1
+     for ix in open_ix:
+         entries[ix].end = last
+-    return FileTable(path, key, entries, imports, stars, len(lines))
++    table = FileTable(path, key, entries, imports, stars, len(lines))
++    if with_tints:
++        if len(_EXTRACT_SCANS) >= 64:
++            del _EXTRACT_SCANS[next(iter(_EXTRACT_SCANS))]
++        _EXTRACT_SCANS[id(table)] = (table, text, checkpoints)
++    return table
+ 
+ 
+ def _parse_import(stmt, path, imports, stars):
+@@ -686,7 +724,8 @@ def table_for(path, live_text=None, line_offset=0):
+                 and held[0].key == ("live", frozenset(parts))):
+             return held[0]
+         if line_offset == 0:
+-            whole = extract_table(p, live_text, lk)
++            previous = next((part[2] for part in parts.values() if part[0] == 0), None)
++            whole = extract_table(p, live_text, lk, previous=previous)
+             part = (0, whole.nlines, whole, live_text)
+             # One whole-file buffer at a time (a replaced editor buffer).
+             for k in [k for k in parts if k[2] == 0]:
+@@ -752,7 +791,7 @@ def _pending_table(st, p):
+     key = _file_key(p)
+     if ent is None or ent.key != key:
+         text = _current_text(p)
+-        tbl = extract_table(p, text or "", key)
++        tbl = extract_table(p, text or "", key, previous=ent)
+         _install(st, p, tbl)
+         ent = tbl
+     return ent
+diff --git a/src/lsd/gl_gui/view/core_views/decoration/invalidation_decoration.py b/src/lsd/gl_gui/view/core_views/decoration/invalidation_decoration.py
+index d24b5edd..57ca7735 100644
+--- a/src/lsd/gl_gui/view/core_views/decoration/invalidation_decoration.py
++++ b/src/lsd/gl_gui/view/core_views/decoration/invalidation_decoration.py
+@@ -83,6 +83,13 @@ def live(cls):
+                 Core.melty.cache.invalidate_all()
+                 return
+ 
++        # Private caches and excluded bookkeeping never invalidate a view.
++        # Comparing their values first can walk whole text buffers, line
++        # maps and syntax trees on every frame for a result we discard.
++        if (initializing or not visible or name.startswith('_')
++                or name == "driver" or melty.frame_count <= 2):
++            return
++
+         # Call invalidate() if:
+         # - not currently initializing
+         # - attribute is not excluded
+@@ -142,4 +149,4 @@ def live(cls):
+     cls.__setattr__ = new_setattr
+     cls.__init__ = new_init
+ 
+-    return cls
+\ No newline at end of file
++    return cls
+diff --git a/src/lsd/gl_gui/view/core_views/text_editor.py b/src/lsd/gl_gui/view/core_views/text_editor.py
+index 2f58bf0c..f05cd7bd 100644
+--- a/src/lsd/gl_gui/view/core_views/text_editor.py
++++ b/src/lsd/gl_gui/view/core_views/text_editor.py
+@@ -3899,9 +3899,17 @@ def _parse_col_shift(buffer_text, parse_source):
+     0 when the sources agree (whole-file editors)."""
+     if not parse_source or parse_source is buffer_text:
+         return 0
+-    for a, b in zip(buffer_text.split('\n', 50), parse_source.split('\n', 50)):
++    buffer_start = parse_start = 0
++    for index in range(51):
++        buffer_end = buffer_text.find('\n', buffer_start) if index < 50 else -1
++        parse_end = parse_source.find('\n', parse_start) if index < 50 else -1
++        a = buffer_text[buffer_start:len(buffer_text) if buffer_end < 0 else buffer_end]
++        b = parse_source[parse_start:len(parse_source) if parse_end < 0 else parse_end]
+         if a.strip() and b.strip():
+             return (len(a) - len(a.lstrip())) - (len(b) - len(b.lstrip()))
++        if buffer_end < 0 or parse_end < 0:
++            break
++        buffer_start, parse_start = buffer_end + 1, parse_end + 1
+     return 0
+ 
+ 
+@@ -4287,7 +4295,22 @@ def _typing_hot():
+     return bool(last) and time.monotonic() - last < _TINT_INPUT_QUIET_S
+ 
+ 
++_TEXT_SPLICE_CACHE = {}
++
++
+ def _text_splice(old_text, new_text):
++    key = (id(old_text), id(new_text))
++    cached = _TEXT_SPLICE_CACHE.get(key)
++    if cached is not None and cached[0] is old_text and cached[1] is new_text:
++        return cached[2]
++    result = _compute_text_splice(old_text, new_text)
++    if len(_TEXT_SPLICE_CACHE) >= 16:
++        del _TEXT_SPLICE_CACHE[next(iter(_TEXT_SPLICE_CACHE))]
++    _TEXT_SPLICE_CACHE[key] = (old_text, new_text, result)
++    return result
++
++
++def _compute_text_splice(old_text, new_text):
+     """The single covering splice turning old_text into new_text:
+     (p, old_end, d_chars, d_lines, edit_line, old_end_line) — common prefix
+     ends at p, common suffix begins at old_end in OLD coords; or None when
+@@ -7328,26 +7351,12 @@ def _line_open_full_ref(text):
+ 
+ def _diff_span(a, b):
+     """(common_prefix_len, a_suffix_start, b_suffix_start) for two strings.
+-    Binary search on slice equality so the comparisons run at C speed — a
+-    mid-buffer single-char edit costs O(log n) compares, not the O(n) of a
+-    Python char loop (the difference between ~6ms and ~0.1ms on a big file)."""
+-    n = min(len(a), len(b))
+-    plo, phi = 0, n
+-    while plo < phi:                      # longest common prefix
+-        mid = (plo + phi + 1) // 2
+-        if a[:mid] == b[:mid]:
+-            plo = mid
+-        else:
+-            phi = mid - 1
+-    lo = plo
+-    slo, shi = 0, n - lo                  # longest common suffix (no prefix overlap)
+-    while slo < shi:
+-        mid = (slo + shi + 1) // 2
+-        if a[len(a) - mid:] == b[len(b) - mid:]:
+-            slo = mid
+-        else:
+-            shi = mid - 1
+-    return lo, len(a) - slo, len(b) - slo
++    Share the identity-keyed edit calculation with the other incremental
++    consumers instead of locating the same change repeatedly."""
++    splice = _text_splice(a, b)
++    if splice is None:
++        return len(a), len(a), len(b)
++    return splice[0], splice[1], splice[1] + splice[2]
+ 
+ 
+ def _update_line_open(prev_text, prev_offs, prev_open, text):
+@@ -7363,7 +7372,14 @@ def _update_line_open(prev_text, prev_offs, prev_open, text):
+     lo, _old_hi, new_hi = _diff_span(prev_text, text)
+     delta = nlen - olen
+ 
+-    new_offs = _line_offsets(text)
++    first = bisect.bisect_right(prev_offs, lo)
++    last = bisect.bisect_right(prev_offs, _old_hi)
++    inserted = [lo + match.end() for match in re.finditer('\n', text[lo:new_hi])]
++    new_offs = (prev_offs[:first] + inserted +
++                [offset + delta for offset in prev_offs[last:]])
++    if id(text) not in _LINE_STARTS_CACHE and len(_LINE_STARTS_CACHE) >= 16:
++        del _LINE_STARTS_CACHE[next(iter(_LINE_STARTS_CACHE))]
++    _LINE_STARTS_CACHE[id(text)] = (text, new_offs)
+     cf = bisect.bisect_right(new_offs, lo) - 1      # first changed line (new coords)
+     # line_open is valid through line cf (depends only on unchanged earlier
+     # lines). Back up to the nearest clean line at/before cf to start the re-lex.
+@@ -7371,14 +7387,14 @@ def _update_line_open(prev_text, prev_offs, prev_open, text):
+     while sl > 0 and prev_open[sl] is not None:
+         sl -= 1
+     start_off = new_offs[sl]
+-    old_clean = {prev_offs[k]: k for k in range(len(prev_offs)) if prev_open[k] is None}
+ 
+     tail = [None]                # line_open for line sl (clean by construction)
+     stop_old = None
+     for off, state in _iter_newline_states(text, start_off):
+         if state is None and off >= new_hi:
+-            oc = old_clean.get(off - delta)   # same clean line in the old tail?
+-            if oc is not None:
++            oc = bisect.bisect_left(prev_offs, off - delta)
++            if (oc < len(prev_offs) and prev_offs[oc] == off - delta
++                    and prev_open[oc] is None):
+                 stop_old = oc                 # reconverged → reuse old suffix
+                 break
+         tail.append(state)
+@@ -7541,8 +7557,8 @@ def _line_starts(text):
+     while i != -1:
+         ap(i + 1)
+         i = text.find('\n', i + 1)
+-    if len(_LINE_STARTS_CACHE) > 8:
+-        _LINE_STARTS_CACHE.clear()       # bounded: hold a few open buffers, no leak
++    if id(text) not in _LINE_STARTS_CACHE and len(_LINE_STARTS_CACHE) >= 16:
++        del _LINE_STARTS_CACHE[next(iter(_LINE_STARTS_CACHE))]
+     _LINE_STARTS_CACHE[id(text)] = (text, starts)
+     return starts
+ 
+@@ -8611,7 +8627,7 @@ def _ac_import_rows(ds, cands, prefix, jump_to=None, explicit=False):
+         return cands
+     try:
+         from src.lsd.gl_gui.view.core_conversion.code_checks import (
+-            project_importables, _module_text_binds)
++            project_importables)
+         rows, stmts = project_importables()
+     except Exception:
+         return cands
+@@ -8624,7 +8640,10 @@ def _ac_import_rows(ds, cands, prefix, jump_to=None, explicit=False):
+     path = getattr(jump_to, 'path', None)
+     if path is not None:
+         try:
+-            real |= _module_text_binds(path) or set()
++            from src.lsd.gl_gui.view.core_conversion.symbol_roster import table_for
++            table = table_for(path)
++            real.update(table.imports)
++            real.update(entry.name for entry in table.entries if entry.parent is None)
+         except Exception:
+             pass
+     picked = {}
+@@ -8718,6 +8737,8 @@ _FOLD_CLOSE_RE = {d: re.compile(r"\\.|" + re.escape(d))
+ 
+ def _guide_code_part(stripped):
+     """`stripped` minus a trailing `# comment` (quotes honoured), rstripped."""
++    if '#' not in stripped:
++        return stripped.rstrip()
+     quote = None
+     i, n = 0, len(stripped)
+     while i < n:
+@@ -8760,6 +8781,35 @@ def _scope_guide_tints(segments, blocks):
+     return tints
+ 
+ 
++def _same_guide_shape(old, text):
++    """Whether an inline edit leaves the guide scanner's inputs unchanged."""
++    edit = _text_splice(old, text)
++    if edit is None:
++        return True
++    start, end, delta, line_delta, line, end_line = edit
++    if line_delta or line != end_line:
++        return False
++    def shape(source, end):
++        begin = source.rfind('\n', 0, start) + 1
++        stop = source.find('\n', end)
++        row = source[begin:len(source) if stop < 0 else stop]
++        stripped = row.lstrip()
++        return (bool(stripped), len(row) - len(stripped),
++                not stripped.startswith('#') and _guide_code_part(stripped).endswith(':'))
++    return shape(old, end) == shape(text, end + delta)
++
++
++def _update_line_widths(old, text, widths):
++    edit = _text_splice(old, text)
++    if edit is None:
++        return widths
++    start, end, delta, line_delta, line, end_line = edit
++    begin = text.rfind('\n', 0, start) + 1
++    stop = text.find('\n', end + delta)
++    rows = text[begin:len(text) if stop < 0 else stop].split('\n')
++    return widths[:line] + [len(row.rstrip()) for row in rows] + widths[end_line + 1:]
++
++
+ def _scope_guide_segments(text):
+     """Indent-guide segments for `text`: (head_line, end_line, column) per
+     indented BLOCK — `head_line` is a code line ending in ':' (a trailing
+@@ -9369,6 +9419,67 @@ def _fold_headless_set(key_of, ranges):
+                      if key_of.get(r, ('',))[0] == 'comment')
+ 
+ 
++class _FoldLineNumbers:
++    """Project only the gutter rows requested by the visible band."""
++    def __init__(self, mapping, numbers=None, offset=0):
++        self.mapping = mapping
++        self.numbers = numbers
++        self.offset = offset
++
++    def __len__(self):
++        return len(self.mapping)
++
++    def __getitem__(self, index):
++        line = self.mapping[index]
++        if self.numbers is None:
++            return self.offset + line + 1
++        return self.numbers[line] if line < len(self.numbers) else None
++
++
++def _fold_update_inline(old_text, text, built):
++    """Reuse a fold layout for an edit confined to one visible, non-header line.
++
++    Hidden text and line mappings stay identical. Structural edits, seam
++    deletions and header edits use the full builder instead.
++    """
++    splice = _text_splice(old_text, text)
++    if splice is None:
++        return built
++    start, end, delta, line_delta, line, end_line = splice
++    if line_delta or line != end_line or '\n' in text[start:end + delta]:
++        return None
++    display, segments, folds, mapping = built
++    if any(rng[0] == line for rng, *_ in folds):
++        return None
++    hidden_before = 0
++    for anchor, hidden, rng, headless in segments:
++        full_anchor = anchor + hidden_before
++        if start < full_anchor + len(hidden) and end > full_anchor:
++            return None
++        if start == end and full_anchor < start <= full_anchor + len(hidden):
++            return None
++        if full_anchor < start:
++            hidden_before += len(hidden)
++        else:
++            break
++    display_start, display_end = start - hidden_before, end - hidden_before
++    display_line = display.count('\n', 0, display_start)
++    new_display = display[:display_start] + text[start:end + delta] + display[display_end:]
++    def shifted(offset):
++        return offset + delta if offset >= display_end else offset
++    new_segments = [(shifted(anchor), hidden, rng, headless)
++                    for anchor, hidden, rng, headless in segments]
++    new_folds = []
++    for rng, row, collapsed, count, width, anchor, hidden_length in folds:
++        new_anchor = shifted(anchor)
++        if not collapsed:
++            hidden_length = shifted(anchor + hidden_length) - new_anchor
++        new_folds.append((rng, row, collapsed, count,
++                          width + delta if row == display_line else width,
++                          new_anchor, hidden_length))
++    return new_display, new_segments, new_folds, mapping
++
++
+ def _fold_build(text, ranges, collapsed, headless=frozenset()):
+     """Fold layout for draw_text's collapsible line ranges.
+ 
+@@ -10522,15 +10633,19 @@ def draw_text(input_value: str, height=None,
+             _fhc = (_frt[1], _fh_tog,
+                     _fold_headless_set(_fold_key_of, _frt[1]))
+             ds._fold_headless_cache = _fhc
+-        _fk = (_frt[1] + tuple(_diff_rngs), frozenset(_fold_union_col),
++        fold_layout_key = (_frt[1] + tuple(_diff_rngs), frozenset(_fold_union_col),
+                _fhc[2])
+         _fc = getattr(ds, '_fold_cache', None)
+-        if _fc is not None and _fc[0] is input_value and _fc[1] == _fk:
++        _pf_info['fold_text_hit'] = _fc is not None and _fc[0] is input_value
++        if _fc is not None and _fc[0] is input_value and _fc[1] == fold_layout_key:
+             _fold_built = _fc[2]
+         else:
+-            _fold_built = _fold_build(input_value, _fk[0], _fold_union_col,
+-                                      _fk[2])
+-            ds._fold_cache = (input_value, _fk, _fold_built)
++            _fold_built = (_fold_update_inline(_fc[0], input_value, _fc[2])
++                           if _fc is not None and _fc[1] == fold_layout_key else None)
++            if _fold_built is None:
++                _fold_built = _fold_build(input_value, fold_layout_key[0], _fold_union_col,
++                                          fold_layout_key[2])
++            ds._fold_cache = (input_value, fold_layout_key, _fold_built)
+         _disp, _fold_segments, _fold_folds, _fold_d2b = _fold_built
+         # Caret keeps its glyph across a toggle: offsets up to the toggled
+         # fold's anchor are identical in both layouts, so the NEW layout's
+@@ -11205,10 +11320,9 @@ def draw_text(input_value: str, height=None,
+     # hand the gutter explicit per-display-line numbers instead.
+     if _fold_d2b is not None:
+         if line_numbers is not None:
+-            line_numbers = [line_numbers[b] if b < len(line_numbers) else None
+-                            for b in _fold_d2b]
++            line_numbers = _FoldLineNumbers(_fold_d2b, line_numbers)
+         elif jump_to is not None and getattr(jump_to, 'start', None) is not None:
+-            line_numbers = [jump_to.start + b + 1 for b in _fold_d2b]
++            line_numbers = _FoldLineNumbers(_fold_d2b, offset=jump_to.start)
+     show_gutter = (not single_line and not is_search_box
+                    and (line_numbers is not None
+                         or (jump_to is not None
+@@ -12935,9 +13049,28 @@ def draw_text(input_value: str, height=None,
+                 _ac_line = _index_to_line_col(text, ds.text_cursor_pos)[0]
+                 _pool_key = (id(_usage_tree), _ac_line, id(text))
+                 if getattr(ds, '_ac_pool_key', None) != _pool_key:
+-                    _pool_func = _ac_live_context(ds, text, jump_to)[1]
+-                    ds._ac_pool = _completion_pool(_usage_tree, text, _ac_line, _pool_func)
++                    # Extending the current identifier changes the filter,
++                    # not its scope. Keep the pool until another part of the
++                    # buffer changes; pin the buffer to make identity safe.
++                    previous = getattr(text_editor_state, '_completion_buffer', None)
++                    previous_key = getattr(ds, '_ac_pool_key', None)
++                    reuse = False
++                    if (previous is not None and previous_key is not None
++                            and previous_key[:2] == _pool_key[:2]
++                            and getattr(text_editor_state, '_completion_anchor', None) == anchor):
++                        edit = _text_splice(previous, text)
++                        reuse = (edit is None or
++                                 (edit[0] >= anchor and edit[1] + edit[2] <= ds.text_cursor_pos
++                                  and not edit[3]
++                                  and all(c.isalnum() or c == '_'
++                                          for c in previous[edit[0]:edit[1]] +
++                                          text[edit[0]:edit[1] + edit[2]])))
++                    if not reuse:
++                        _pool_func = _ac_live_context(ds, text, jump_to)[1]
++                        ds._ac_pool = _completion_pool(_usage_tree, text, _ac_line, _pool_func)
+                     ds._ac_pool_key = _pool_key
++                    text_editor_state._completion_buffer = text
++                    text_editor_state._completion_anchor = anchor
+                 cands = _filter_completions(ds._ac_pool, prefix,
+                                             users=_ac_users, tints=_ac_tinted,
+                                             keep_exact=getattr(text_editor_state, '_completion_explicit', False))
+@@ -13727,7 +13860,10 @@ def draw_text(input_value: str, height=None,
+         _ll = getattr(ds, "_dt_line_lens", None)
+         if _dt_blocks and (_ll is None
+                            or getattr(ds, "_dt_line_lens_text", None) is not text):
+-            _ll = ds._dt_line_lens = [len(_l.rstrip()) for _l in text.split('\n')]
++            previous = getattr(ds, '_dt_line_lens_text', None)
++            _ll = ds._dt_line_lens = (_update_line_widths(previous, text, _ll)
++                                     if previous is not None and _ll is not None else
++                                     [len(row.rstrip()) for row in text.split('\n')])
+             ds._dt_line_lens_text = text
+         _pf("w:pre_blocks")
+         for _bi, (_b_line, _b_idx, _b_end, _b_tint) in enumerate(_dt_blocks):
+@@ -13952,9 +14088,11 @@ def draw_text(input_value: str, height=None,
+             # whole file — head -1 so it starts on line 0 — and it REPLACES
+             # the column-0 block guides (a root-level def's own guide would
+             # only retrace it).
+-            _sg_memo = ds._scope_guide_memo = (
+-                text, [(-1, text.count('\n'), 0)]
+-                + [_seg for _seg in _scope_guide_segments(text) if _seg[2] > 0])
++            segments = (_sg_memo[1] if _sg_memo is not None
++                        and _same_guide_shape(_sg_memo[0], text) else
++                        [(-1, text.count('\n'), 0)] +
++                        [segment for segment in _scope_guide_segments(text) if segment[2] > 0])
++            _sg_memo = ds._scope_guide_memo = (text, segments)
+         _sg_segments = _sg_memo[1]
+         if _sg_segments:
+             _sg_factors = (Toggles.TextEditor.scope_guide_saturation,
+@@ -14121,8 +14259,14 @@ def draw_text(input_value: str, height=None,
+             _tok = None
+         if _tok is not None:
+             _t_start, _t_end, _t_word = _tok
+-            _ranges = [r for r in _word_match_ranges(text, _t_word)
+-                       if not _pos_in_string_or_comment(text, r[0], _lo_offs, _lo_open)]
++            matches = getattr(text_editor_state, '_token_matches', None)
++            if matches is None or matches[0] is not text or matches[1] != _t_word:
++                _ranges = [r for r in _word_match_ranges(text, _t_word)
++                           if not _pos_in_string_or_comment(text, r[0], _lo_offs, _lo_open)]
++                if text_editor_state is not None:
++                    text_editor_state._token_matches = (text, _t_word, _ranges)
++            else:
++                _ranges = matches[2]
+             # Only when the token recurs (its own occurrence + at least one
+             # other) — so the caret's own occurrence is washed too.
+             if len(_ranges) > 1:
+@@ -14132,8 +14276,8 @@ def draw_text(input_value: str, height=None,
+                     sy = origin_y + _m_line * line_px
+                     ey = sy + line_px
+                   
+-                    # if ey < rect_min_y - 10.0 or sy > rect_max_y + 10.0:
+-                    #     continue
++                    if ey < rect_min_y - 10.0 or sy > rect_max_y + 10.0:
++                        continue
+                         
+                     sx = origin_x + _colx(_ms)
+                     ex = origin_x + _colx(_me)
+@@ -15338,7 +15482,7 @@ def draw_text(input_value: str, height=None,
+         # line via set_marker_open and invalidates this tile so the marker
+         # bodies re-run and create/hide their value windows.
+         _lv_marks = (getattr(ds, "_lv_gutter_markers", None) or {}) if _lv_btn_w else {}
+-        total_lines = text.count('\n') + 1
++        total_lines = len(_line_starts(text))
+         # Visible band only — the old range(total_lines) walked every line of
+         # the file per frame and culled inside the loop; the number/heat/icon
+         # work only ever applies to on-screen lines, so compute the band once
+@@ -15824,7 +15968,7 @@ def draw_text(input_value: str, height=None,
+         draw_list.pop_clip_rect()
+ 
+     if changed:
+-        text_height = (text.count('\n') + 1) * line_px + 2
++        text_height = len(_line_starts(text)) * line_px + 2
+     else:
+         text_height = len(_line_starts(input_value)) * line_px + 2
+ 
+@@ -16260,6 +16404,14 @@ def draw_text(input_value: str, height=None,
+             _full_now, _union_after, _fold_dropped, _fold_moved = \
+                 _fold_reassemble(original_input, text, _fold_segments,
+                                  _fold_union_col)
++            if not _fold_dropped and not _fold_moved:
++                updated = _fold_update_inline(_fold_full, _full_now, _fold_built)
++                if updated is not None:
++                    # The glyph pass just tokenized this exact display string.
++                    # Carry its identity into the next frame, instead of
++                    # reconstructing an equal string and invalidating every
++                    # lexer, width, tint and token-window cache a second time.
++                    ds._fold_cache = (_full_now, fold_layout_key, (text, *updated[1:]))
+             ds._fold_collapsed = {_fold_moved.get(r, r)
+                                   for r in ds._fold_collapsed
+                                   if r not in _fold_dropped}
+diff --git a/tests/test_fold_edit_frames.py b/tests/test_fold_edit_frames.py
+index 53454f3a..c63af4b7 100644
+--- a/tests/test_fold_edit_frames.py
++++ b/tests/test_fold_edit_frames.py
+@@ -14,6 +14,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+ import profile_render_wrapper as H     # noqa: E402  (creates its own imgui ctx)
+ from src.lsd.gl_gui.melty import Melty  # noqa: E402
+ from src.lsd.gl_gui.view.core_views.core_render import RenderFuncs  # noqa: E402
++from src.lsd.gl_gui.view.core_views import text_editor  # noqa: E402,F401
+ 
+ 
+ @pytest.fixture(scope="module")
+@@ -120,3 +121,19 @@ def test_typing_at_collapsed_header_end_keeps_it_collapsed(melty, monkeypatch):
+     ed.frame(hot=False)          # quiet rescan re-keys onto the edited header
+     assert "# second" not in ed.drawn()
+     assert ed.ds._fold_keys == {('comment', '# [tint=(1, 0, 0)]z')}
++
++
++def test_inline_typing_preserves_display_identity_for_next_frame(melty):
++    import glfw
++    ed = _Editor('import a\nimport b\n\nvalue = 1\n', 'fold-inline-cache')
++    ed.frame(); ed.focus(); ed.frame()
++    ed.ds.text_cursor_pos = len(ed.drawn())
++    ed.ds.text_selection_start = ed.ds.text_selection_end = ed.ds.text_cursor_pos
++    ed.frame(keys=[(glfw.KEY_X, 0)])
++    display = ed.drawn()
++    assert display.endswith('x')
++    assert ed.ds._fold_cache[2][0] is display
++    ed.frame()
++    assert ed.drawn() is display
++    assert isinstance(ed.ds._fold_cache[1], tuple)
++    assert ed.ds._fold_cache[2][0] is display
+diff --git a/tests/test_private_cache_invalidation.py b/tests/test_private_cache_invalidation.py
+new file mode 100644
+index 00000000..a0d34d58
+--- /dev/null
++++ b/tests/test_private_cache_invalidation.py
+@@ -0,0 +1,36 @@
++from types import SimpleNamespace
++from src.lsd.gl_gui.view.core_views.decoration import invalidation_decoration as decoration
++
++
++def test_private_cache_assignment_never_compares_contents(monkeypatch):
++    calls = []
++    cache = SimpleNamespace(invalidate_by_obj=lambda *a, **kw: calls.append(a[1]))
++    melty = SimpleNamespace(frame_count=5, silence_invalidate=False, cache=cache)
++    monkeypatch.setattr(decoration.Core, 'melty', melty)
++    from src.lsd.gl_gui.view.attribute_churn import AttributeChurnMonitor
++    monkeypatch.setattr(AttributeChurnMonitor, 'record', lambda *args: None)
++    from src.lsd.gl_gui.toggles import Toggles
++    monkeypatch.setattr(Toggles.InvalidateTracker, 'attrib_change_stack_trace', False)
++
++    @decoration.live
++    class State:
++        def __init__(self):
++            self.value = 0
++
++    compared = []
++    class Buffer:
++        def __ne__(self, other):
++            compared.append(other)
++            return True
++
++    state = State()
++    old, new = Buffer(), Buffer()
++    state._buffer = old
++    state._buffer = new
++    assert state._buffer is new
++    assert compared == []
++    assert calls == []
++    state.value = 1
++    assert calls == ['value']
++    state.value = 1
++    assert calls == ['value']
+diff --git a/tests/test_typing_incremental_layout.py b/tests/test_typing_incremental_layout.py
+new file mode 100644
+index 00000000..6cf53dec
+--- /dev/null
++++ b/tests/test_typing_incremental_layout.py
+@@ -0,0 +1,124 @@
++"""Incremental edit paths must agree with a fresh layout/roster build."""
++import random
++
++from src.lsd.gl_gui.view.core_views.text_editor import (
++    _fold_build, _fold_update_inline, _same_guide_shape,
++    _scope_guide_segments, _update_line_widths, _FoldLineNumbers,
++)
++from src.lsd.gl_gui.view.core_conversion import symbol_roster
++
++
++def test_inline_fold_edits_match_full_build():
++    text = 'import a\nimport b\n\ndef outer():\n    x = 123\n    if x:\n        value = x\n    return x\n\ntail = 1\n'
++    ranges = [(0, 1), (3, 7), (5, 6)]
++    for collapsed in (set(), {(0, 1)}, {(5, 6)}, {(0, 1), (5, 6)}, {(3, 7)}):
++        built = _fold_build(text, ranges, collapsed)
++        for pos in range(len(text)):
++            for removed, inserted in ((0, 'z'), (1, ''), (1, 'word')):
++                changed = text[:pos] + inserted + text[pos + removed:]
++                result = _fold_update_inline(text, changed, built)
++                if result is not None:
++                    assert result == _fold_build(changed, ranges, collapsed), (collapsed, pos, removed, inserted)
++
++
++def test_line_width_splices_and_guide_reuse():
++    text = 'class C:\n    def f(self):\n        x = 1  \n        return x\n\n'
++    widths = [len(line.rstrip()) for line in text.split('\n')]
++    for pos in range(len(text) + 1):
++        for removed, inserted in ((0, 'a'), (1, ''), (1, '\n'), (0, '\n\n'), (0, ': # note')):
++            changed = text[:pos] + inserted + text[pos + removed:]
++            assert _update_line_widths(text, changed, widths) == [len(line.rstrip()) for line in changed.split('\n')]
++            if _same_guide_shape(text, changed):
++                assert _scope_guide_segments(text) == _scope_guide_segments(changed)
++
++
++def test_lazy_gutter_matches_projection():
++    mapping = [0, 1, 5, 6, 9]
++    assert list(_FoldLineNumbers(mapping, [8, 9, 10, None, 12, 13])) == [8, 9, 13, None, None]
++    assert list(_FoldLineNumbers(mapping, offset=100)) == [101, 102, 106, 107, 110]
++
++
++def table_shape(table):
++    return ([tuple(getattr(entry, field) for field in entry.__slots__) for entry in table.entries],
++            table.imports, table.star_imports, table.nlines)
++
++
++def test_roster_resumed_scans_match_fresh_builds():
++    text = 'import os\n' + ''.join(f'\n# [tint=(0.2, 0.3, 0.4)]\ndef f{i}():\n    x = {i}\n    return x\n' for i in range(70))
++    table = symbol_roster.extract_table('/tmp/roster_incremental.py', text)
++    rng = random.Random(42)
++    for index in range(80):
++        position = rng.randrange(len(text))
++        removed = rng.randrange(4)
++        inserted = rng.choice(('z', '\n', '    ', 'def new(): pass\n', '', '\nfrom os import path\n'))
++        changed = text[:position] + inserted + text[position + removed:]
++        incremental = symbol_roster.extract_table(table.path, changed, previous=table)
++        fresh = symbol_roster.extract_table(table.path, changed)
++        assert table_shape(incremental) == table_shape(fresh), index
++        text, table = changed, incremental
++
++
++def test_region_checks_keep_line_diff_semantics():
++    from src.lsd.gl_gui.view.core_conversion.new_converters import _region_compile_check, _compile_check
++    def reference(old, new):
++        a, b = old.split('\n'), new.split('\n')
++        pre = 0
++        while pre < min(len(a), len(b)) and a[pre] == b[pre]:
++            pre += 1
++        if pre == len(a) == len(b):
++            return 'skip', None, None
++        suffix = 0
++        while suffix < min(len(a) - pre, len(b) - pre) and a[-1-suffix] == b[-1-suffix]:
++            suffix += 1
++        start = min(pre, len(b) - 1)
++        while start > 0 and (not b[start] or b[start][0] in ' \t'):
++            start -= 1
++        end = len(b) - suffix
++        while end < len(b) and (not b[end] or b[end][0] in ' \t'):
++            end += 1
++        old_end = max(start, end + len(a) - len(b))
++        span = start, old_end, len(b) - len(a)
++        error = _compile_check('\n'.join(b[start:end]))
++        if error is None:
++            return 'clean', None, span
++        if error.lineno:
++            error.lineno += start
++        status = 'error' if _compile_check('\n'.join(a[start:old_end])) is None else 'ambiguous'
++        return status, error, span
++    def shape(result):
++        status, error, span = result
++        return status, (error.msg, error.lineno, error.offset) if error else None, span
++    for text in ('a = 1\n\nb = 2\n', 'def f():\n    return 1\n\nvalue = f()\n', 'a\nb', '\n\n'):
++        for pos in range(len(text) + 1):
++            for removed, inserted in ((0, 'x'), (1, ''), (0, '\n'), (2, '\n\nx')):
++                changed = text[:pos] + inserted + text[pos + removed:]
++                assert shape(_region_compile_check(text, changed, 10000)) == shape(reference(text, changed)), (text, pos, removed, inserted)
++
++
++def test_cached_import_scan_defers_discovery(monkeypatch):
++    from src.lsd.gl_gui.view.core_conversion import code_checks
++    monkeypatch.setattr(code_checks, '_file_binds_cache', {})
++    monkeypatch.setattr(code_checks, '_import_suggestion_cache', {})
++    def unexpected(*args, **kwargs):
++        raise AssertionError('render-thread scan attempted import discovery')
++    monkeypatch.setattr(code_checks, '_module_text_binds', unexpected)
++    monkeypatch.setattr(code_checks, '_suggest_import', unexpected)
++    assert code_checks._scan_slice('unknown_name()', 0, set(), '/tmp/a.py', cached_only=True) is None
++    monkeypatch.setattr(code_checks, '_file_binds_cache', {'/tmp/a.py': (0, 0, set(), 0)})
++    assert code_checks._scan_slice('unknown_name()', 0, set(), '/tmp/a.py', cached_only=True) is None
++    assert code_checks._scan_slice('len(items)', 0, {'items'}, '/tmp/a.py', cached_only=True) == {}
++
++
++def test_line_offset_cache_eviction_keeps_other_buffers():
++    from src.lsd.gl_gui.view.core_views import text_editor
++    saved = dict(text_editor._LINE_STARTS_CACHE)
++    try:
++        text_editor._LINE_STARTS_CACHE.clear()
++        buffers = [f'buffer{i}\nsecond\n' for i in range(17)]
++        offsets = [text_editor._line_starts(text) for text in buffers[:16]]
++        text_editor._line_starts(buffers[-1])
++        assert len(text_editor._LINE_STARTS_CACHE) == 16
++        assert text_editor._line_starts(buffers[1]) is offsets[1]
++    finally:
++        text_editor._LINE_STARTS_CACHE.clear()
++        text_editor._LINE_STARTS_CACHE.update(saved)

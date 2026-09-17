@@ -27,8 +27,7 @@ def child(args):
         import cProfile
         profiler = cProfile.Profile()
         profiler.enable()
-    import melty
-    from src.lsd.gl_gui import app
+    from meltygui.core.runtime import app
     # Explicitly drive run() so profiling and readiness checks include the loop.
     app._hook_main_return = lambda: None
     original_init = app._init_melty
@@ -36,8 +35,8 @@ def child(args):
 
     def init():
         original_init()
-        from src.lsd.gl_gui.surface import Surface
-        from src.lsd.gl_gui import window_api
+        from meltygui.core.windowing.surface import Surface
+        from meltygui import window_api
         original_frame = Surface.frame
 
         def frame(surface):
@@ -46,7 +45,7 @@ def child(args):
             result['frames'] += 1
             if result['first_frame_ms'] is None:
                 result['first_frame_ms'] = elapsed
-            module = sys.modules.get('src.lsd.gl_gui.view.playground.open_files')
+            module = sys.modules.get('meltygui_pro.editor.code_editor')
             editors = getattr(module, '_active_editors', {})
             if any(path == str(source) and pane is not None and text == expected
                    for path, pane, text in editors.values()):

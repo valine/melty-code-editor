@@ -1,0 +1,159 @@
+[
+  {
+    "file": "profiles/text-stalls/timeline.jsonl",
+    "edits": 43,
+    "start": 7074.768021057,
+    "end": 7088.845615878,
+    "worst": {
+      "kind": "frame",
+      "time": 7075.276502091,
+      "thread": "MainThread",
+      "start": 7075.10082529,
+      "end": 7075.276500641,
+      "ms": 175.67535099988163,
+      "cpu_ms": 22.21635799999988,
+      "phase": "typing",
+      "edited": true,
+      "sections": [
+        {
+          "name": "editor /home/lukas/Desktop/melty_code_editor/profiles/text-stalls/new_core_view.py",
+          "total_ms": 12.9,
+          "cpu_ms": 12.8,
+          "changed": true,
+          "lines": 7773,
+          "breakdown": "errbox+tail=5.1 keyboard=1.4 body:glyphs=0.9 autoscroll=0.9 body:tok_match=0.7 head+jump_bar=0.7 kbd:ac=0.7 body:tv_overlay=0.6 body:washes=0.6 w:lines+spans=0.3 kbd:keys=0.2 ac_popup=0.2 kbd:fim=0.1 gutter=0.1 uj_picker=0.1 dt:pre=0.1 (tokenize_miss=0.7x1)",
+          "fold_text_hit": true,
+          "dt_call_ms": 0.1,
+          "dt_miss": false,
+          "dt_n": [
+            15,
+            25,
+            37
+          ],
+          "us_call_ms": 0.0,
+          "us_n": 0
+        }
+      ]
+    },
+    "over_50": 2,
+    "over_100": 1
+  },
+  {
+    "file": "profiles/text-stalls/sampled/timeline.jsonl",
+    "edits": 43,
+    "start": 6894.835660301,
+    "end": 6908.738631625,
+    "worst": {
+      "kind": "frame",
+      "time": 6895.414958475,
+      "thread": "MainThread",
+      "start": 6895.232823843,
+      "end": 6895.414955665,
+      "ms": 182.1318219999739,
+      "cpu_ms": 19.468999000000096,
+      "phase": "typing",
+      "edited": false,
+      "sections": []
+    },
+    "over_50": 3,
+    "over_100": 1
+  },
+  {
+    "file": "profiles/text-stalls/first/timeline.jsonl",
+    "edits": 43,
+    "start": 6843.955713715,
+    "end": 6857.888434658,
+    "worst": {
+      "kind": "frame",
+      "time": 6844.466091362,
+      "thread": "MainThread",
+      "start": 6844.29244358,
+      "end": 6844.466089732,
+      "ms": 173.64615200040134,
+      "cpu_ms": 22.539367000000034,
+      "phase": "typing",
+      "edited": true,
+      "sections": [
+        {
+          "name": "editor /home/lukas/Desktop/melty_code_editor/profiles/text-stalls/new_core_view.py",
+          "total_ms": 17.9,
+          "cpu_ms": 12.9,
+          "changed": true,
+          "lines": 7772,
+          "breakdown": "errbox+tail=10.6 keyboard=1.4 autoscroll=0.9 body:glyphs=0.8 kbd:ac=0.7 body:tv_overlay=0.7 body:tok_match=0.6 body:washes=0.6 head+jump_bar=0.4 w:lines+spans=0.3 ac_popup=0.2 kbd:keys=0.2 kbd:fim=0.1 gutter=0.1 uj_picker=0.1 dt:pre=0.1 (tokenize_miss=0.6x1)",
+          "fold_text_hit": true,
+          "dt_call_ms": 0.1,
+          "dt_miss": false,
+          "dt_n": [
+            15,
+            25,
+            37
+          ],
+          "us_call_ms": 0.0,
+          "us_n": 0
+        }
+      ]
+    },
+    "over_50": 2,
+    "over_100": 1
+  },
+  {
+    "file": "profiles/text-stalls/attributed-lint/timeline.jsonl",
+    "edits": 43,
+    "start": 7025.566947428,
+    "end": 7039.6104608,
+    "worst": {
+      "kind": "frame",
+      "time": 7026.095037493,
+      "thread": "MainThread",
+      "start": 7025.92627625,
+      "end": 7026.095035923,
+      "ms": 168.7596729998404,
+      "cpu_ms": 19.243129999999997,
+      "phase": "typing",
+      "edited": false,
+      "sections": []
+    },
+    "over_50": 2,
+    "over_100": 1
+  },
+  {
+    "file": "profiles/text-stalls/expanded/timeline.jsonl",
+    "edits": 43,
+    "start": 6973.017221508,
+    "end": 6986.98604307,
+    "worst": {
+      "kind": "frame",
+      "time": 6973.547534857,
+      "thread": "MainThread",
+      "start": 6973.370663796,
+      "end": 6973.547533487,
+      "ms": 176.86969099941052,
+      "cpu_ms": 18.71736700000004,
+      "phase": "typing",
+      "edited": false,
+      "sections": [
+        {
+          "name": "editor /home/lukas/Desktop/melty_code_editor/profiles/text-stalls/new_core_view.py",
+          "total_ms": 57.9,
+          "cpu_ms": 9.0,
+          "changed": false,
+          "lines": 7773,
+          "breakdown": "dt:def_tints=40.1 head+jump_bar=6.2 gutter=5.8 body:tv_overlay=2.8 body:glyphs=0.9 body:washes=0.5 w:lines+spans=0.3 kbd:ac=0.3 ac_popup=0.2 keyboard=0.2 dt:fold_remap=0.1 uj_picker=0.1 dt:pre=0.1",
+          "fold_text_hit": true,
+          "dt_call_ms": 40.2,
+          "dt_miss": false,
+          "dt_n": [
+            15,
+            25,
+            37
+          ],
+          "us_call_ms": 0.0,
+          "us_n": 0
+        }
+      ]
+    },
+    "over_50": 2,
+    "over_100": 1
+  }
+]

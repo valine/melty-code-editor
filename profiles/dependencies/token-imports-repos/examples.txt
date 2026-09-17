@@ -1,0 +1,53 @@
+         293675 function calls (286736 primitive calls) in 0.107 seconds
+
+   Ordered by: cumulative time
+   List reduced from 268 to 45 due to restriction <45>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    0.107    0.107 project_dependencies.py:20(assemble_dependencies)
+        1    0.002    0.002    0.106    0.106 project_dependencies.py:28(_assemble_dependencies)
+        1    0.000    0.000    0.038    0.038 project_dependencies.py:357(collect_imports)
+       93    0.001    0.000    0.038    0.000 dependency_imports.py:328(read_imports)
+       93    0.000    0.000    0.036    0.000 dependency_imports.py:292(dependency_imports)
+       93    0.003    0.000    0.034    0.000 dependency_imports.py:227(parse_suites)
+      276    0.001    0.000    0.028    0.000 pathlib.py:663(relative_to)
+        1    0.000    0.000    0.025    0.025 project_dependencies.py:235(dependency_files)
+     4801    0.023    0.000    0.024    0.000 dependency_imports.py:29(logical_lines)
+     4383    0.001    0.000    0.023    0.000 pathlib.py:551(drive)
+     4959    0.002    0.000    0.023    0.000 pathlib.py:437(__str__)
+     2309    0.014    0.000    0.022    0.000 pathlib.py:407(_load_parts)
+      359    0.000    0.000    0.021    0.000 pathlib.py:690(is_relative_to)
+     2745    0.001    0.000    0.017    0.000 pathlib.py:519(__eq__)
+     6533    0.002    0.000    0.017    0.000 pathlib.py:484(_str_normcase)
+       54    0.000    0.000    0.016    0.000 project_analysis.py:30(owns)
+       32    0.000    0.000    0.014    0.000 project_dependencies.py:109(requirements)
+     5918    0.002    0.000    0.011    0.000 pathlib.py:380(with_segments)
+     3728    0.001    0.000    0.009    0.000 pathlib.py:420(_from_parsed_parts)
+     2942    0.001    0.000    0.009    0.000 <frozen _collections_abc>:1022(__iter__)
+     2584    0.001    0.000    0.009    0.000 pathlib.py:276(__getitem__)
+     6216    0.002    0.000    0.008    0.000 pathlib.py:1159(__init__)
+     1039    0.000    0.000    0.008    0.000 pathlib.py:837(stat)
+     1039    0.001    0.000    0.007    0.000 {built-in method posix.stat}
+     1228    0.000    0.000    0.007    0.000 pathlib.py:447(__fspath__)
+     2309    0.003    0.000    0.006    0.000 pathlib.py:387(_parse_path)
+     1420    0.001    0.000    0.006    0.000 pathlib.py:731(parent)
+     6216    0.004    0.000    0.006    0.000 pathlib.py:357(__init__)
+      627    0.000    0.000    0.006    0.000 {built-in method builtins.sorted}
+       33    0.000    0.000    0.006    0.000 project_dependencies.py:45(<genexpr>)
+      358    0.000    0.000    0.005    0.000 <frozen _collections_abc>:1032(__contains__)
+      634    0.001    0.000    0.004    0.000 dependency_imports.py:232(simple)
+       96    0.000    0.000    0.004    0.000 pathlib.py:1230(resolve)
+      393    0.000    0.000    0.004    0.000 pathlib.py:888(is_file)
+      341    0.000    0.000    0.003    0.000 pathlib.py:872(is_dir)
+        1    0.000    0.000    0.003    0.003 text_index.py:379(_walk_rel_files)
+     2439    0.002    0.000    0.003    0.000 <frozen posixpath>:71(join)
+     2529    0.003    0.000    0.003    0.000 dependency_imports.py:79(top_level)
+       96    0.000    0.000    0.003    0.000 <frozen posixpath>:428(realpath)
+      975    0.000    0.000    0.003    0.000 pathlib.py:719(__truediv__)
+      975    0.000    0.000    0.002    0.000 pathlib.py:711(joinpath)
+     1868    0.000    0.000    0.002    0.000 {built-in method builtins.next}
+      208    0.000    0.000    0.002    0.000 pathlib.py:780(match)
+27004/22112    0.002    0.000    0.002    0.000 {built-in method builtins.len}
+  467/457    0.000    0.000    0.002    0.000 {built-in method builtins.any}
+
+

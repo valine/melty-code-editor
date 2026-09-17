@@ -1,0 +1,5 @@
+# Development installs from the sibling checkouts (not yet published).
+--find-links ../meltygui/dist/release
+-e ../meltygui[tensor]
+-e ../meltygui_pro
+torch>=2.2

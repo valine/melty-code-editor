@@ -1,0 +1,38 @@
+[
+  {
+    "query": "global_search",
+    "tier": "exact",
+    "ms": 227.5,
+    "hits": 13
+  },
+  {
+    "query": "global_search",
+    "tier": "fuzzy",
+    "ms": 18.99,
+    "hits": 0
+  },
+  {
+    "query": "draw_text imgui.dummy",
+    "tier": "exact",
+    "ms": 2.43,
+    "hits": 0
+  },
+  {
+    "query": "draw_text imgui.dummy",
+    "tier": "fuzzy",
+    "ms": 17.83,
+    "hits": 0
+  },
+  {
+    "query": "project_roots",
+    "tier": "exact",
+    "ms": 2.34,
+    "hits": 3
+  },
+  {
+    "query": "project_roots",
+    "tier": "fuzzy",
+    "ms": 66.32,
+    "hits": 5
+  }
+]

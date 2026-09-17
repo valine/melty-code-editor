@@ -1,0 +1,50 @@
+[
+  {
+    "run": "after1",
+    "phase": "typing",
+    "edits": 43,
+    "start": 7422.585233585,
+    "end": 7436.462224204,
+    "frames": 1440,
+    "worst_ms": 59.99985899961757,
+    "median_edit_ms": 18.699207000281604,
+    "over_100": 0,
+    "over_50": 2
+  },
+  {
+    "run": "after2",
+    "phase": "typing",
+    "edits": 43,
+    "start": 7531.020937275,
+    "end": 7544.843616133,
+    "frames": 1455,
+    "worst_ms": 55.397928999809665,
+    "median_edit_ms": 18.49396300076478,
+    "over_100": 0,
+    "over_50": 2
+  },
+  {
+    "run": "after2",
+    "phase": "pause_resume",
+    "edits": 48,
+    "start": 7560.119577958,
+    "end": 7575.181145129,
+    "frames": 1441,
+    "worst_ms": 66.19895800031372,
+    "median_edit_ms": 18.41587699982483,
+    "over_100": 0,
+    "over_50": 2
+  },
+  {
+    "run": "after3",
+    "phase": "typing",
+    "edits": 43,
+    "start": 7648.729790557,
+    "end": 7662.544875662,
+    "frames": 1426,
+    "worst_ms": 70.5996619999496,
+    "median_edit_ms": 18.4560630004853,
+    "over_100": 0,
+    "over_50": 2
+  }
+]

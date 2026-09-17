@@ -1,25 +1,16 @@
 # melty_code_editor
 
-The sibling of `melty_text_editor`, built on the studio's **Code Editor**
+The sibling of `melty_text_editor`, built on **MeltyGUI Pro’s Code Editor**
 instead of the bare text view: `editor.py` draws `draw_code_editor` where the
 text editor draws `draw_text`.
 
-```python
-import melty
-from melty import glfw_window
-from src.lsd.gl_gui.model.open_files import OpenFiles
-
-open_files = melty.persisted('open_files', OpenFiles, app_id='melty-code-editor')   # the tab list, kept between runs
-for path in paths:
-    open_files.open_file(path)
-
-@glfw_window(title='Code Editor', app_id='melty-code-editor', with_header=draw_header, size=(1280, 800))
-@render_func()
-def editor(_, draw_state):
-    melty.draw_code_editor(open_files, name='code-editor',
-                           width=draw_state.width - 10, height=draw_state.height - 10)
-    return False, None
-```
+The app hosts a persisted tile workspace below the menu bar. Drag a tile corner
+inward to split it, then use its dropdown to select `draw_main_editor` or
+`draw_placeholder`. Editor tiles share the open-file model while keeping separate
+tab selection, scrolling, comparison and project state. Open and Run commands
+target the last active editor. `app_model.py` owns the layout; `tile_views.py`
+contains the registered render functions. The existing `melty-code-editor`
+session and saved tab list remain in use.
 
     ./melty-code-editor FILE [FILE ...]      # each file is a tab; the first is selected
 
@@ -31,16 +22,37 @@ an editable side-by-side diff) and the nav back / forward buttons.
 The editor window leads with the file browser's **shortcuts column**
 (`draw_code_editor(show_shortcuts=True)`: home, the XDG folders, the root,
 then the projects), the divider next to it draggable and remembered; a
-click opens the Open dialog in that folder. **Projects** are folders marked in melty's shared file-meta store
-(`melty.mark_project`; the flag rides `~/.melty/file_meta.pkl` beside the
+click selects that project without opening a dialog or changing tabs.
+`draw_code_editor` injects an `EditorProjectState` per view (or accepts one
+as `project_state=`). It persists `selected_project` and the Compare With
+choice per repository. The selected project supplies the git changed-file
+list and commit dropdown; clicking a changed file opens that project's file.
+
+Symbol navigation and colours follow the **file's owning project**. The nearest
+marked folder or project marker wins, including a nested project inside a parent.
+Ctrl+B resolves definitions and finds usages within that project, including
+unsaved buffers. Source imports use the root and its `src` directory; dependency
+resolution also uses its `.venv` (or `venv`). Static completions use that same
+owner's environment. Selecting a different project for git comparison does not
+change a file's symbol context.
+
+The bottom of the project column shows the selected project's venv and its status.
+**Change…** selects an environment folder (including hidden `.venv` folders);
+**Auto** clears the override. Overrides are shared project metadata and are used
+by symbol analysis too. Environments inside the project are stored as relative
+paths. Invalid folder selections leave the current association intact.
+
+New selections default to HEAD, and non-git folders show no git changes. **Projects** are folders marked in melty's shared file-meta store
+(`meltygui_pro.mark_project`; the flag rides `~/.melty/file_meta.pkl` beside the
 tints, so the studio and every other melty app see it too). The Projects
 menu: **Add Folder…** (the file browser as a folder picker), **Mark ▸** an
 open tab's project (its git root / project marker, not marked yet), and
 **Unmark ▸** one; right-clicking a folder in the Open dialog offers the
 same. **Search → Search…** (Ctrl+Shift+F) is melty's global search, Code
 tab only: files, classes, defs and their call sites across the marked
-projects plus the project of every open tab outside them, a hit opening in
-the editor at the definition. `melty.global_search(categories=('Code',),
+projects, a hit opening in the editor at the definition. Unmarking a project
+removes it from search even while its tabs remain open. Spaces stay part of
+one query rather than searching multiple symbols independently. `meltygui_pro.global_search(categories=('Code',),
 roots=project_roots, open_files=open_files)` in `editor.py` is the whole of
 it; the query and the pick counts persist with the session. Edits go
 to melty's file hosts (the studio's deferred-save model: queued in memory,
@@ -76,17 +88,28 @@ reason, and the app refuses such a file up front with the same reason.
 
 ## Setup
 
-Like the text editor: melty installed **editable** into the project's own
-small venv from the `latent-descent` checkout (its `pyproject.toml`). Since
-`draw_code_editor` takes an `OpenFiles` from the light `model/open_files`
-module, nothing of the studio's app model (torch, transformers, peft) loads.
+The app uses two sibling checkouts, installed **editable** into its own Python
+3.12 venv:
+
+- `../meltygui`: Apache-2.0 UI, text, inspection, file browser and tensor toolkit.
+- `../meltygui_pro`: proprietary code editor, projects, Git, environments and
+  dependency management.
+
+The native ImGui wheel must be available in `../meltygui/dist/release`; see
+[MeltyGUI setup](../meltygui/docs/DEVELOPMENT.md). Run these commands from this
+app's directory:
 
     uv venv .venv --python 3.12
-    uv pip install --python .venv/bin/python -e ~/Desktop/latent-descent
+    uv pip install --python .venv/bin/python -r requirements.txt
     ./melty-code-editor ~/some/file.py ~/some/notes.txt
 
     MELTY_BENCH=1 .venv/bin/python editor.py FILE     # smoke test: exit 0 after the first frame
     MELTY_CODE_DEBUG=1 ./melty-code-editor FILE        # melty's perf trace → /tmp/lsd_symbol_perf.log
+
+The app retains `app_id='melty-code-editor'`, so existing sessions stay at
+`~/.local/state/melty-code-editor/session.pkl`. Importing `meltygui_pro` registers
+the old saved-class names before the session is loaded. No latent-descent
+checkout or legacy `src` imports are needed.
 
 In IntelliJ / PyCharm set the project interpreter to `.venv/bin/python`.
 `melty-code-editor.desktop` registers it in the app menu (copy to
@@ -136,3 +159,81 @@ A second manual click while the function is running does not start another
 copy. Auto Execute keeps the latest requested rerun until the current run
 finishes. Capture is scoped to the runner thread; other app threads, native
 file-descriptor writes, and subprocess streams keep their normal destinations.
+
+
+**Dependencies…** in the project information section opens a nested dependency
+window. **Assemble lists** reads installed venv package metadata, root
+`requirements*.txt` files (including `-r` includes) and `pyproject.toml` project
+dependencies, plus static Python imports throughout the owning project. The
+three tables show versions or requirement constraints. Import versions are
+shown when installed metadata identifies the module; otherwise they show `—`.
+Collection runs in the background only on request; it does not install packages.
+
+Dependency tables sort alphabetically (case-insensitive) and label discrepancies:
+green **Matching**, grey **Not imported**, red **Missing in venv** or **Version
+mismatch**, and orange **Missing requirements**. Installed package metadata maps
+module aliases such as PIL to Pillow. Standard-library and project-local imports
+are labelled separately. Not imported means no static direct import was found;
+tools and transitive dependencies may still be needed. Missing/incorrect installed
+versions take priority over missing declarations; unused packages remain grey.
+
+The dependency display is one aligned, three-column table: installed, requirements,
+and imports. Each dependency occupies one alphabetical row, with blank cells where
+it is absent. Cells contain names and versions only; colours are explained by the
+legend above the table. Package/import aliases share a row.
+
+Missing-dependency colours apply to empty cells: red in Installed in venv and
+orange in Requirements. Populated matching cells stay green and unused entries
+stay grey. Standard-library/local-only rows do not flag missing packages.
+
+**Install** in a red cell runs `uv pip install --python <selected-venv-python>`
+with the declared requirement. **Add** in an orange cell appends the installed
+package/version to the project's `requirements.txt`, preserving comments and
+unsaved edits through the normal editor save queue. **Install all** and **Add
+all** perform those actions for all known packages in their columns. The table
+refreshes afterwards; progress and failures appear above it. Unknown import
+names use **Install…** to enter the package name; bulk install never guesses.
+
+## Dependency collection profiling
+
+### Inline install and import
+
+Open an undefined-name error (for example, `torch` in `torch.rand(2)`) to get
+an **Install torch + import torch** fix. Recommendations use `pyproject.toml`
+first, then `requirements.txt` (including nested includes), then a curated
+list of known packages and aliases such as `np` → NumPy and `PIL` → Pillow.
+Declared version constraints are preserved. Unknown names are not guessed.
+
+The fix uses the file's project environment, creates a venv if needed, and
+inserts the import only after installation succeeds. Already-installed modules
+offer an import-only fix. Resolution runs in the background without assembling
+the dependency table; manifest edits and environment changes are checked on
+lookup and again before installation. Unsupported custom sources report an
+error instead of silently falling back to PyPI.
+
+Validation: 241 targeted tests pass, including environment isolation, aliases,
+manifest priority, unsaved manifest edits, installation failures, import
+placement, and an offline wheel install into a new venv. The same offline
+install-and-import flow was verified through the editor UI. A real Torch install,
+manifest save, function run, and full-file run were also verified manually.
+
+[Profiling results and automatic-update strategy](profiles/dependencies/README.md)
+include a repeatable collector benchmark and regression coverage using the seven
+downloaded PyTorch review repositories.
+
+### Dependency onboarding and running code
+
+Missing-package diagnostics also cover `import torch`. Diagnostics refresh when
+opening a file and after changing imports. Click the error icon to open or close fixes beside the code.
+Installation shows the target project/environment and live installer output;
+background installation continues if the diagnostic popup is closed. **Save dependency in
+project** records the installed dependency directly (including Torch's exact
+build and backend source). New files receive keyboard focus immediately.
+
+Use **Run → Run file (F5)** to execute the current buffer in the project's Python
+and see output in a console. Function Run also uses the selected project venv.
+Cross-environment function runs accept JSON parameters and show console output;
+inline visualizations still require the editor environment.
+
+[Fix verification and remaining UX limits](profiles/dependencies/ux-review/FIXES.md)
+record the real Torch onboarding walkthrough and regression checks.

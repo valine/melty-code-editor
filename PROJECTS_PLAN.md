@@ -80,7 +80,29 @@ Verified on an agent desktop with a temp store (`MELTY_FILE_META`): menu, Mark/U
 picker, the right-click item, the browser's section, the editor's column + browse hand-off, and
 the flags in the pickle.
 
-### Phase 2: git per project
+### Phase 2: git per project — editor selector implemented 2026-09-15
+
+The editor now owns an injected `EditorProjectState`: selected project plus
+`compare_with_by_repo`. Shortcut clicks select a project instead of posting a
+browse request; tabs stay open. `git.proxies_for(path)` returns the stable tuple
+without rebinding globals, and the editor passes it through file-list sourcing,
+row models, commit dropdowns, reference reads, and background compare workers.
+Repo switches discard the old column's view caches, worker keys include the repo,
+and compare undo records carry the repo root. The poller starts from
+`ensure_status` and both refresh loops sweep requested repos. Filesystem change
+lists are filtered to their own roots; negative repo discoveries expire so a
+later `git init` is discovered.
+
+Remaining from the original phase: retire the legacy globals used by standalone
+Git Changes / Merge Files, give those windows explicit project selection, and
+scope watcher wakeups per repo (currently they still wake all consumers).
+Verification: 31 focused tests passed (project isolation, non-git folders,
+late git init, compare undo, binary references, compare warming and navigation).
+The separate existing dropdown-size smoke fails in unchanged dropdown layout.
+Agent-desktop checks covered A/B selection, opening the same-named file from the
+selected repo, its HEAD diff and commit menu, and selection restored on reopen.
+The app bench exited 0, first frame 477 ms. The original full-phase checklist follows:
+
 1. Delete the four module globals in `git.py`; add `repo_for(path)` (→ `_proxies_for(repo_root_for(path))`).
    Thread an explicit repo into `_git_head_text`, `_fetch_compare_base`, `_compare_column_sources`,
    `_draw_commit_file_tabs`, `draw_commit_file_column`, `compare_file_rows.model_for`,
@@ -98,24 +120,50 @@ the flags in the pickle.
 Verify: tabs from two repos side by side in both editor instances, Compare With lists each repo's own
 commits, HEAD diff correct for both, Git Changes shows the right repo, status refreshes in the app.
 
-### Phase 3: symbol / usage graph per project
-1. `symbol_roster`: `module_to_path(dotted, source_dirs)`, `_absolutize` relative to the file's
-   project, `universe_paths()` = union over projects, `_mod_path_cache` keyed by (roots, dotted),
-   `by_name` / `by_leaf` / `universe` per project root, per-project generation counter (so an edit
-   in A does not invalidate B's editors, `text_editor.py:6595`). `_usages_of` passes
-   `root=project_for(entry.path).root` to `candidate_paths` and unions across projects for
-   cross-project callers (default: same project only; toggle for all).
-2. `libcst_conversion`: `_jedi_project(root)` memoised per project with `added_sys_path =
-   source_dirs`; replace `startswith(_SRC_PREFIX)` gates with `address.is_editable_source`;
-   `_register_index_watch` per project root. `_SRC_PREFIX` remains only as the studio's default.
-3. `code_checks.project_importables(project)`: derive from the project's source dirs (walk the
-   trigram index's symbol tables, fall back to sys.modules for the checkout).
-4. `file_graph`: `_CURRENT` → dict by root, `import_roots(project)` from `source_dirs`; file tree
-   and import-graph window take the project as input.
-5. One ignore set (`text_index._SKIP_DIRS` + `_LIBRARY_PARTS`) with per-project overrides.
-6. `new_converters.code_hosts_for` key gains the project root for function / class refs.
-Verify: Ctrl+B usages and def tints work in a second repo; autocomplete import rows come from that
-repo; import graph opens for it; latent-descent unchanged.
+### Phase 3: symbols / usages — editor path implemented 2026-09-15
+
+The file owns its analysis context independently of the selected git project.
+The nearest marked folder or marker (`.git`, `pyproject.toml`, `setup.py`,
+`setup.cfg`) wins; a nested project excludes its files from the parent's usage
+search and fallback names.
+
+- `model/project_analysis.py` derives root/src import paths and the owning
+  project's `.venv` / `venv`, including plain path entries in `.pth` files.
+- `symbol_roster` keeps module lookup, fallback names, universe and generations
+  per analysis project. Text tables remain shared by file; relative imports are
+  resolved in context. Usage candidates come from that project's text index and
+  live buffers. Environment packages are import targets, outside the usage scan.
+- File watches invalidate affected project consumers and newly created modules.
+  Universe loading runs in a background worker.
+- Editor symbol colours and Ctrl+B use the owning context. A roster miss stays
+  unresolved instead of falling back to a foreign studio definition.
+- Jedi projects use the owning root and environment; whole-file buffers retain
+  their path and unsaved text for completions and signatures.
+
+Verified: identical names/imports in two repos, src layout, nested ownership,
+venv paths, unsaved references, independent generations, watch invalidation,
+Jedi completions, and the existing roster/reference-world tests. Agent desktop:
+Ctrl+B from both repos reached their differently tinted definitions; reverse
+navigation listed the owning project's usages. Focused suite: 48 passed. App smoke: exit 0,
+first frame 455 ms. The wider completion suite still has two failures in
+unchanged code: tokenizer/gate agreement on text_editor.py and an expected
+`name` versus actual `var` completion kind.
+
+Remaining from the broader original phase: project auto-import suggestions, per-project import-graph windows,
+and consolidation of ignore sets. Global search filters and file browsing are
+explicitly deferred. No cross-project usage-search toggle is added. Gutter usage is deprecated;
+project support and heat-count migration are out of scope.
+
+### Selected-project environment panel — implemented 2026-09-15
+
+The project column has a fixed bottom section showing the project name, venv
+and status. Change opens a folder selector with hidden folders visible; Auto
+clears the override. An override lives in shared FileMeta.environment, relative
+when inside the project. Analysis reads that same association. Validation checks
+pyvenv.cfg and the Python executable; invalid choices preserve the prior value.
+The picker remembers which project opened it, so switching projects while it is
+open cannot assign the result to the wrong project. No environment creation or
+package installation is added in this step.
 
 ### Phase 4: editor UI
 1. Tab labels disambiguated by project when basenames collide; tab rows grouped by project
@@ -147,3 +195,46 @@ list; acceptable for now, note it.
 Verification per phase: `MELTY_BENCH=1 .venv/bin/python editor.py FILE` smoke; the existing tests
 (`tests/test_global_search_multi_term.py` has two pre-existing failures); a real-app check on an
 agent desktop with tabs from both `melty_code_editor` and `latent-descent` open.
+
+
+### Dependency snapshot window — implemented 2026-09-15
+
+Dependencies… opens `draw_dep_manager(..., closable=True)` as a nested Melty
+window. One injected state holds the requested job and last snapshot; one
+Background.run worker reads installed metadata, requirement declarations and
+static imports. Three draw-list tables display names and versions/constraints.
+Only Assemble lists triggers collection. Switching the project or environment
+clears the old snapshot; closing/reopening preserves it. No installation or
+reconciliation is performed. Relative imports are project-local and omitted;
+absolute stdlib/local imports remain in the raw imported list with no version
+unless installed metadata identifies one. Read/parse failures are listed below
+the tables. Requirements support root requirements*.txt, -r includes and PEP 621
+project/optional dependencies; unsupported requirement lines remain Unparsed.
+
+Verified: five dependency/environment tests passed, plus manual empty state,
+assembly, close/reopen and environment switch. Screenshots are in screenshots/.
+
+
+Dependency discrepancy labels added: case-insensitive alphabetical sorting;
+green matching/grey not imported/red missing or incompatible installed version/
+orange imported but undeclared. Import-to-distribution mapping comes from installed
+metadata, names use packaging normalization, and version checks use declared
+specifiers. Standard-library and local project modules are not missing packages.
+Four focused tests pass; UI fixture and screenshot cover every colour.
+
+
+Dependency display revised to one full three-column table. Package-normalized
+rows align installed distributions, declarations and imported aliases; missing
+entries are blank, and explanations appear only in the legend. Alignment and
+blank-cell coverage added to the dependency tests.
+
+
+Dependency fix actions: per-cell Install/Add and column Install all/Add all.
+Install uses uv exclusively, the selected venv's Python, argument-list execution
+with close_fds=False, and an explicit background job. Requirements additions use
+project_code's pending writer and are visible to the next assembly before flush.
+Names are sourced from declarations/installed metadata; unmapped imports require
+an explicit name through Install… and are excluded from bulk installation.
+Verified with local test wheels in a disposable venv: single install, Install all,
+Add all and refreshed green rows. Tests cover identity/constraints, pending edits,
+duplicate avoidance, file creation, venv targeting, failure and missing uv.

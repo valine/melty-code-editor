@@ -1,0 +1,14 @@
+[
+  {
+    "root": "/home/lukas/Desktop/latent-descent",
+    "seconds": [
+      2.712430856001447,
+      2.5333975440007634,
+      2.550096090999432
+    ],
+    "median": 2.550096090999432,
+    "imports": 165,
+    "rows": 253,
+    "errors": []
+  }
+]

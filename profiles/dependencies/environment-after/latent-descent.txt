@@ -1,0 +1,53 @@
+         4384147 function calls (4200208 primitive calls) in 1.959 seconds
+
+   Ordered by: cumulative time
+   List reduced from 398 to 45 due to restriction <45>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+      2/1    0.009    0.004    1.961    1.961 project_dependencies.py:21(assemble_dependencies)
+        1    0.115    0.115    1.733    1.733 project_dependencies.py:29(_assemble_dependencies)
+      581    0.177    0.000    1.067    0.002 ast.py:34(parse)
+      581    0.899    0.002    0.899    0.002 {built-in method builtins.compile}
+      581    0.000    0.000    0.531    0.001 project_dependencies.py:356(dependency_imports)
+168644/581    0.178    0.000    0.530    0.001 project_dependencies.py:360(visit)
+   505372    0.123    0.000    0.247    0.000 ast.py:269(iter_child_nodes)
+  1841796    0.115    0.000    0.115    0.000 {built-in method builtins.isinstance}
+   565385    0.057    0.000    0.081    0.000 ast.py:257(iter_fields)
+8756/5036    0.005    0.000    0.072    0.000 {built-in method builtins.any}
+      762    0.003    0.000    0.048    0.000 pathlib.py:663(relative_to)
+    33197    0.012    0.000    0.046    0.000 ast.py:369(walk)
+    20675    0.009    0.000    0.043    0.000 pathlib.py:380(with_segments)
+    14836    0.006    0.000    0.041    0.000 pathlib.py:420(_from_parsed_parts)
+     9275    0.005    0.000    0.037    0.000 pathlib.py:731(parent)
+    19109    0.004    0.000    0.035    0.000 project_dependencies.py:367(<genexpr>)
+    17233    0.004    0.000    0.031    0.000 pathlib.py:551(drive)
+    27089    0.005    0.000    0.030    0.000 {method 'extend' of 'collections.deque' objects}
+    21389    0.008    0.000    0.030    0.000 pathlib.py:1159(__init__)
+        1    0.001    0.001    0.029    0.029 project_dependencies.py:234(dependency_files)
+    24465    0.006    0.000    0.028    0.000 pathlib.py:437(__str__)
+     5888    0.004    0.000    0.027    0.000 pathlib.py:407(_load_parts)
+   402873    0.025    0.000    0.025    0.000 {built-in method builtins.getattr}
+      887    0.001    0.000    0.024    0.000 pathlib.py:690(is_relative_to)
+     7209    0.002    0.000    0.024    0.000 <frozen _collections_abc>:1022(__iter__)
+2793/2792    0.002    0.000    0.024    0.000 pathlib.py:837(stat)
+     6323    0.004    0.000    0.022    0.000 pathlib.py:276(__getitem__)
+2794/2793    0.004    0.000    0.022    0.000 {built-in method posix.stat}
+    21389    0.014    0.000    0.022    0.000 pathlib.py:357(__init__)
+        1    0.000    0.000    0.018    0.018 project_dependencies.py:338(interpreter_modules)
+        1    0.000    0.000    0.018    0.018 subprocess.py:506(run)
+     3385    0.001    0.000    0.018    0.000 pathlib.py:447(__fspath__)
+        1    0.000    0.000    0.018    0.018 subprocess.py:1165(communicate)
+        1    0.000    0.000    0.018    0.018 subprocess.py:2062(_communicate)
+        2    0.000    0.000    0.018    0.009 selectors.py:402(select)
+        2    0.018    0.009    0.018    0.009 {method 'poll' of 'select.poll' objects}
+     5890    0.009    0.000    0.017    0.000 pathlib.py:387(_parse_path)
+    18888    0.006    0.000    0.016    0.000 pathlib.py:519(__eq__)
+        4    0.002    0.000    0.015    0.004 file_meta.py:231(_stat_sig)
+      886    0.001    0.000    0.015    0.000 <frozen _collections_abc>:1032(__contains__)
+    45657    0.009    0.000    0.015    0.000 pathlib.py:484(_str_normcase)
+    17981    0.005    0.000    0.012    0.000 pathlib.py:524(__hash__)
+     1019    0.001    0.000    0.012    0.000 pathlib.py:872(is_dir)
+      581    0.003    0.000    0.012    0.000 tokenize.py:445(open)
+        1    0.000    0.000    0.012    0.012 project_dependencies.py:110(requirements)
+
+

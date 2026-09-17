@@ -1,7 +1,7 @@
 #!/bin/sh
 # Launcher: run editor.py on the project's own venv (.venv beside this file),
-# which has melty installed editable from the latent-descent checkout — see
-# README "Setup". No PYTHONPATH: the interpreter knows where melty is.
+# with meltygui and meltygui_pro installed editable — see README "Setup".
+# No PYTHONPATH: the interpreter resolves both packages through the venv.
 here=$(dirname "$(readlink -f "$0")")
 python="$here/.venv/bin/python"
 if [ ! -x "$python" ]; then

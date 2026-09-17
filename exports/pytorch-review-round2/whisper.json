@@ -1,0 +1,1406 @@
+{
+  "context": [
+    "/home/lukas/Desktop/pytorch-review/whisper",
+    null
+  ],
+  "installed": [],
+  "declared": [
+    [
+      "more-itertools",
+      "Any"
+    ],
+    [
+      "numba",
+      "Any"
+    ],
+    [
+      "numpy",
+      "Any"
+    ],
+    [
+      "tiktoken",
+      "Any"
+    ],
+    [
+      "torch",
+      "Any"
+    ],
+    [
+      "tqdm",
+      "Any"
+    ],
+    [
+      "triton",
+      ">=2.0.0; platform_machine == \"x86_64\" and sys_platform == \"linux\" or sys_platform == \"linux2\""
+    ]
+  ],
+  "toml": [
+    [
+      "more-itertools",
+      "Any"
+    ],
+    [
+      "numba",
+      "Any"
+    ],
+    [
+      "numpy",
+      "Any"
+    ],
+    [
+      "tiktoken",
+      "Any"
+    ],
+    [
+      "torch",
+      "Any"
+    ],
+    [
+      "tqdm",
+      "Any"
+    ],
+    [
+      "triton",
+      ">=2; (platform_machine == \"x86_64\" and sys_platform == \"linux\") or sys_platform == \"linux2\""
+    ]
+  ],
+  "imported": [
+    [
+      "argparse",
+      "\u2014"
+    ],
+    [
+      "base64",
+      "\u2014"
+    ],
+    [
+      "contextlib",
+      "\u2014"
+    ],
+    [
+      "dataclasses",
+      "\u2014"
+    ],
+    [
+      "fractions",
+      "\u2014"
+    ],
+    [
+      "functools",
+      "\u2014"
+    ],
+    [
+      "gzip",
+      "\u2014"
+    ],
+    [
+      "hashlib",
+      "\u2014"
+    ],
+    [
+      "io",
+      "\u2014"
+    ],
+    [
+      "itertools",
+      "\u2014"
+    ],
+    [
+      "json",
+      "\u2014"
+    ],
+    [
+      "more_itertools",
+      "\u2014"
+    ],
+    [
+      "numba",
+      "\u2014"
+    ],
+    [
+      "numpy",
+      "\u2014"
+    ],
+    [
+      "os",
+      "\u2014"
+    ],
+    [
+      "pytest",
+      "\u2014"
+    ],
+    [
+      "random",
+      "\u2014"
+    ],
+    [
+      "re",
+      "\u2014"
+    ],
+    [
+      "regex",
+      "\u2014"
+    ],
+    [
+      "scipy",
+      "\u2014"
+    ],
+    [
+      "string",
+      "\u2014"
+    ],
+    [
+      "subprocess",
+      "\u2014"
+    ],
+    [
+      "sys",
+      "\u2014"
+    ],
+    [
+      "tiktoken",
+      "\u2014"
+    ],
+    [
+      "torch",
+      "\u2014"
+    ],
+    [
+      "tqdm",
+      "\u2014"
+    ],
+    [
+      "traceback",
+      "\u2014"
+    ],
+    [
+      "triton",
+      "\u2014"
+    ],
+    [
+      "typing",
+      "\u2014"
+    ],
+    [
+      "unicodedata",
+      "\u2014"
+    ],
+    [
+      "urllib",
+      "\u2014"
+    ],
+    [
+      "warnings",
+      "\u2014"
+    ],
+    [
+      "whisper",
+      "\u2014"
+    ],
+    [
+      "zlib",
+      "\u2014"
+    ]
+  ],
+  "errors": [
+    "No virtual environment selected"
+  ],
+  "standard_library": [
+    "__future__",
+    "_abc",
+    "_aix_support",
+    "_ast",
+    "_asyncio",
+    "_bisect",
+    "_blake2",
+    "_bz2",
+    "_codecs",
+    "_codecs_cn",
+    "_codecs_hk",
+    "_codecs_iso2022",
+    "_codecs_jp",
+    "_codecs_kr",
+    "_codecs_tw",
+    "_collections",
+    "_collections_abc",
+    "_compat_pickle",
+    "_compression",
+    "_contextvars",
+    "_crypt",
+    "_csv",
+    "_ctypes",
+    "_curses",
+    "_curses_panel",
+    "_datetime",
+    "_dbm",
+    "_decimal",
+    "_elementtree",
+    "_frozen_importlib",
+    "_frozen_importlib_external",
+    "_functools",
+    "_gdbm",
+    "_hashlib",
+    "_heapq",
+    "_imp",
+    "_io",
+    "_json",
+    "_locale",
+    "_lsprof",
+    "_lzma",
+    "_markupbase",
+    "_md5",
+    "_msi",
+    "_multibytecodec",
+    "_multiprocessing",
+    "_opcode",
+    "_operator",
+    "_osx_support",
+    "_overlapped",
+    "_pickle",
+    "_posixshmem",
+    "_posixsubprocess",
+    "_py_abc",
+    "_pydatetime",
+    "_pydecimal",
+    "_pyio",
+    "_pylong",
+    "_queue",
+    "_random",
+    "_scproxy",
+    "_sha1",
+    "_sha2",
+    "_sha3",
+    "_signal",
+    "_sitebuiltins",
+    "_socket",
+    "_sqlite3",
+    "_sre",
+    "_ssl",
+    "_stat",
+    "_statistics",
+    "_string",
+    "_strptime",
+    "_struct",
+    "_symtable",
+    "_thread",
+    "_threading_local",
+    "_tkinter",
+    "_tokenize",
+    "_tracemalloc",
+    "_typing",
+    "_uuid",
+    "_warnings",
+    "_weakref",
+    "_weakrefset",
+    "_winapi",
+    "_zoneinfo",
+    "abc",
+    "aifc",
+    "antigravity",
+    "argparse",
+    "array",
+    "ast",
+    "asyncio",
+    "atexit",
+    "audioop",
+    "base64",
+    "bdb",
+    "binascii",
+    "bisect",
+    "builtins",
+    "bz2",
+    "cProfile",
+    "calendar",
+    "cgi",
+    "cgitb",
+    "chunk",
+    "cmath",
+    "cmd",
+    "code",
+    "codecs",
+    "codeop",
+    "collections",
+    "colorsys",
+    "compileall",
+    "concurrent",
+    "configparser",
+    "contextlib",
+    "contextvars",
+    "copy",
+    "copyreg",
+    "crypt",
+    "csv",
+    "ctypes",
+    "curses",
+    "dataclasses",
+    "datetime",
+    "dbm",
+    "decimal",
+    "difflib",
+    "dis",
+    "doctest",
+    "email",
+    "encodings",
+    "ensurepip",
+    "enum",
+    "errno",
+    "faulthandler",
+    "fcntl",
+    "filecmp",
+    "fileinput",
+    "fnmatch",
+    "fractions",
+    "ftplib",
+    "functools",
+    "gc",
+    "genericpath",
+    "getopt",
+    "getpass",
+    "gettext",
+    "glob",
+    "graphlib",
+    "grp",
+    "gzip",
+    "hashlib",
+    "heapq",
+    "hmac",
+    "html",
+    "http",
+    "idlelib",
+    "imaplib",
+    "imghdr",
+    "importlib",
+    "inspect",
+    "io",
+    "ipaddress",
+    "itertools",
+    "json",
+    "keyword",
+    "lib2to3",
+    "linecache",
+    "locale",
+    "logging",
+    "lzma",
+    "mailbox",
+    "mailcap",
+    "marshal",
+    "math",
+    "mimetypes",
+    "mmap",
+    "modulefinder",
+    "msilib",
+    "msvcrt",
+    "multiprocessing",
+    "netrc",
+    "nis",
+    "nntplib",
+    "nt",
+    "ntpath",
+    "nturl2path",
+    "numbers",
+    "opcode",
+    "operator",
+    "optparse",
+    "os",
+    "ossaudiodev",
+    "pathlib",
+    "pdb",
+    "pickle",
+    "pickletools",
+    "pipes",
+    "pkgutil",
+    "platform",
+    "plistlib",
+    "poplib",
+    "posix",
+    "posixpath",
+    "pprint",
+    "profile",
+    "pstats",
+    "pty",
+    "pwd",
+    "py_compile",
+    "pyclbr",
+    "pydoc",
+    "pydoc_data",
+    "pyexpat",
+    "queue",
+    "quopri",
+    "random",
+    "re",
+    "readline",
+    "reprlib",
+    "resource",
+    "rlcompleter",
+    "runpy",
+    "sched",
+    "secrets",
+    "select",
+    "selectors",
+    "shelve",
+    "shlex",
+    "shutil",
+    "signal",
+    "site",
+    "smtplib",
+    "sndhdr",
+    "socket",
+    "socketserver",
+    "spwd",
+    "sqlite3",
+    "sre_compile",
+    "sre_constants",
+    "sre_parse",
+    "ssl",
+    "stat",
+    "statistics",
+    "string",
+    "stringprep",
+    "struct",
+    "subprocess",
+    "sunau",
+    "symtable",
+    "sys",
+    "sysconfig",
+    "syslog",
+    "tabnanny",
+    "tarfile",
+    "telnetlib",
+    "tempfile",
+    "termios",
+    "textwrap",
+    "this",
+    "threading",
+    "time",
+    "timeit",
+    "tkinter",
+    "token",
+    "tokenize",
+    "tomllib",
+    "trace",
+    "traceback",
+    "tracemalloc",
+    "tty",
+    "turtle",
+    "turtledemo",
+    "types",
+    "typing",
+    "unicodedata",
+    "unittest",
+    "urllib",
+    "uu",
+    "uuid",
+    "venv",
+    "warnings",
+    "wave",
+    "weakref",
+    "webbrowser",
+    "winreg",
+    "winsound",
+    "wsgiref",
+    "xdrlib",
+    "xml",
+    "xmlrpc",
+    "zipapp",
+    "zipfile",
+    "zipimport",
+    "zlib",
+    "zoneinfo"
+  ],
+  "optional_imports": [
+    "pytest",
+    "random",
+    "scipy",
+    "whisper"
+  ],
+  "import_sources": {
+    "random": [
+      "tests/conftest.py:1"
+    ],
+    "numpy": [
+      "tests/conftest.py:3",
+      "tests/test_audio.py:3",
+      "tests/test_timing.py:1",
+      "whisper/audio.py:6",
+      "whisper/decoding.py:4",
+      "whisper/model.py:7",
+      "whisper/timing.py:8",
+      "whisper/transcribe.py:7",
+      "whisper/triton_ops.py:3"
+    ],
+    "pytest": [
+      "tests/conftest.py:4",
+      "tests/test_normalizer.py:1",
+      "tests/test_timing.py:2",
+      "tests/test_tokenizer.py:1",
+      "tests/test_transcribe.py:3"
+    ],
+    "os": [
+      "tests/test_audio.py:1",
+      "tests/test_transcribe.py:1",
+      "whisper/__init__.py:3",
+      "whisper/audio.py:1",
+      "whisper/normalizers/english.py:2",
+      "whisper/tokenizer.py:2",
+      "whisper/transcribe.py:2",
+      "whisper/utils.py:2"
+    ],
+    "whisper": [
+      "tests/test_audio.py:5",
+      "tests/test_normalizer.py:3",
+      "tests/test_normalizer.py:4",
+      "tests/test_timing.py:6",
+      "tests/test_tokenizer.py:3",
+      "tests/test_transcribe.py:6",
+      "tests/test_transcribe.py:7"
+    ],
+    "scipy": [
+      "tests/test_timing.py:3"
+    ],
+    "torch": [
+      "tests/test_timing.py:4",
+      "tests/test_transcribe.py:4",
+      "whisper/__init__.py:8",
+      "whisper/audio.py:7",
+      "whisper/audio.py:8",
+      "whisper/decoding.py:5",
+      "whisper/decoding.py:6",
+      "whisper/decoding.py:7",
+      "whisper/decoding.py:8",
+      "whisper/model.py:8",
+      "whisper/model.py:9",
+      "whisper/model.py:10",
+      "whisper/model.py:17",
+      "whisper/timing.py:9",
+      "whisper/timing.py:10",
+      "whisper/transcribe.py:8",
+      "whisper/triton_ops.py:4"
+    ],
+    "hashlib": [
+      "whisper/__init__.py:1"
+    ],
+    "io": [
+      "whisper/__init__.py:2"
+    ],
+    "urllib": [
+      "whisper/__init__.py:4"
+    ],
+    "warnings": [
+      "whisper/__init__.py:5",
+      "whisper/timing.py:3",
+      "whisper/transcribe.py:4"
+    ],
+    "typing": [
+      "whisper/__init__.py:6",
+      "whisper/audio.py:4",
+      "whisper/decoding.py:2",
+      "whisper/model.py:5",
+      "whisper/normalizers/english.py:5",
+      "whisper/timing.py:5",
+      "whisper/tokenizer.py:6",
+      "whisper/transcribe.py:5",
+      "whisper/utils.py:6"
+    ],
+    "tqdm": [
+      "whisper/__init__.py:9",
+      "whisper/transcribe.py:9"
+    ],
+    "functools": [
+      "whisper/audio.py:2",
+      "whisper/tokenizer.py:5",
+      "whisper/triton_ops.py:1"
+    ],
+    "subprocess": [
+      "whisper/audio.py:3",
+      "whisper/timing.py:2"
+    ],
+    "dataclasses": [
+      "whisper/decoding.py:1",
+      "whisper/model.py:4",
+      "whisper/timing.py:4",
+      "whisper/tokenizer.py:4"
+    ],
+    "base64": [
+      "whisper/model.py:1",
+      "whisper/tokenizer.py:1"
+    ],
+    "gzip": [
+      "whisper/model.py:2"
+    ],
+    "contextlib": [
+      "whisper/model.py:3"
+    ],
+    "re": [
+      "whisper/normalizers/basic.py:1",
+      "whisper/normalizers/english.py:3",
+      "whisper/utils.py:3"
+    ],
+    "unicodedata": [
+      "whisper/normalizers/basic.py:2"
+    ],
+    "regex": [
+      "whisper/normalizers/basic.py:4"
+    ],
+    "json": [
+      "whisper/normalizers/english.py:1",
+      "whisper/utils.py:1"
+    ],
+    "fractions": [
+      "whisper/normalizers/english.py:4"
+    ],
+    "more_itertools": [
+      "whisper/normalizers/english.py:7"
+    ],
+    "itertools": [
+      "whisper/timing.py:1"
+    ],
+    "numba": [
+      "whisper/timing.py:7"
+    ],
+    "string": [
+      "whisper/tokenizer.py:3"
+    ],
+    "tiktoken": [
+      "whisper/tokenizer.py:8"
+    ],
+    "argparse": [
+      "whisper/transcribe.py:1"
+    ],
+    "traceback": [
+      "whisper/transcribe.py:3"
+    ],
+    "triton": [
+      "whisper/triton_ops.py:7",
+      "whisper/triton_ops.py:8"
+    ],
+    "sys": [
+      "whisper/utils.py:4"
+    ],
+    "zlib": [
+      "whisper/utils.py:5"
+    ]
+  },
+  "requirement_files": [
+    "requirements.txt"
+  ],
+  "selected_requirements": "requirements.txt",
+  "requirement_sources": {
+    "numba": [
+      "requirements.txt"
+    ],
+    "numpy": [
+      "requirements.txt"
+    ],
+    "torch": [
+      "requirements.txt"
+    ],
+    "tqdm": [
+      "requirements.txt"
+    ],
+    "more-itertools": [
+      "requirements.txt"
+    ],
+    "tiktoken": [
+      "requirements.txt"
+    ],
+    "triton>=2.0.0;platform_machine==\"x86_64\" and sys_platform==\"linux\" or sys_platform==\"linux2\"": [
+      "requirements.txt"
+    ]
+  },
+  "toml_groups": [
+    "Runtime",
+    "Extra: dev"
+  ],
+  "selected_group": "Runtime",
+  "import_scope": "Runtime",
+  "source_requirements": {},
+  "table": [
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "argparse",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "base64",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "contextlib",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "dataclasses",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "fractions",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "functools",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "gzip",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "hashlib",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "io",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "itertools",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "json",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [
+        [
+          "more-itertools",
+          "Any",
+          "missing"
+        ]
+      ],
+      [
+        [
+          "more-itertools",
+          "Any",
+          "missing"
+        ]
+      ],
+      [
+        [
+          "more_itertools",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [
+        [
+          "numba",
+          "Any",
+          "missing"
+        ]
+      ],
+      [
+        [
+          "numba",
+          "Any",
+          "missing"
+        ]
+      ],
+      [
+        [
+          "numba",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [
+        [
+          "numpy",
+          "Any",
+          "missing"
+        ]
+      ],
+      [
+        [
+          "numpy",
+          "Any",
+          "missing"
+        ]
+      ],
+      [
+        [
+          "numpy",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "os",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "pytest",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "random",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "re",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "regex",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "scipy",
+          "\u2014",
+          "optional"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "string",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "subprocess",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "sys",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [
+        [
+          "tiktoken",
+          "Any",
+          "missing"
+        ]
+      ],
+      [
+        [
+          "tiktoken",
+          "Any",
+          "missing"
+        ]
+      ],
+      [
+        [
+          "tiktoken",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [
+        [
+          "torch",
+          "Any",
+          "missing"
+        ]
+      ],
+      [
+        [
+          "torch",
+          "Any",
+          "missing"
+        ]
+      ],
+      [
+        [
+          "torch",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [
+        [
+          "tqdm",
+          "Any",
+          "missing"
+        ]
+      ],
+      [
+        [
+          "tqdm",
+          "Any",
+          "missing"
+        ]
+      ],
+      [
+        [
+          "tqdm",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "traceback",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [
+        [
+          "triton",
+          ">=2.0.0; platform_machine == \"x86_64\" and sys_platform == \"linux\" or sys_platform == \"linux2\"",
+          "missing"
+        ]
+      ],
+      [
+        [
+          "triton",
+          ">=2; (platform_machine == \"x86_64\" and sys_platform == \"linux\") or sys_platform == \"linux2\"",
+          "missing"
+        ]
+      ],
+      [
+        [
+          "triton",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "typing",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "unicodedata",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "urllib",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "warnings",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "whisper",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "zlib",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ]
+  ],
+  "fixes": [
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [
+        "more-itertools"
+      ],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [
+        "numba"
+      ],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [
+        "numpy"
+      ],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [
+        "tiktoken"
+      ],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [
+        "torch"
+      ],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [
+        "tqdm"
+      ],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [
+        "triton>=2.0.0; platform_machine == \"x86_64\" and sys_platform == \"linux\" or sys_platform == \"linux2\"",
+        "triton>=2; (platform_machine == \"x86_64\" and sys_platform == \"linux\") or sys_platform == \"linux2\""
+      ],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    }
+  ],
+  "torch": {
+    "message": "Torch: install torch using uv\u2019s automatic hardware selection.",
+    "action": "install",
+    "spec": "torch",
+    "backend": "auto"
+  },
+  "seconds": 0.04029472399997758,
+  "commit": "86098128c0b4f24f0e2aa2994de830614b474227"
+}

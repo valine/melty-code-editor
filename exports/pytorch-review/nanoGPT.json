@@ -1,0 +1,791 @@
+{
+  "context": [
+    "/home/lukas/Desktop/pytorch-review/nanoGPT",
+    null
+  ],
+  "installed": [],
+  "declared": [],
+  "toml": [],
+  "imported": [
+    [
+      "ast",
+      "\u2014"
+    ],
+    [
+      "contextlib",
+      "\u2014"
+    ],
+    [
+      "dataclasses",
+      "\u2014"
+    ],
+    [
+      "datasets",
+      "\u2014"
+    ],
+    [
+      "inspect",
+      "\u2014"
+    ],
+    [
+      "math",
+      "\u2014"
+    ],
+    [
+      "model",
+      "\u2014"
+    ],
+    [
+      "numpy",
+      "\u2014"
+    ],
+    [
+      "os",
+      "\u2014"
+    ],
+    [
+      "pickle",
+      "\u2014"
+    ],
+    [
+      "requests",
+      "\u2014"
+    ],
+    [
+      "sys",
+      "\u2014"
+    ],
+    [
+      "tiktoken",
+      "\u2014"
+    ],
+    [
+      "time",
+      "\u2014"
+    ],
+    [
+      "torch",
+      "\u2014"
+    ],
+    [
+      "tqdm",
+      "\u2014"
+    ],
+    [
+      "transformers",
+      "\u2014"
+    ],
+    [
+      "wandb",
+      "\u2014"
+    ]
+  ],
+  "errors": [
+    "No virtual environment selected"
+  ],
+  "standard_library": [
+    "__future__",
+    "_abc",
+    "_aix_support",
+    "_ast",
+    "_asyncio",
+    "_bisect",
+    "_blake2",
+    "_bz2",
+    "_codecs",
+    "_codecs_cn",
+    "_codecs_hk",
+    "_codecs_iso2022",
+    "_codecs_jp",
+    "_codecs_kr",
+    "_codecs_tw",
+    "_collections",
+    "_collections_abc",
+    "_compat_pickle",
+    "_compression",
+    "_contextvars",
+    "_crypt",
+    "_csv",
+    "_ctypes",
+    "_curses",
+    "_curses_panel",
+    "_datetime",
+    "_dbm",
+    "_decimal",
+    "_elementtree",
+    "_frozen_importlib",
+    "_frozen_importlib_external",
+    "_functools",
+    "_gdbm",
+    "_hashlib",
+    "_heapq",
+    "_imp",
+    "_io",
+    "_json",
+    "_locale",
+    "_lsprof",
+    "_lzma",
+    "_markupbase",
+    "_md5",
+    "_msi",
+    "_multibytecodec",
+    "_multiprocessing",
+    "_opcode",
+    "_operator",
+    "_osx_support",
+    "_overlapped",
+    "_pickle",
+    "_posixshmem",
+    "_posixsubprocess",
+    "_py_abc",
+    "_pydatetime",
+    "_pydecimal",
+    "_pyio",
+    "_pylong",
+    "_queue",
+    "_random",
+    "_scproxy",
+    "_sha1",
+    "_sha2",
+    "_sha3",
+    "_signal",
+    "_sitebuiltins",
+    "_socket",
+    "_sqlite3",
+    "_sre",
+    "_ssl",
+    "_stat",
+    "_statistics",
+    "_string",
+    "_strptime",
+    "_struct",
+    "_symtable",
+    "_thread",
+    "_threading_local",
+    "_tkinter",
+    "_tokenize",
+    "_tracemalloc",
+    "_typing",
+    "_uuid",
+    "_warnings",
+    "_weakref",
+    "_weakrefset",
+    "_winapi",
+    "_zoneinfo",
+    "abc",
+    "aifc",
+    "antigravity",
+    "argparse",
+    "array",
+    "ast",
+    "asyncio",
+    "atexit",
+    "audioop",
+    "base64",
+    "bdb",
+    "binascii",
+    "bisect",
+    "builtins",
+    "bz2",
+    "cProfile",
+    "calendar",
+    "cgi",
+    "cgitb",
+    "chunk",
+    "cmath",
+    "cmd",
+    "code",
+    "codecs",
+    "codeop",
+    "collections",
+    "colorsys",
+    "compileall",
+    "concurrent",
+    "configparser",
+    "contextlib",
+    "contextvars",
+    "copy",
+    "copyreg",
+    "crypt",
+    "csv",
+    "ctypes",
+    "curses",
+    "dataclasses",
+    "datetime",
+    "dbm",
+    "decimal",
+    "difflib",
+    "dis",
+    "doctest",
+    "email",
+    "encodings",
+    "ensurepip",
+    "enum",
+    "errno",
+    "faulthandler",
+    "fcntl",
+    "filecmp",
+    "fileinput",
+    "fnmatch",
+    "fractions",
+    "ftplib",
+    "functools",
+    "gc",
+    "genericpath",
+    "getopt",
+    "getpass",
+    "gettext",
+    "glob",
+    "graphlib",
+    "grp",
+    "gzip",
+    "hashlib",
+    "heapq",
+    "hmac",
+    "html",
+    "http",
+    "idlelib",
+    "imaplib",
+    "imghdr",
+    "importlib",
+    "inspect",
+    "io",
+    "ipaddress",
+    "itertools",
+    "json",
+    "keyword",
+    "lib2to3",
+    "linecache",
+    "locale",
+    "logging",
+    "lzma",
+    "mailbox",
+    "mailcap",
+    "marshal",
+    "math",
+    "mimetypes",
+    "mmap",
+    "modulefinder",
+    "msilib",
+    "msvcrt",
+    "multiprocessing",
+    "netrc",
+    "nis",
+    "nntplib",
+    "nt",
+    "ntpath",
+    "nturl2path",
+    "numbers",
+    "opcode",
+    "operator",
+    "optparse",
+    "os",
+    "ossaudiodev",
+    "pathlib",
+    "pdb",
+    "pickle",
+    "pickletools",
+    "pipes",
+    "pkgutil",
+    "platform",
+    "plistlib",
+    "poplib",
+    "posix",
+    "posixpath",
+    "pprint",
+    "profile",
+    "pstats",
+    "pty",
+    "pwd",
+    "py_compile",
+    "pyclbr",
+    "pydoc",
+    "pydoc_data",
+    "pyexpat",
+    "queue",
+    "quopri",
+    "random",
+    "re",
+    "readline",
+    "reprlib",
+    "resource",
+    "rlcompleter",
+    "runpy",
+    "sched",
+    "secrets",
+    "select",
+    "selectors",
+    "shelve",
+    "shlex",
+    "shutil",
+    "signal",
+    "site",
+    "smtplib",
+    "sndhdr",
+    "socket",
+    "socketserver",
+    "spwd",
+    "sqlite3",
+    "sre_compile",
+    "sre_constants",
+    "sre_parse",
+    "ssl",
+    "stat",
+    "statistics",
+    "string",
+    "stringprep",
+    "struct",
+    "subprocess",
+    "sunau",
+    "symtable",
+    "sys",
+    "sysconfig",
+    "syslog",
+    "tabnanny",
+    "tarfile",
+    "telnetlib",
+    "tempfile",
+    "termios",
+    "textwrap",
+    "this",
+    "threading",
+    "time",
+    "timeit",
+    "tkinter",
+    "token",
+    "tokenize",
+    "tomllib",
+    "trace",
+    "traceback",
+    "tracemalloc",
+    "tty",
+    "turtle",
+    "turtledemo",
+    "types",
+    "typing",
+    "unicodedata",
+    "unittest",
+    "urllib",
+    "uu",
+    "uuid",
+    "venv",
+    "warnings",
+    "wave",
+    "weakref",
+    "webbrowser",
+    "winreg",
+    "winsound",
+    "wsgiref",
+    "xdrlib",
+    "xml",
+    "xmlrpc",
+    "zipapp",
+    "zipfile",
+    "zipimport",
+    "zlib",
+    "zoneinfo"
+  ],
+  "optional_imports": [],
+  "import_sources": {
+    "os": [
+      "bench.py:4",
+      "data/openwebtext/prepare.py:4",
+      "data/shakespeare/prepare.py:1",
+      "data/shakespeare_char/prepare.py:7",
+      "sample.py:4",
+      "train.py:19"
+    ],
+    "contextlib": [
+      "bench.py:5",
+      "sample.py:6",
+      "train.py:23"
+    ],
+    "numpy": [
+      "bench.py:6",
+      "data/openwebtext/prepare.py:6",
+      "data/shakespeare/prepare.py:4",
+      "data/shakespeare_char/prepare.py:10",
+      "train.py:25"
+    ],
+    "time": [
+      "bench.py:7",
+      "config/finetune_shakespeare.py:1",
+      "train.py:20"
+    ],
+    "torch": [
+      "bench.py:8",
+      "model.py:14",
+      "model.py:15",
+      "model.py:16",
+      "sample.py:7",
+      "train.py:26",
+      "train.py:27",
+      "train.py:28"
+    ],
+    "model": [
+      "bench.py:9",
+      "sample.py:9",
+      "train.py:30"
+    ],
+    "sys": [
+      "configurator.py:17"
+    ],
+    "ast": [
+      "configurator.py:18"
+    ],
+    "tqdm": [
+      "data/openwebtext/prepare.py:5"
+    ],
+    "tiktoken": [
+      "data/openwebtext/prepare.py:7",
+      "data/shakespeare/prepare.py:3",
+      "sample.py:8"
+    ],
+    "datasets": [
+      "data/openwebtext/prepare.py:8"
+    ],
+    "requests": [
+      "data/shakespeare/prepare.py:2",
+      "data/shakespeare_char/prepare.py:9"
+    ],
+    "pickle": [
+      "data/shakespeare_char/prepare.py:8",
+      "sample.py:5",
+      "train.py:22"
+    ],
+    "math": [
+      "model.py:10",
+      "train.py:21"
+    ],
+    "inspect": [
+      "model.py:11"
+    ],
+    "dataclasses": [
+      "model.py:12"
+    ],
+    "transformers": [
+      "model.py:212"
+    ],
+    "wandb": [
+      "train.py:246"
+    ]
+  },
+  "table": [
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "ast",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "contextlib",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "dataclasses",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "datasets",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "inspect",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "math",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "model",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "numpy",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "os",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "pickle",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "requests",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "sys",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "tiktoken",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "time",
+          "\u2014",
+          "unused"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "torch",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "tqdm",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "transformers",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ],
+    [
+      [],
+      [],
+      [],
+      [
+        [
+          "wandb",
+          "\u2014",
+          "missing"
+        ]
+      ]
+    ]
+  ],
+  "fixes": [
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    },
+    {
+      "install": [],
+      "add": [],
+      "toml": []
+    }
+  ],
+  "torch": {
+    "message": "Torch: install torch using uv\u2019s automatic hardware selection.",
+    "action": "install",
+    "spec": "torch",
+    "backend": "auto"
+  },
+  "seconds": 0.021089367000968195,
+  "commit": "3adf61e154c3fe3fca428ad6bc3818b27a3b8291"
+}

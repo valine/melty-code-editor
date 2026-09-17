@@ -1,0 +1,53 @@
+         479366 function calls (469231 primitive calls) in 0.188 seconds
+
+   Ordered by: cumulative time
+   List reduced from 423 to 45 due to restriction <45>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        5    0.000    0.000    0.204    0.041 _base.py:612(result_iterator)
+        4    0.000    0.000    0.204    0.051 _base.py:314(_result_or_cancel)
+       11    0.000    0.000    0.203    0.018 threading.py:323(wait)
+        4    0.000    0.000    0.203    0.051 _base.py:428(result)
+        1    0.000    0.000    0.188    0.188 project_dependencies.py:20(assemble_dependencies)
+        1    0.007    0.007    0.188    0.188 project_dependencies.py:28(_assemble_dependencies)
+        1    0.000    0.000    0.076    0.076 project_dependencies.py:357(collect_imports)
+        1    0.000    0.000    0.075    0.075 _base.py:646(__exit__)
+        1    0.000    0.000    0.075    0.075 thread.py:219(shutdown)
+        4    0.000    0.000    0.075    0.019 threading.py:1115(join)
+        4    0.000    0.000    0.075    0.019 threading.py:1153(_wait_for_tstate_lock)
+    58/42    0.000    0.000    0.075    0.002 {method 'acquire' of '_thread.lock' objects}
+      4/1    0.000    0.000    0.075    0.075 threading.py:1016(_bootstrap)
+      4/1    0.000    0.000    0.075    0.075 threading.py:1056(_bootstrap_inner)
+      4/1    0.000    0.000    0.075    0.075 threading.py:999(run)
+      4/1    0.000    0.000    0.075    0.075 thread.py:69(_worker)
+      4/1    0.000    0.000    0.075    0.075 {method 'get' of '_queue.SimpleQueue' objects}
+      4/1    0.000    0.000    0.074    0.074 thread.py:53(run)
+      4/1    0.001    0.000    0.074    0.074 project_dependencies.py:369(parse_batch)
+      519    0.002    0.000    0.033    0.000 pathlib.py:663(relative_to)
+    12714    0.005    0.000    0.025    0.000 pathlib.py:380(with_segments)
+     8932    0.003    0.000    0.023    0.000 pathlib.py:420(_from_parsed_parts)
+        1    0.001    0.001    0.022    0.022 project_dependencies.py:235(dependency_files)
+     9503    0.002    0.000    0.019    0.000 pathlib.py:551(drive)
+     5789    0.001    0.000    0.019    0.000 <frozen _collections_abc>:1022(__iter__)
+     5187    0.003    0.000    0.018    0.000 pathlib.py:276(__getitem__)
+      603    0.001    0.000    0.018    0.000 pathlib.py:690(is_relative_to)
+    13010    0.004    0.000    0.017    0.000 pathlib.py:1159(__init__)
+    12245    0.003    0.000    0.017    0.000 pathlib.py:437(__str__)
+     3871    0.002    0.000    0.017    0.000 pathlib.py:407(_load_parts)
+     4264    0.002    0.000    0.017    0.000 pathlib.py:731(parent)
+     1712    0.000    0.000    0.013    0.000 pathlib.py:837(stat)
+    13010    0.009    0.000    0.013    0.000 pathlib.py:357(__init__)
+     1712    0.002    0.000    0.013    0.000 {built-in method posix.stat}
+      602    0.001    0.000    0.011    0.000 <frozen _collections_abc>:1032(__contains__)
+     3871    0.006    0.000    0.011    0.000 pathlib.py:387(_parse_path)
+        8    0.000    0.000    0.011    0.001 project_dependencies.py:109(requirements)
+     1742    0.000    0.000    0.011    0.000 pathlib.py:447(__fspath__)
+     8623    0.003    0.000    0.009    0.000 pathlib.py:519(__eq__)
+    20861    0.005    0.000    0.009    0.000 pathlib.py:484(_str_normcase)
+      664    0.000    0.000    0.006    0.000 pathlib.py:888(is_file)
+     2756    0.000    0.000    0.006    0.000 {built-in method builtins.sorted}
+        1    0.000    0.000    0.006    0.006 text_index.py:379(_walk_rel_files)
+      596    0.000    0.000    0.006    0.000 pathlib.py:872(is_dir)
+        9    0.000    0.000    0.006    0.001 project_dependencies.py:45(<genexpr>)
+
+
