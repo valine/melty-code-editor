@@ -18,7 +18,17 @@ windows each frame with `open_requested`; both backends must behave identically.
 Run: `./melty-code-editor FILE...`.
 Smoke test: `MELTY_BENCH=1 .venv/bin/python editor.py FILE`.
 Read-only files / library installs are refused up front.
+Tabs are scoped: `OpenFiles.project_of(path)` is the deepest marked project or None, and
+the tab bar shows the scope of the editor's selected project (`EditorProjectState`, in
+meltygui_pro's `draw_code_editor`); `open_paths` is still the one flat persisted list.
+File → New Project… is `new_project.py` over `project_templates/`: one sub-folder per
+template, each a `create(name, ...)` function returning `{path: str | bytes}`; its
+parameters are the window's inputs. A view returns its input's type (a `str` there).
 Search → Search… / Ctrl+Shift+F uses `meltygui_pro.global_search`, over the app's
 project roots (`project_roots()` in editor.py).
+The Files tile is `project_tree.py` (`draw_project_tree`, just `@render_func(multi_instance=True)`;
+`draw_file_tree` is meltygui's name and the registry is keyed by `__name__`). It finds the
+editor to open in by the sibling draw_state walk (`target_editor`), posts `jump_to_path` +
+`jump_to_instance`, and forces that editor past its blit cache so the jump is adopted.
 The toolkit guide is `../meltygui/docs/APPS.md`; package ownership and migration
 notes are `../meltygui_pro/docs/PACKAGE_SPLIT.md`.

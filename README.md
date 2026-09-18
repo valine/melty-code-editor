@@ -139,6 +139,37 @@ and press Enter: the file is created (an existing path is simply opened) and
 becomes the selected tab. Escape closes the field. A path that cannot be
 created shows its error under the bar, the way a refused open does.
 
+Tabs are scoped to projects. Every open file belongs to the deepest *marked*
+project containing it, or to no project (`OpenFiles.project_of`, `paths_in`,
+`projects`); `open_paths` stays the one persisted list. The tab bar shows the
+tabs of the project selected in the shortcuts column, or the no-project tabs
+when the selected folder is in none. Selecting a project brings back the tab
+it showed last; opening or jumping to a file elsewhere (File → Open, search,
+go to definition, a new project) selects that file's project. Dragging a tab
+reorders it among its own project's tabs. Marking or unmarking a folder
+re-scopes its tabs at once. Each editor tile has its own selected project.
+`draw_code_editor(project_tabs=False)` shows every tab, as before.
+
+**File → New Project…** opens the New Project window (a child OS window,
+`new_project.py`): a template, a name and location, the Python interpreter
+(uv's installed ones), and whether to create `.venv` and install the
+project's `requirements.txt` into it. Create runs in the background; the new
+folder is marked as a project and its main file becomes the selected tab. If
+the environment or the install fails, the project still exists and the window
+says what failed.
+
+The templates are functions: each sub-folder of `project_templates/` defines
+`create(name, ...)`, which returns the project as `{relative path: str |
+bytes}`. The function's other parameters are the window's inputs for that
+template (`str` a text field, `bool` a checkbox, `Literal[...]` a dropdown,
+`Annotated[T, 'Label']` to name it); `name` and `python_version` come from the
+window's own fields. `python_basic` is static (its `files/` folder with
+`{{placeholders}}`, via `static_files`); `melty_app` is generated (a render
+function, a persisted state object, and a requirements.txt that points at the
+meltygui install the editor runs on, plus the selected torch version). To add
+a template, add a folder with a `create` function; see the package docstring.
+`.venv/bin/python -m pytest tests` covers the package.
+
 **File → Open…** or **Ctrl+O** opens melty's file selector. Double-click a
 file or select it and press Enter to open and select its tab. Choosing an
 already-open file selects that tab; existing tabs and edits stay intact.

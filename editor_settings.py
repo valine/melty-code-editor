@@ -9,9 +9,14 @@ launch_overrides.json` (LaunchOverride), which the next launch applies
 before this module's importers see it. The values below stay the defaults;
 the user's choices never edit this file.
 
-To add a setting: add the attribute here with its default, read it where
-the option is passed (tile_views.py). Nothing else to register.
+Render functions read `settings[...]`, the dict, not the class: the read
+is what tells the dict which view to repaint when that value changes.
+
+To add a setting: add the attribute here with its default, read it from
+`settings` where the option is passed (tile_views.py). Nothing else to
+register.
 """
+from meltygui.model.code_dict_model import CodeDict, Hotswap, LaunchOverride
 
 
 class CodeEditorSettings:
@@ -26,3 +31,12 @@ class CodeEditorSettings:
         syntax_analysis = True
         # The change ribbons beside the scrollbar.
         show_ribbons = True
+
+    class FileTree:
+        # Dotfiles and dot-folders in the Files tile (and its search).
+        show_hidden = False
+
+
+# CodeEditorSettings as a dict: the root window's settings window edits it,
+# the render functions read it.
+settings = CodeDict(CodeEditorSettings, write_to=(LaunchOverride, Hotswap))

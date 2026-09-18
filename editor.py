@@ -6,9 +6,12 @@
 
 The window is one ``@glfw_window`` hosting a persisted tiled workspace.
 Drag a tile corner inward to split it; each tile's dropdown selects an
-editor or a Claude Code chat (melty_claude's window as a tile; new
-conversations start in the selected tab's project, and the conversations are
-the same detached service melty-claude shows). Editors share ``OpenFiles``
+editor, the Files tree (project_tree.py: the projects as collapsible trees
+with the file browser's type-to-search; a double-click opens the file in the
+editor tile to the tree's left, else the closest one) or a Claude Code chat
+(melty_claude's window as a tile; new conversations start in the selected
+tab's project, and the conversations are the same detached service
+melty-claude shows). Editors share ``OpenFiles``
 with independent view state. A tab per file along the bottom, the editor above it with Python
 syntax analysis, folds, search and autocomplete, a Compare With dropdown
 (git HEAD, the file on disk, any recent commit) and the nav back / forward
@@ -42,8 +45,9 @@ from meltygui import glfw_window, pressed, imgui, window_api as glfw
 from meltygui import draw_voxels, draw_line_graph
 from app_model import EditorAppModel
 from tile_views import draw_main_editor, draw_chat  # noqa: F401  draw_chat registers the Claude Code tile
-from editor_settings import CodeEditorSettings
-from meltygui.model.code_dict_model import CodeDict, Hotswap, LaunchOverride
+from project_tree import draw_project_tree, open_path  # noqa: F401  draw_project_tree registers the Files tile
+from editor_settings import settings
+from new_project import draw_new_project, main_files
 from meltygui.core.layout.tile_manager_core import TileManagerState, draw_tiles
 from meltygui.core.core_render import render_func
 from meltygui_pro.models.open_files import OpenFiles
@@ -76,12 +80,6 @@ for path in paths:
 if paths:
     open_files.jump_to_path = str(paths[0])
 
-
-
-# The settings window (the title bar's cog): CodeEditorSettings as a dict. An
-# edit reaches the live class, which the render functions read, and the
-# user's launch overrides file; the class's source keeps the defaults.
-settings = CodeDict(CodeEditorSettings, write_to=(LaunchOverride, Hotswap))
 
 
 def real_open_paths():
@@ -118,6 +116,7 @@ search = meltygui_pro.global_search(categories=('Code',), roots=project_roots, o
 open_requested = False
 run_requested = False
 add_project_requested = False
+new_project_requested = False
 open_error = None
 # The New… path field's draft, or None while it is closed; new_opened is
 # True for the one frame after File → New… / Ctrl+N so the field takes focus.
@@ -171,6 +170,31 @@ FOLDER_MENU = {'Mark Folder as Project': mark_folder,
                'Unmark Project': unmark_folder}
 
 
+def request_new_project():
+    """File → New Project…: the template window (a child OS window)."""
+    global new_project_requested
+    new_project_requested = True
+
+
+def default_project_location():
+    """Where a new project goes by default: beside the selected tab's project."""
+    selected = open_files.active_path
+    if isinstance(selected, str) and not selected.startswith(OpenFiles.GIT_DIFF_PREFIX):
+        root = project_for(selected)
+        if root:
+            return pathlib.Path(root).parent
+    return pathlib.Path.home()
+
+
+def project_created(root):
+    """A template's folder was written: it is a project (search, the
+    shortcuts column, every melty app), and its main file is the selected tab."""
+    mark_project(root)
+    main_file = main_files.pop(root, None)
+    if main_file:
+        open_file(main_file)
+
+
 def default_new_dir():
     """Where a new file goes by default: beside the last opened tab."""
     real = real_open_paths()
@@ -208,21 +232,7 @@ def new_file_commit():
 def open_file(filename):
     """Open/select a tab using the same editability rules as command-line files."""
     global open_error
-    path = pathlib.Path(filename).expanduser().resolve()
-    try:
-        refusal = writable_file_refusal(path)
-        if not path.is_file():
-            refusal = 'not an existing file'
-        if refusal:
-            open_error = f'Cannot open {path}: {refusal}'
-            return
-        open_files.open_file(path)
-    except OSError as error:
-        open_error = f'Cannot open {path}: {error}'
-        return
-    open_files.jump_to_path = str(path)
-    open_files.jump_to_instance = open_files.active_instance
-    open_error = None
+    open_error = open_path(open_files, filename, open_files.active_instance)
 
 
 def request_run_file():
@@ -257,9 +267,10 @@ def draw_new_field(width):
 @render_func(use_cache=True)
 def editor(input_value: object, draw_state, run_state: ProjectRunState = None,
            tile_state: TileManagerState = None, multi_instance_renderers=()):
-    global open_requested, add_project_requested, run_requested
+    global open_requested, add_project_requested, new_project_requested, run_requested
     menu_height = 25.0
-    meltygui.draw_menu_bar({'File': {'New…': request_new, 'Open…': request_open},
+    meltygui.draw_menu_bar({'File': {'New…': request_new, 'New Project…': request_new_project,
+                                  'Open…': request_open},
                          'Run': {'Run file (F5)': request_run_file},
                          'Projects': projects_menu(),
                          'Search': {'Search…': search.open}},
@@ -282,6 +293,13 @@ def editor(input_value: object, draw_state, run_state: ProjectRunState = None,
     add_project_requested = False
     if changed:
         mark_project(folder)
+    # File → New Project…: the templates of project_templates/ as a form.
+    created, project = draw_new_project(
+        str(default_project_location()), name='New Project', glfw_window=True,
+        open_requested=new_project_requested, window_size=(560, 720))
+    new_project_requested = False
+    if created:
+        project_created(project)
     if new_draft is not None:
         draw_new_field(draw_state.width)
     if open_error:

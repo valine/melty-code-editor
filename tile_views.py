@@ -6,7 +6,7 @@ from meltygui_pro import draw_code_editor
 from meltygui_pro.models.open_files import OpenFiles
 from meltygui_pro.models.projects import project_for
 from melty_claude import draw_claude_chat
-from editor_settings import CodeEditorSettings
+from editor_settings import settings
 
 # The chat tile's tint: its row in the tile picker (melty-claude's window tint).
 CHAT_TINT = (0.35, 0.38, 0.44)
@@ -14,12 +14,12 @@ CHAT_TINT = (0.35, 0.38, 0.44)
 
 def draw_main_editor(input_value: OpenFiles, **kwargs):
     """Apply the app's editor options without adding a render boundary."""
+    options = settings["Editor"]
     return draw_code_editor(
         input_value, name="code-editor", disable_scroll=True,
-        show_shortcuts=CodeEditorSettings.Editor.show_shortcuts,
-        show_breadcrumbs=CodeEditorSettings.Editor.show_breadcrumbs,
-        syntax_analysis=CodeEditorSettings.Editor.syntax_analysis,
-        show_ribbons=CodeEditorSettings.Editor.show_ribbons, min_height=0, **kwargs)
+        show_shortcuts=options["show_shortcuts"], show_breadcrumbs=options["show_breadcrumbs"],
+        syntax_analysis=options["syntax_analysis"], show_ribbons=options["show_ribbons"],
+        min_height=0, **kwargs)
 
 
 def chat_project(open_files):
