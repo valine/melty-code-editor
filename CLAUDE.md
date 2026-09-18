@@ -14,6 +14,8 @@ Keep `app_id='melty-code-editor'` so the existing session restores. Import
 `meltygui_pro` before loading persisted state to register its class migrations.
 View-local state uses injected `DictConversion` objects. Draw nested/native
 windows each frame with `open_requested`; both backends must behave identically.
+Size / place a window with `initial={"width":, "height":, "window_pos":}` (applied once);
+`width=` / `height=` / `window_pos=` kwargs apply every frame and pin it (meltygui `docs/APPS.md`).
 
 Run: `./melty-code-editor FILE...`.
 Smoke test: `MELTY_BENCH=1 .venv/bin/python editor.py FILE`.
@@ -32,5 +34,11 @@ The Files tile is `project_tree.py` (`draw_project_tree`, just `@render_func(mul
 `draw_file_tree` is meltygui's name and the registry is keyed by `__name__`). It finds the
 editor to open in by the sibling draw_state walk (`target_editor`), posts `jump_to_path` +
 `jump_to_instance`, and forces that editor past its blit cache so the jump is adopted.
+The Claude Code tile is meltygui's `draw_claude_chat`, a plain function (one call of
+`draw_chat_interface`, the only render boundary); `tile_views.py` names it `draw_chat` and
+editor.py offers it in `multi_instance_renderers`. Its view, backends and detached chat service are
+`meltygui.chat` (socket `$XDG_RUNTIME_DIR/meltygui-chat-<uid>/`; `MELTY_CHAT_SERVICE=name` isolates
+a test run); a tile's new conversations start in the selected tab's project through
+meltygui_pro's `chat_project` extension service (`integration.py`).
 The toolkit guide is `../meltygui/docs/APPS.md`; package ownership and migration
 notes are `../meltygui_pro/docs/PACKAGE_SPLIT.md`.

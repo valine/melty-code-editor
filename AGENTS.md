@@ -14,6 +14,8 @@ Keep `app_id='melty-code-editor'` so the existing session restores. Import
 `meltygui_pro` before loading persisted state to register its class migrations.
 View-local state uses injected `DictConversion` objects. Draw nested/native
 windows each frame with `open_requested`; both backends must behave identically.
+Size / place a window with `initial={"width":, "height":, "window_pos":}` (applied once);
+`width=` / `height=` / `window_pos=` kwargs apply every frame and pin it (meltygui `docs/APPS.md`).
 
 Run: `./melty-code-editor FILE...`.
 Smoke test: `MELTY_BENCH=1 .venv/bin/python editor.py FILE`.

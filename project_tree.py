@@ -711,6 +711,34 @@ def open_target(tile_ds):
     return target_editor(tile_ds)
 
 
+def tile_background(tile_ds, open_files, fallback, saturation=0.75, brightness=0.085):
+    """The tile's background, packed: the tint of the file selected in the
+    editor the tree opens in (its tab's colour), kept in hue, saturated and
+    dark so the rows stay readable. An unpainted file wears `fallback`.
+    How to change: raise `brightness` for a lighter wash, lower `saturation`
+    toward 0 for a greyer one."""
+    import colorsys
+    from meltygui.models.file_meta import FileMeta, file_meta_store
+    editor = open_target(tile_ds)
+    path = getattr(editor, "selected_tab", None) if editor is not None else None
+    if not isinstance(path, str) and open_files is not None:
+        path = open_files.active_path
+    tint = None
+    if isinstance(path, str):
+        tint = FileMeta.painted_tint(file_meta_store().get(path.removeprefix(OpenFiles.GIT_DIFF_PREFIX)))
+    key = (tuple((tint or fallback)[:3]), saturation, brightness)
+    packed = _TILE_BG_MEMO.get(key)
+    if packed is None:
+        hue, tint_saturation, _value = colorsys.rgb_to_hsv(*key[0])
+        # A grey tint has no hue to saturate: it stays grey.
+        rgb = colorsys.hsv_to_rgb(hue, saturation if tint_saturation > 0.05 else 0.0, brightness)
+        packed = _TILE_BG_MEMO[key] = pack_color(*rgb, 1.0)
+    return packed
+
+
+_TILE_BG_MEMO = {}
+
+
 def default_project(open_files):
     """A fresh tree's project: the selected tab's, else the first saved one, else home."""
     path = open_files.active_path if open_files is not None else None
@@ -781,6 +809,10 @@ def draw_project_tree(input_value: object, draw_state, panel_state: ProjectPanel
     left, top = imgui.get_cursor_screen_pos()
     width = draw_state.content_width or (draw_state.width or 240)
     gap, arrow_w, header_h = px(4), px(arrow_width), px(header_height)
+    imgui.get_window_draw_list().add_rect_filled(
+        draw_state.abs_left, draw_state.abs_top, draw_state.abs_left + (draw_state.width or width),
+        draw_state.abs_top + (draw_state.height or 0),
+        tile_background(draw_state, open_files, draw_state.current_tint), px(6))
     # The link arrow leads the row: its popover opens rightwards, inside the tile.
     # [tint=(0.62, 0.78, 0.98)]
     arrow = f"\uf0c1"

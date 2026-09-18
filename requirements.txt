@@ -1,10 +1,6 @@
 # Development installs from the sibling checkouts (not yet published).
 --find-links ../meltygui/dist/release
--e ../meltygui[tensor]
+# `claude`: the Claude Code chat tile's backend (claude-agent-sdk).
+-e ../meltygui[tensor,claude]
 -e ../meltygui_pro
-# The Claude Code chat tile: melty_claude's view and melty_agents' backend. These
-# are the meltygui ports (side-by-side copies until the melty_claude cutover
-# retires the latent-descent checkouts of the same names).
--e ../melty_claude-meltygui
--e ../melty_agents-meltygui
 torch>=2.2

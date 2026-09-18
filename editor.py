@@ -9,9 +9,9 @@ Drag a tile corner inward to split it; each tile's dropdown selects an
 editor, the Files tree (project_tree.py: the projects as collapsible trees
 with the file browser's type-to-search; a double-click opens the file in the
 editor tile to the tree's left, else the closest one) or a Claude Code chat
-(melty_claude's window as a tile; new conversations start in the selected
-tab's project, and the conversations are the same detached service
-melty-claude shows). Editors share ``OpenFiles``
+(``meltygui.draw_claude_chat`` as a tile; new conversations start in the selected
+tab's project, and the conversations live in meltygui's detached chat
+service, shared with every app that draws the chat). Editors share ``OpenFiles``
 with independent view state. A tab per file along the bottom, the editor above it with Python
 syntax analysis, folds, search and autocomplete, a Compare With dropdown
 (git HEAD, the file on disk, any recent commit) and the nav back / forward
@@ -44,7 +44,7 @@ from meltygui import glfw_window, pressed, imgui, window_api as glfw
 # Register tensor views for inline captures, including project-process arrays.
 from meltygui import draw_voxels, draw_line_graph
 from app_model import EditorAppModel
-from tile_views import draw_main_editor, draw_chat  # noqa: F401  draw_chat registers the Claude Code tile
+from tile_views import draw_main_editor, draw_chat
 from project_tree import draw_project_tree, open_path  # noqa: F401  draw_project_tree registers the Files tile
 from editor_settings import settings
 from new_project import draw_new_project, main_files
@@ -263,7 +263,7 @@ def draw_new_field(width):
 
 
 @glfw_window(name=paths[0].name if len(paths) == 1 else 'Code Editor', app_id='melty-code-editor',
-             with_header=draw_header, bg_offset=-3, tint=(0.56, 0.68, 0.84), settings=settings)
+             with_header=draw_header, bg_offset=-3, tint=(0.28, 0.42, 0.59), settings=settings)
 @render_func(use_cache=True)
 def editor(input_value: object, draw_state, run_state: ProjectRunState = None,
            tile_state: TileManagerState = None, multi_instance_renderers=()):
@@ -307,7 +307,7 @@ def editor(input_value: object, draw_state, run_state: ProjectRunState = None,
     app_model.reconcile_editors(open_files)
     layout_changed = draw_tiles(
         app_model.tiles, draw_state, tile_state=tile_state,
-        multi_instance_renderers=(draw_main_editor, *multi_instance_renderers),
+        multi_instance_renderers=(draw_main_editor, draw_chat, *multi_instance_renderers),
         content_top=imgui.get_cursor_screen_pos()[1])
     app_model.reconcile_editors(open_files)
     if run_requested or pressed('f5'):
