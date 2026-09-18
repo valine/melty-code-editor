@@ -32,6 +32,16 @@ Esc clears. Without a query Up / Down walk the rows, Right / Left expand and
 collapse. The tree takes the keyboard on a click inside it and leaves it to
 whatever text view claims it next.
 
+Right-click a row (or the empty space: the project folder) for Rename…,
+New → File / Folder and Add to Projects (`file_menu`, the wrapper's
+`context_menu=`). A new file / folder is created under a free name and named
+in place like a rename: Enter commits, Esc or a click elsewhere leaves the
+name. Open tabs follow a renamed file or folder (`follow_rename`).
+
+The whole tile's background is the project folder's file-meta tint, dark
+and saturated (`tile_fill`, painted by the tile manager through
+`draw_project_tree.tile_background`); the chip beside the selector edits it.
+
 A file opens in the first editor the tree is linked to, else the code-editor
 tile ADJACENT TO THE TREE'S LEFT, else the closest one: `target_editor` finds them by the sibling draw_state walk (the
 dim picker's `_sibling_dim_keys`) — the tiles of a host are all children of
@@ -82,7 +92,8 @@ class ProjectTreeState(DictConversion):
         self._index = None          # (roots, show_hidden, entries) while searching
         self._hits = None           # (query, [(entry index, rank, spans)])
         self._reveal = None         # str path to scroll to on the next run
-        self._error = None          # why the last open was refused
+        self._error = None          # why the last open / file operation was refused
+        self._naming = None         # {'path', 'draft', 'opened'}: the row being named in place
 
 
 class _Watch:
@@ -319,10 +330,114 @@ def reveal(state, path, roots):
     state._reveal = str(path)
 
 
+# ── the right-click menu: Rename, New → File / Folder, Add to Projects ─────
+# The menu is the wrapper's (`context_menu=` on the draw_project_files call,
+# the file browser's pattern): its callables are built by the tile and get no
+# arguments, so they post a request on `menu_target`, the dict the rows write
+# the right-clicked path into. The rows pick the request up on their next run.
+NEW_FILE_NAME = "untitled.py"
+NEW_FOLDER_NAME = "New Folder"
+
+
+def file_menu(menu_target):
+    """{label: callable | {label: callable}} for `context_menu=`."""
+    def post(kind):
+        return lambda: menu_target.update(request=(kind, menu_target.get("path")))
+    return {"Rename…": post("rename"),
+            "New": {"File": post("file"), "Folder": post("folder")},
+            "Add to Projects": post("project")}
+
+
+def free_name(directory, name):
+    """`directory/name`, numbered ("name (2).ext") until nothing is there."""
+    target = Path(directory) / name
+    stem, suffix = target.stem, target.suffix
+    number = 2
+    while target.exists():
+        target = Path(directory) / f"{stem} ({number}){suffix}"
+        number += 1
+    return target
+
+
+def begin_request(state, request, roots):
+    """Start what the menu asked for. A new file / folder is created under a
+    free name at once and then named in place, as a rename. Returns the
+    refusal (a short reason) or None."""
+    kind, target = request
+    target = Path(target) if target else roots[0]
+    if kind == "project":
+        from meltygui_pro.models.projects import mark_project
+        mark_project(target if target.is_dir() else target.parent)
+        return None
+    if kind == "rename":
+        if target in roots:
+            return "The project folder is renamed outside the tree."
+    else:
+        directory = target if target.is_dir() else target.parent
+        target = free_name(directory, NEW_FOLDER_NAME if kind == "folder" else NEW_FILE_NAME)
+        try:
+            target.mkdir() if kind == "folder" else target.touch(exist_ok=False)
+        except OSError as error:
+            return f"Cannot create {target.name}: {error.strerror or error}"
+        reveal(state, target, roots)
+    state.selected = str(target)
+    state._naming = {"path": str(target), "draft": target.name, "opened": True}
+    return None
+
+
+def commit_name(state, open_files):
+    """Rename the row being named to its draft; open tabs follow the file.
+    Returns (refusal | None, the new path | None)."""
+    naming, state._naming = state._naming, None
+    old = Path(naming["path"])
+    name = naming["draft"].strip()
+    if not name or name == old.name:
+        return None, None
+    if "/" in name or name in (".", ".."):
+        return f"'{name}' is not a file name.", None
+    new = old.with_name(name)
+    if new.exists():
+        return f"{name} already exists.", None
+    try:
+        old.rename(new)
+    except OSError as error:
+        return f"Cannot rename {old.name}: {error.strerror or error}", None
+    if str(old) in state.expanded:
+        state.expanded.discard(str(old))
+        state.expanded.add(str(new))
+    state.selected = str(new)
+    if open_files is not None:
+        follow_rename(open_files, old, new)
+    return None, new
+
+
+def follow_rename(open_files, old, new):
+    """The tabs of `old` (a file, or the files under a folder) become `new`'s:
+    same slots, hosts reopened from the new path on their next draw."""
+    def moved(path):
+        real = Path(path.removeprefix(OpenFiles.GIT_DIFF_PREFIX))
+        if real != old and old not in real.parents:
+            return None
+        prefix = OpenFiles.GIT_DIFF_PREFIX if path.startswith(OpenFiles.GIT_DIFF_PREFIX) else ""
+        return prefix + str(new / real.relative_to(old) if real != old else new)
+
+    for index, path in enumerate(list(open_files.open_paths)):
+        target = moved(path) if isinstance(path, str) else None
+        if target is None:
+            continue
+        open_files.open_paths[index] = target
+        open_files.files.pop(path, None)
+        if open_files.active_path == path:
+            open_files.jump_to_path = target
+            open_files.jump_to_instance = open_files.active_instance
+            open_files.jump_no_focus = True
+
+
 @render_func(tint=(0.32, 0.42, 0.54), selectable=False, disable_scroll=False, show_add_delete=False,
              is_tree=False, show_bg=False, shadow=False, show_header=False)
 def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeState = None,
                        root=None, file_metadata=None, left_mouse_down=False, left_mouse_double_clicked=False,
+                       right_mouse_down=False, menu_target=None,
                       row_height=20.0, left_pad=6.0, indent=12.0, glyph_width=18.0,
                       chevron_width=13.0, default_tint=(0.32, 0.42, 0.54, 1.0),
                       select_boost=0.22, plain_select_boost=0.06, select_shadow=2.0,
@@ -378,6 +493,8 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
              if (left_mouse_down and hasattr(left_mouse_down, "x")) else None)
     double_click = ((left_mouse_double_clicked.x, left_mouse_double_clicked.y)
                     if (left_mouse_double_clicked and hasattr(left_mouse_double_clicked, "x")) else None)
+    right_press = ((right_mouse_down.x, right_mouse_down.y)
+                   if (right_mouse_down and hasattr(right_mouse_down, "x")) else None)
     meta = file_metadata
     row_bg = row_tint_bg()
 
@@ -385,6 +502,17 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
     if not roots:
         imgui.text_wrapped("Select a project above.")
         return False, input_value
+
+    # ── the menu's pick (before the rows are listed: a new file is one) ──
+    request = menu_target.pop("request", None) if menu_target is not None else None
+    if request is not None:
+        state._error = begin_request(state, request, roots)
+        request_render()
+    naming = state._naming
+    if naming is not None and not Path(naming["path"]).exists():
+        naming = state._naming = None
+    if naming is not None:
+        state._armed = False                         # the name field has the keyboard
 
     # ── the keyboard: taken on a click inside, left to the next text view ──
     if click is not None:
@@ -516,6 +644,21 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
             selected_index = select_row(at, centre=True, flash=True)
 
     # ── input on rows ──
+    if naming is not None and (click is not None or right_press is not None):
+        naming = state._naming = None                # a click elsewhere leaves the name as it was
+    hit = row_at(right_press)
+    if hit is not None:                              # the menu acts on the row under it
+        state.selected = str(rows[hit][0])
+        selected_index = hit
+        draw_state.invalidate()
+        request_render()
+    elif right_press is not None and state.selected is not None:
+        state.selected = None                        # empty space: the project folder
+        selected_index = None
+        draw_state.invalidate()
+        request_render()
+    if menu_target is not None:
+        menu_target["path"] = state.selected if selected_index is not None else str(roots[0])
     hit = row_at(double_click)
     if hit is not None:
         state.selected = str(rows[hit][0])
@@ -575,6 +718,7 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
         request_render()
 
     # ── rows: viewport-culled, straight to the draw list ──
+    name_field = None
     text_y_pad = (row_h - imgui.get_font_size()) * 0.5
     for i, (path, is_dir, depth) in enumerate(rows):
         ry0 = rows_y + i * row_h
@@ -631,7 +775,37 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
                 sx1 = sx0 + imgui.calc_text_size(name[start:end]).x
                 draw_list.add_rect_filled(sx0 - px(1), ry0 + px(2), sx1 + px(1), ry1 - px(2),
                                           search_wash, rounding=px(2))
+        if naming is not None and naming["path"] == str(path):
+            name_field = (name_x, ry0)               # the field is drawn over the row, below
+            continue
         draw_list.add_text(name_x, ry0 + text_y_pad, name_col, name)
+
+    # ── the name field: Enter renames, Esc (or a click elsewhere) leaves it ──
+    if naming is not None and name_field is not None:
+        import meltygui
+        opened, naming["opened"] = naming["opened"], False
+        cursor = imgui.get_cursor_screen_pos()
+        imgui.set_cursor_screen_pos((name_field[0] - px(3), name_field[1]))
+        edited, draft = meltygui.draw_text(
+            naming["draft"], name="row-name", single_line=True, syntax_highlight=False,
+            autocomplete=False, wrap=False, request_focus=opened, select_all_on_focus=opened,
+            width=max(px(80), rows_x + content_w - name_field[0]), height=row_h,
+            show_header=False, disable_scroll=True)
+        imgui.set_cursor_screen_pos(cursor)
+        keys = {key for key, _mods in Melty.frame_key_events}
+        entered = bool(keys & {glfw.KEY_ENTER, glfw.KEY_KP_ENTER}) or (edited and "\n" in draft)
+        if edited:
+            naming["draft"] = draft.replace("\n", "")
+        if glfw.KEY_ESCAPE in keys:
+            state._naming = None
+        elif entered:
+            state._error, renamed = commit_name(state, open_files)
+            if renamed is not None:
+                tile_ds = draw_state._parent
+                wake_editors(tile_ds, {instance for instance, _editor in ordered_editors(tile_ds)})
+        if state._naming is None:
+            draw_state.invalidate()
+            request_render()
 
     # ── the search pill: the query and "n of m", bottom right of the view ──
     if query:
@@ -684,6 +858,7 @@ class ProjectPanelState(DictConversion):
         # links the nearest editor, [] none.
         self.linked = None
         self._shared = None         # the folder the linked editors were last woken for
+        self._menu = {}             # the rows' right-click target + the menu's pending request
         self._targets = ()          # this frame's linked editor instances
 
 
@@ -711,32 +886,44 @@ def open_target(tile_ds):
     return target_editor(tile_ds)
 
 
-def tile_background(tile_ds, open_files, fallback, saturation=0.75, brightness=0.085):
-    """The tile's background, packed: the tint of the file selected in the
-    editor the tree opens in (its tab's colour), kept in hue, saturated and
-    dark so the rows stay readable. An unpainted file wears `fallback`.
-    How to change: raise `brightness` for a lighter wash, lower `saturation`
-    toward 0 for a greyer one."""
-    import colorsys
+def set_folder_tint(folder, tint):
+    """Paint `folder` in the shared file-meta store (the editor tab chip's write)."""
     from meltygui.models.file_meta import FileMeta, file_meta_store
-    editor = open_target(tile_ds)
-    path = getattr(editor, "selected_tab", None) if editor is not None else None
-    if not isinstance(path, str) and open_files is not None:
-        path = open_files.active_path
-    tint = None
-    if isinstance(path, str):
-        tint = FileMeta.painted_tint(file_meta_store().get(path.removeprefix(OpenFiles.GIT_DIFF_PREFIX)))
-    key = (tuple((tint or fallback)[:3]), saturation, brightness)
-    packed = _TILE_BG_MEMO.get(key)
+    meta = file_meta_store()
+    entry = meta.get(folder)
+    if not isinstance(entry, dict):
+        entry = meta[folder] = FileMeta()
+    entry["tint"] = tint
+
+
+def folder_tint(folder):
+    """The project folder's file-meta tint (rgba; FileMeta's default, alpha 0, when unpainted)."""
+    from meltygui.models.file_meta import FileMeta, file_meta_store
+    return tuple(FileMeta.painted_tint(file_meta_store().get(folder)) or FileMeta.tint)
+
+
+def tile_fill(tint, fallback, saturation=0.75, brightness=0.085):
+    """The tile's background, packed: the project folder's tint kept in hue,
+    saturated and dark so the rows stay readable. An unpainted folder wears
+    `fallback`. How to change: raise `brightness` for a lighter wash, lower
+    `saturation` toward 0 for a greyer one."""
+    import colorsys
+    painted = len(tint) < 4 or bool(tint[3])
+    key = (tuple((tint if painted else fallback)[:3]), saturation, brightness)
+    packed = _TILE_FILL_MEMO.get(key)
     if packed is None:
         hue, tint_saturation, _value = colorsys.rgb_to_hsv(*key[0])
         # A grey tint has no hue to saturate: it stays grey.
         rgb = colorsys.hsv_to_rgb(hue, saturation if tint_saturation > 0.05 else 0.0, brightness)
-        packed = _TILE_BG_MEMO[key] = pack_color(*rgb, 1.0)
+        packed = _TILE_FILL_MEMO[key] = pack_color(*rgb, 1.0)
     return packed
 
 
-_TILE_BG_MEMO = {}
+_TILE_FILL_MEMO = {}
+# tile id -> packed fill, written by each Files tile's body and read by the
+# tile manager through `draw_project_tree.tile_background` (the whole tile,
+# grips and picker included: the view is clipped to the box inside them).
+_TILE_FILLS = {}
 
 
 def default_project(open_files):
@@ -809,10 +996,8 @@ def draw_project_tree(input_value: object, draw_state, panel_state: ProjectPanel
     left, top = imgui.get_cursor_screen_pos()
     width = draw_state.content_width or (draw_state.width or 240)
     gap, arrow_w, header_h = px(4), px(arrow_width), px(header_height)
-    imgui.get_window_draw_list().add_rect_filled(
-        draw_state.abs_left, draw_state.abs_top, draw_state.abs_left + (draw_state.width or width),
-        draw_state.abs_top + (draw_state.height or 0),
-        tile_background(draw_state, open_files, draw_state.current_tint), px(6))
+    tint = folder_tint(state.selected_project)
+    _TILE_FILLS[kwargs.get("instance")] = tile_fill(tint, draw_state.current_tint)
     # The link arrow leads the row: its popover opens rightwards, inside the tile.
     # [tint=(0.62, 0.78, 0.98)]
     arrow = f"\uf0c1"
@@ -820,9 +1005,24 @@ def draw_project_tree(input_value: object, draw_state, panel_state: ProjectPanel
         None, collection=link_rows(draw_state, state, targets), name="linked-editors",
         display_label=arrow, trigger_caret=("", ""), show_header=False, tint=draw_state.current_tint,
         width=arrow_w, trigger_height=header_h, text_pad=px(3), shadow=False, text_align="center")
-    imgui.set_cursor_screen_pos((left + arrow_w + gap, top))
+    # The project folder's colour (its file-meta tint: the tile's background,
+    # the folder's row in every tree): the tab bar's chip, picker and undo.
+    from meltygui.view.collection_view import draw_tuple_fast
+    chip, chip_w = px(17), px(24)
+    unpainted = len(tint) >= 4 and not tint[3]
+    project = state.selected_project
+    tint_changed, new_tint = draw_tuple_fast(
+        tint[:3] + (1.0,) if unpainted else tint, draw_state, view_id=f"project_tint_{project}",
+        x=left + arrow_w + gap + (chip_w - chip) * 0.5, y=top + (header_h - chip) * 0.5,
+        swatch=tint if unpainted else None,
+        setter=lambda value, _folder=project: isinstance(value, tuple) and set_folder_tint(_folder, value))
+    if tint_changed and isinstance(new_tint, tuple):
+        set_folder_tint(project, new_tint)
+        draw_state.invalidate()
+        request_render()
+    imgui.set_cursor_screen_pos((left + arrow_w + gap + chip_w + gap, top))
     changed, folder = draw_project_selector(state.selected_project, name="project-selector",
-                                            width=max(px(60), width - arrow_w - gap),
+                                            width=max(px(60), width - arrow_w - chip_w - 2 * gap),
                                             trigger_height=header_height)
     if changed:
         state.selected_project = folder
@@ -840,5 +1040,9 @@ def draw_project_tree(input_value: object, draw_state, panel_state: ProjectPanel
     imgui.set_cursor_screen_pos((left, top + header_h + gap))
     rows_height = max(0.0, (draw_state.height or 0) - header_h - gap - px(4))
     opened, _ = draw_project_files(input_value, name="files", root=state.selected_project,
-                                   width=width, height=rows_height)
+                                   width=width, height=rows_height,
+                                   context_menu=file_menu(state._menu), menu_target=state._menu)
     return opened, input_value
+
+
+draw_project_tree.tile_background = lambda tile: _TILE_FILLS.get(tile.id)
