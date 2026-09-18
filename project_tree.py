@@ -33,7 +33,7 @@ collapse. The tree takes the keyboard on a click inside it and leaves it to
 whatever text view claims it next.
 
 Right-click a row (or the empty space: the project folder) for Rename…,
-New → File / Folder and Add to Projects (`file_menu`, the wrapper's
+New → File / Folder, Add to Projects and Move to Trash (`gio trash`) (`file_menu`, the wrapper's
 `context_menu=`). A new file / folder is created under a free name and named
 in place like a rename: Enter commits, Esc or a click elsewhere leaves the
 name. Open tabs follow a renamed file or folder (`follow_rename`).
@@ -330,7 +330,7 @@ def reveal(state, path, roots):
     state._reveal = str(path)
 
 
-# ── the right-click menu: Rename, New → File / Folder, Add to Projects ─────
+# ── the right-click menu: Rename, New → File / Folder, Add to Projects, Trash ──
 # The menu is the wrapper's (`context_menu=` on the draw_project_files call,
 # the file browser's pattern): its callables are built by the tile and get no
 # arguments, so they post a request on `menu_target`, the dict the rows write
@@ -343,9 +343,42 @@ def file_menu(menu_target):
     """{label: callable | {label: callable}} for `context_menu=`."""
     def post(kind):
         return lambda: menu_target.update(request=(kind, menu_target.get("path")))
-    return {"Rename…": post("rename"),
-            "New": {"File": post("file"), "Folder": post("folder")},
-            "Add to Projects": post("project")}
+    # [tint=(0.95, 0.78, 0.35)]
+    rename_icon = f"\uf303"
+    # [tint=(0.45, 0.85, 0.55)]
+    new_icon = f"\uf067"
+    # [tint=(0.55, 0.72, 0.95)]
+    file_icon = f"\uf15b"
+    # [tint=(0.55, 0.72, 0.95)]
+    folder_icon = f"\uf07b"
+    # [tint=(0.62, 0.78, 0.98)]
+    project_icon = f"\uf02e"
+    # [tint=(0.95, 0.45, 0.4)]
+    trash_icon = f"\uf2ed"
+    return {f"{rename_icon}  Rename…": post("rename"),
+            f"{new_icon}  New": {f"{file_icon}  File": post("file"),
+                                f"{folder_icon}  Folder": post("folder")},
+            f"{project_icon}  Add to Projects": post("project"),
+            f"{trash_icon}  Move to Trash": post("trash")}
+
+
+def move_to_trash(target, open_files):
+    """`gio trash` (the file browser's): the desktop's trash, so it can be
+    restored. The tabs of what went are closed. Returns the refusal or None."""
+    import shutil
+    import subprocess
+    gio = shutil.which("gio")
+    if gio is None:
+        return "Cannot move to the trash: gio is not on PATH."
+    done = subprocess.run([gio, "trash", str(target)], capture_output=True, text=True)
+    if done.returncode:
+        return (done.stderr.strip().splitlines() or [f"Cannot trash {target.name}."])[-1]
+    if open_files is not None:
+        for path in list(open_files.open_paths):
+            real = Path(path.removeprefix(OpenFiles.GIT_DIFF_PREFIX)) if isinstance(path, str) else None
+            if real is not None and (real == target or target in real.parents):
+                open_files.close_file(path)
+    return None
 
 
 def free_name(directory, name):
@@ -359,7 +392,7 @@ def free_name(directory, name):
     return target
 
 
-def begin_request(state, request, roots):
+def begin_request(state, request, roots, open_files=None):
     """Start what the menu asked for. A new file / folder is created under a
     free name at once and then named in place, as a rename. Returns the
     refusal (a short reason) or None."""
@@ -369,6 +402,13 @@ def begin_request(state, request, roots):
         from meltygui_pro.models.projects import mark_project
         mark_project(target if target.is_dir() else target.parent)
         return None
+    if kind == "trash":
+        if target in roots:
+            return "The project folder is not trashed from its own tree."
+        refusal = move_to_trash(target, open_files)
+        if refusal is None and state.selected == str(target):
+            state.selected = None
+        return refusal
     if kind == "rename":
         if target in roots:
             return "The project folder is renamed outside the tree."
@@ -506,7 +546,10 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
     # ── the menu's pick (before the rows are listed: a new file is one) ──
     request = menu_target.pop("request", None) if menu_target is not None else None
     if request is not None:
-        state._error = begin_request(state, request, roots)
+        state._error = begin_request(state, request, roots, open_files)
+        if request[0] == "trash" and state._error is None:
+            tile_ds = draw_state._parent             # a tab may have closed
+            wake_editors(tile_ds, {instance for instance, _editor in ordered_editors(tile_ds)})
         request_render()
     naming = state._naming
     if naming is not None and not Path(naming["path"]).exists():

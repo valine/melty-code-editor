@@ -263,7 +263,7 @@ def draw_new_field(width):
 
 
 @glfw_window(name=paths[0].name if len(paths) == 1 else 'Code Editor', app_id='melty-code-editor',
-             with_header=draw_header, bg_offset=-3, tint=(0.41, 0.52, 0.65), settings=settings)
+             with_header=draw_header, bg_offset=-3, tint=(0.34, 0.52, 0.73), settings=settings)
 @render_func(use_cache=True)
 def editor(input_value: object, draw_state, run_state: ProjectRunState = None,
            tile_state: TileManagerState = None, multi_instance_renderers=()):
