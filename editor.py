@@ -39,7 +39,8 @@ from meltygui import glfw_window, pressed, imgui, window_api as glfw
 # Register tensor views for inline captures, including project-process arrays.
 from meltygui import draw_voxels, draw_line_graph
 from app_model import EditorAppModel
-from tile_views import draw_editor_workspace, draw_placeholder
+from tile_views import draw_main_editor, draw_placeholder
+from meltygui.core.layout.tile_manager_core import TileManagerState, draw_tiles
 from meltygui.core.core_render import render_func
 from meltygui_pro.models.open_files import OpenFiles
 from meltygui_pro.models.project_run_state import ProjectRunState
@@ -242,9 +243,10 @@ def draw_new_field(width):
 
 
 @glfw_window(name=paths[0].name if len(paths) == 1 else 'Code Editor', app_id='melty-code-editor',
-             with_header=draw_header, bg_offset=-2, tint=(0.11, 0.12, 0.17))
-@render_func()
-def editor(input_value: object, draw_state, run_state: ProjectRunState = None):
+             with_header=draw_header, bg_offset=-2, tint=(0.25, 0.29, 0.41))
+@render_func(use_cache=True)
+def editor(input_value: object, draw_state, run_state: ProjectRunState = None,
+           tile_state: TileManagerState = None, multi_instance_renderers=()):
     global open_requested, add_project_requested, run_requested
     menu_height = 25.0
     meltygui.draw_menu_bar({'File': {'New…': request_new, 'Open…': request_open},
@@ -271,15 +273,14 @@ def editor(input_value: object, draw_state, run_state: ProjectRunState = None):
     if changed:
         mark_project(folder)
     if new_draft is not None:
-        menu_height += draw_new_field(draw_state.width)
+        draw_new_field(draw_state.width)
     if open_error:
         imgui.text_wrapped(open_error)
-        menu_height += imgui.get_item_rect_size()[1]
     app_model.reconcile_editors(open_files)
-    layout_changed, _ = draw_editor_workspace(
-        app_model, name='workspace', open_requested=True, window_pos=(0, 0),
-        width=draw_state.width - 10,
-        height=draw_state.height - draw_state.header_height - menu_height - 1)
+    layout_changed = draw_tiles(
+        app_model.tiles, draw_state, tile_state=tile_state,
+        multi_instance_renderers=(draw_main_editor, *multi_instance_renderers),
+        content_top=imgui.get_cursor_screen_pos()[1])
     app_model.reconcile_editors(open_files)
     if run_requested or pressed('f5'):
         run_requested = False

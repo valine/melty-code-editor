@@ -13,6 +13,7 @@ contains the registered render functions. The existing `melty-code-editor`
 session and saved tab list remain in use.
 
     ./melty-code-editor FILE [FILE ...]      # each file is a tab; the first is selected
+    melty-code-editor.cmd FILE [FILE ...]    # the same on Windows (.venv\Scripts)
 
 What you get is the studio's editor window as an OS window: a tab per file
 along the bottom (close buttons, drag to reorder), the editor above it with
