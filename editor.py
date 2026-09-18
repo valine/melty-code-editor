@@ -6,8 +6,10 @@
 
 The window is one ``@glfw_window`` hosting a persisted tiled workspace.
 Drag a tile corner inward to split it; each tile's dropdown selects an
-editor or placeholder. Editors share ``OpenFiles`` with independent view
-state. A tab per file along the bottom, the editor above it with Python
+editor or a Claude Code chat (melty_claude's window as a tile; new
+conversations start in the selected tab's project, and the conversations are
+the same detached service melty-claude shows). Editors share ``OpenFiles``
+with independent view state. A tab per file along the bottom, the editor above it with Python
 syntax analysis, folds, search and autocomplete, a Compare With dropdown
 (git HEAD, the file on disk, any recent commit) and the nav back / forward
 buttons. Search → Search… (Ctrl+Shift+F) is melty's global search, its
@@ -39,7 +41,9 @@ from meltygui import glfw_window, pressed, imgui, window_api as glfw
 # Register tensor views for inline captures, including project-process arrays.
 from meltygui import draw_voxels, draw_line_graph
 from app_model import EditorAppModel
-from tile_views import draw_main_editor, draw_placeholder
+from tile_views import draw_main_editor, draw_chat  # noqa: F401  draw_chat registers the Claude Code tile
+from editor_settings import CodeEditorSettings
+from meltygui.model.code_dict_model import CodeDict, Hotswap, LaunchOverride
 from meltygui.core.layout.tile_manager_core import TileManagerState, draw_tiles
 from meltygui.core.core_render import render_func
 from meltygui_pro.models.open_files import OpenFiles
@@ -72,6 +76,12 @@ for path in paths:
 if paths:
     open_files.jump_to_path = str(paths[0])
 
+
+
+# The settings window (the title bar's cog): CodeEditorSettings as a dict. An
+# edit reaches the live class, which the render functions read, and the
+# user's launch overrides file; the class's source keeps the defaults.
+settings = CodeDict(CodeEditorSettings, write_to=(LaunchOverride, Hotswap))
 
 
 def real_open_paths():
@@ -243,7 +253,7 @@ def draw_new_field(width):
 
 
 @glfw_window(name=paths[0].name if len(paths) == 1 else 'Code Editor', app_id='melty-code-editor',
-             with_header=draw_header, bg_offset=-2, tint=(0.25, 0.29, 0.41))
+             with_header=draw_header, bg_offset=-3, tint=(0.64, 0.71, 0.87), settings=settings)
 @render_func(use_cache=True)
 def editor(input_value: object, draw_state, run_state: ProjectRunState = None,
            tile_state: TileManagerState = None, multi_instance_renderers=()):
