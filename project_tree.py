@@ -1,10 +1,22 @@
-"""draw_project_tree — the app's file selector: the projects as collapsible
-trees, in the file browser's look and with its keyboard.
+"""draw_project_tree — the app's Files tile: a project selector over the
+selected project's files as a collapsible tree, in the file browser's look and
+with its keyboard.
 
 A tile editor (``@render_func(multi_instance=True)``: the tile picker offers
-it, the tile view instantiates it and its injected ``ProjectTreeState``). The
-roots are the marked projects plus the projects of the open tabs; a folder
-row toggles on a click, a file row opens on a double-click (or Enter).
+it, the tile view instantiates it and its injected ``ProjectPanelState``).
+The header stays put: the project selector (`draw_project_selector`: the saved
+projects, a divider, the filesystem shortcuts, Choose Folder… — a project is
+any folder) and, before it, a small link arrow whose popover lists the code editor
+tiles. The rows under it (`draw_project_files`) are that folder's tree; a
+folder row toggles on a click, a file row opens on a double-click (or Enter).
+
+The tree SHARES its project with the editors it is linked to (a
+``ProjectLink`` registered on the shared ``OpenFiles``): a linked editor shows
+this project's tabs, drops its own selector, and when it moves to another
+project (a jump, a search pick) the tree follows. By default the link is the
+nearest editor; the arrow's popover links any set of them instead — every
+editor on one tree, a tree per editor, or none. An editor no tree links keeps
+its own selector and its own project.
 
 The rows are the file browser's listing (`draw_file_listing`): names straight
 to the draw list, viewport-culled, each wearing its file-meta tint and icon,
@@ -20,8 +32,8 @@ Esc clears. Without a query Up / Down walk the rows, Right / Left expand and
 collapse. The tree takes the keyboard on a click inside it and leaves it to
 whatever text view claims it next.
 
-A file opens in the code-editor tile ADJACENT TO THE TREE'S LEFT, else the
-closest one: `target_editor` finds them by the sibling draw_state walk (the
+A file opens in the first editor the tree is linked to, else the code-editor
+tile ADJACENT TO THE TREE'S LEFT, else the closest one: `target_editor` finds them by the sibling draw_state walk (the
 dim picker's `_sibling_dim_keys`) — the tiles of a host are all children of
 the host's draw_state, so the editors are the tree's siblings rendering
 `draw_code_editor`, each carrying its tile's ``instance`` and its live box.
@@ -39,7 +51,7 @@ from meltygui.core.conversion.dict_conversion import DictConversion
 from meltygui.core.melty import Melty, FileWatch
 from meltygui.code.fileref import writable_file_refusal
 from meltygui.hdr_color import pack_color
-from meltygui_pro.models.open_files import OpenFiles
+from meltygui_pro.models.open_files import OpenFiles, ProjectLink
 from meltygui_pro.models.projects import project_roots, project_for
 from editor_settings import settings
 
@@ -54,15 +66,13 @@ EDITOR_VIEW = "draw_code_editor"
 
 
 class ProjectTreeState(DictConversion):
-    """The tree's injected state. Persists which folders are open, the
-    selection and the roots already seen (a NEW root starts expanded); paths
-    are strings. The underscore fields are one session's memos."""
+    """The rows' injected state. Persists which folders are open and the
+    selection; paths are strings. The underscore fields are one session's memos."""
     _owner_ds = None
 
     def __init__(self):
         super().__init__()
         self.expanded = set()       # str paths of the open folders
-        self.known_roots = []       # str roots that have been shown once
         self.selected = None        # str path of the selected row
         self._listings = {}         # str dir -> (mtime_ns, show_hidden, rows)
         self._watches = {}          # str dir -> the watch_directory holder
@@ -153,21 +163,6 @@ def target_editor(draw_state, slack=24.0):
 
 # ── the rows ────────────────────────────────────────────────────────────────
 
-def tree_roots(open_files):
-    """The roots: the marked projects, then the (unmarked) projects of the
-    open tabs, in tab order — except one inside a root already shown (a
-    template's pyproject.toml makes its folder a project of its own)."""
-    roots = list(project_roots())
-    if isinstance(open_files, OpenFiles):
-        for path in open_files.open_paths:
-            if not isinstance(path, str) or path.startswith(OpenFiles.GIT_DIFF_PREFIX):
-                continue
-            root = project_for(path)
-            if root and not any(root == shown or root.is_relative_to(shown) for shown in roots):
-                roots.append(root)
-    return roots
-
-
 def folder_rows(state, directory, meta, show_hidden):
     """`directory`'s rows in the browser's order, memoized on its mtime."""
     from meltygui.model.file_model import _dir_mtime_ns
@@ -184,8 +179,9 @@ def folder_rows(state, directory, meta, show_hidden):
 
 
 def visible_rows(state, roots, meta, show_hidden):
-    """The tree as drawn without a query: [(Path, is_dir, depth)], the open
-    folders' rows under them; plus the folders listed (the ones to watch)."""
+    """The tree as drawn without a query: [(Path, is_dir, depth)], the project
+    folder's rows (the folder itself is the selector's, not a row) with the
+    open folders' rows under them; plus the folders listed (the ones to watch)."""
     rows, shown = [], set()
 
     def add(directory, depth):
@@ -196,9 +192,7 @@ def visible_rows(state, roots, meta, show_hidden):
                 add(path, depth + 1)
 
     for root in roots:
-        rows.append((root, True, 0))
-        if str(root) in state.expanded:
-            add(root, 1)
+        add(root, 0)
     return rows, shown
 
 
@@ -278,6 +272,9 @@ def search_rows(state, roots, show_hidden, query):
     best, best_key = None, None
     for at in sorted(keep):
         path, is_dir, depth = entries[at]
+        if not depth:                                # the project folder: not a row
+            continue
+        depth -= 1
         if at in spans_of:
             hit_spans[len(rows)] = spans_of[at]
             key = (rank_of[at], is_dir, len(path.name), len(positions))
@@ -322,18 +319,18 @@ def reveal(state, path, roots):
     state._reveal = str(path)
 
 
-@render_func(multi_instance=True, tint=(0.32, 0.42, 0.54), icon=f"\uf07c", display_name="Files",
-             selectable=False, disable_scroll=False, show_add_delete=False, is_tree=False,
-             show_bg=False, shadow=False, show_header=False)
-def draw_project_tree(input_value: object, draw_state, tree_state: ProjectTreeState = None,
-                      file_metadata=None, left_mouse_down=False, left_mouse_double_clicked=False,
+@render_func(tint=(0.32, 0.42, 0.54), selectable=False, disable_scroll=False, show_add_delete=False,
+             is_tree=False, show_bg=False, shadow=False, show_header=False)
+def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeState = None,
+                       root=None, file_metadata=None, left_mouse_down=False, left_mouse_double_clicked=False,
                       row_height=20.0, left_pad=6.0, indent=12.0, glyph_width=18.0,
                       chevron_width=13.0, default_tint=(0.32, 0.42, 0.54, 1.0),
                       select_boost=0.22, plain_select_boost=0.06, select_shadow=2.0,
                       select_rounding=3.0, hover_boost=0.06, hover_alpha=0.05,
                       text_mix=0.5, icon_mix=0.9, search_tint=(1.0, 0.82, 0.3), search_dim=0.45,
                       search_flash_frames=36, **kwargs):
-    """The projects' files as collapsible trees (see the module docstring).
+    """The files of the project folder `root` as a collapsible tree (see the
+    module docstring): the rows under `draw_project_tree`'s header.
     `input_value` is the tile's: the app's ``OpenFiles``, where a picked file
     opens; it is returned unchanged. The look parameters are
     `draw_file_listing`'s; `indent` is one nesting level, `chevron_width`
@@ -384,14 +381,10 @@ def draw_project_tree(input_value: object, draw_state, tree_state: ProjectTreeSt
     meta = file_metadata
     row_bg = row_tint_bg()
 
-    roots = tree_roots(open_files)
+    roots = [Path(root)] if root and Path(root).is_dir() else []
     if not roots:
-        imgui.text_wrapped("No project yet: Projects → Add Folder…, or open a file.")
+        imgui.text_wrapped("Select a project above.")
         return False, input_value
-    for root in roots:
-        if str(root) not in state.known_roots:       # a new root starts open
-            state.known_roots.append(str(root))
-            state.expanded.add(str(root))
 
     # ── the keyboard: taken on a click inside, left to the next text view ──
     if click is not None:
@@ -496,7 +489,7 @@ def draw_project_tree(input_value: object, draw_state, tree_state: ProjectTreeSt
         elif is_dir:
             toggle(path)
         if not is_dir and open_files is not None:
-            editor = target_editor(draw_state)
+            editor = open_target(draw_state._parent)
             instance = (open_files.active_instance if editor is None
                         else editor._kwargs["instance"])
             state._error = open_path(open_files, path, instance)
@@ -505,6 +498,9 @@ def draw_project_tree(input_value: object, draw_state, tree_state: ProjectTreeSt
                 # its blit cache (open_in_editor's wake).
                 if editor is not None and Melty.cache is not None and editor._tile_id is not None:
                     Melty.cache.invalidate_up(editor._tile_id, force=True, max_depth=4)
+                # Every other editor shows the same OpenFiles: its tab bar has a new tab.
+                tile_ds = draw_state._parent
+                wake_editors(tile_ds, {instance for instance, _editor in ordered_editors(tile_ds)})
                 open_files.jump_no_focus = False
                 state._armed = False                 # the editor takes the keyboard
                 if Melty.text_focused_ds is draw_state:
@@ -636,11 +632,6 @@ def draw_project_tree(input_value: object, draw_state, tree_state: ProjectTreeSt
                 draw_list.add_rect_filled(sx0 - px(1), ry0 + px(2), sx1 + px(1), ry1 - px(2),
                                           search_wash, rounding=px(2))
         draw_list.add_text(name_x, ry0 + text_y_pad, name_col, name)
-        if not depth:
-            # A root says where it lives, after its name.
-            where = str(path.parent).replace(str(Path.home()), "~", 1)
-            draw_list.add_text(name_x + imgui.calc_text_size(name).x + px(8), ry0 + text_y_pad,
-                               dim_col, where)
 
     # ── the search pill: the query and "n of m", bottom right of the view ──
     if query:
@@ -674,3 +665,148 @@ def draw_project_tree(input_value: object, draw_state, tree_state: ProjectTreeSt
                            no_match_col, state._error)
 
     return False, input_value
+
+
+# ── the tile: the selector, the editor links, the rows ─────────────────────
+
+# The link popover's row for "follow the layout".
+LINK_NEAREST = "@nearest"
+
+
+class ProjectPanelState(DictConversion):
+    """The Files tile's injected state: its project (any folder) and the
+    editors it shares that project with."""
+
+    def __init__(self):
+        super().__init__()
+        self.selected_project = None
+        # Editor instances (tile ids) picked in the arrow's popover; None
+        # links the nearest editor, [] none.
+        self.linked = None
+        self._shared = None         # the folder the linked editors were last woken for
+        self._targets = ()          # this frame's linked editor instances
+
+
+def ordered_editors(draw_state):
+    """The sibling editors in reading order: [(instance, draw_state)]."""
+    editors = sorted(sibling_editors(draw_state), key=lambda item: (round(item[1][1] / 40.0), item[1][0]))
+    return [(editor._kwargs["instance"], editor) for editor, _box in editors]
+
+
+def linked_instances(draw_state, state):
+    """The editor instances this tree shares its project with."""
+    editors = ordered_editors(draw_state)
+    if state.linked is None:
+        nearest = target_editor(draw_state)
+        return [nearest._kwargs["instance"]] if nearest is not None else []
+    return [instance for instance, _editor in editors if instance in state.linked]
+
+
+def open_target(tile_ds):
+    """Where a file opens: the first linked editor, else the nearest."""
+    targets = getattr(tile_ds, "_link_targets", ())
+    for instance, editor in ordered_editors(tile_ds):
+        if instance in targets:
+            return editor
+    return target_editor(tile_ds)
+
+
+def default_project(open_files):
+    """A fresh tree's project: the selected tab's, else the first saved one, else home."""
+    path = open_files.active_path if open_files is not None else None
+    if isinstance(path, str) and not path.startswith(OpenFiles.GIT_DIFF_PREFIX):
+        root = project_for(path)
+        if root:
+            return str(root)
+    saved = project_roots()
+    return str(saved[0] if saved else Path.home())
+
+
+def wake_editors(draw_state, instances):
+    """A linked editor adopts the project INSIDE its body: past its blit cache."""
+    for instance, editor in ordered_editors(draw_state):
+        if instance in instances and Melty.cache is not None and editor._tile_id is not None:
+            Melty.cache.invalidate_up(editor._tile_id, force=True, max_depth=4)
+
+
+def link_rows(draw_state, state, targets):
+    """The arrow's popover: {label: LINK_NEAREST | instance}. A check marks
+    what is linked now; an editor is named by its place and its selected tab."""
+    from meltygui.model.dropdown_model import DD_DIVIDER
+    # [tint=(0.45, 0.85, 0.55)]
+    check = f"\uf00c"
+    rows = {(f"{check}  " if state.linked is None else "     ") + "Nearest editor": LINK_NEAREST,
+            "divider:editors": DD_DIVIDER}
+    editors = ordered_editors(draw_state)
+    for number, (instance, editor) in enumerate(editors, start=1):
+        tab = getattr(editor, "selected_tab", None)
+        name = Path(tab.removeprefix(OpenFiles.GIT_DIFF_PREFIX)).name if isinstance(tab, str) else "no tab"
+        rows[(f"{check}  " if instance in targets else "     ") + f"Editor {number}  ·  {name}"] = instance
+    if not editors:
+        rows["     No code editor tiles"] = None
+    return rows
+
+
+@render_func(multi_instance=True, tint=(0.32, 0.42, 0.54), icon=f"\uf07c", display_name="Files",
+             selectable=False, disable_scroll=True, show_add_delete=False, is_tree=False,
+             show_bg=False, shadow=False, show_header=False, use_cache=False)
+def draw_project_tree(input_value: object, draw_state, panel_state: ProjectPanelState = None,
+                      header_height=30.0, arrow_width=30.0, **kwargs):
+    """The Files tile (see the module docstring). `input_value` is the tile's:
+    the app's ``OpenFiles``; it is returned unchanged."""
+    from meltygui.core.windowing.glfw_utils import request_render
+    from meltygui.view.dropdown_view import draw_dropdown
+    from meltygui_pro.editor.project_selector import draw_project_selector
+    state = panel_state
+    open_files = input_value if isinstance(input_value, OpenFiles) else None
+    if not state.selected_project or not Path(state.selected_project).is_dir():
+        state.selected_project = default_project(open_files)
+
+    # ── the link: this tree's project is the linked editors' project ──
+    targets = linked_instances(draw_state, state)
+    draw_state._link_targets = tuple(targets)
+    if open_files is not None:
+        link = getattr(draw_state, "_project_link", None)
+        if link is None or link.state is not state:
+            link = draw_state._project_link = ProjectLink(state, draw_state)
+        open_files.link_project(link, targets)
+    if state._shared != state.selected_project or state._targets != tuple(targets):
+        # The project moved (here, or in a linked editor) or the links did:
+        # every editor concerned re-reads the link.
+        wake_editors(draw_state, set(targets) | set(state._targets))
+        state._shared, state._targets = state.selected_project, tuple(targets)
+        request_render()
+
+    px = Melty.px
+    left, top = imgui.get_cursor_screen_pos()
+    width = draw_state.content_width or (draw_state.width or 240)
+    gap, arrow_w, header_h = px(4), px(arrow_width), px(header_height)
+    # The link arrow leads the row: its popover opens rightwards, inside the tile.
+    # [tint=(0.62, 0.78, 0.98)]
+    arrow = f"\uf0c1"
+    picked, choice = draw_dropdown(
+        None, collection=link_rows(draw_state, state, targets), name="linked-editors",
+        display_label=arrow, trigger_caret=("", ""), show_header=False, tint=draw_state.current_tint,
+        width=arrow_w, trigger_height=header_h, text_pad=px(3), shadow=False, text_align="center")
+    imgui.set_cursor_screen_pos((left + arrow_w + gap, top))
+    changed, folder = draw_project_selector(state.selected_project, name="project-selector",
+                                            width=max(px(60), width - arrow_w - gap),
+                                            trigger_height=header_height)
+    if changed:
+        state.selected_project = folder
+        draw_state.invalidate()
+        request_render()
+    if picked:
+        if choice == LINK_NEAREST:
+            state.linked = None
+        elif choice is not None:
+            chosen = set(targets if state.linked is None else state.linked)
+            state.linked = sorted(chosen ^ {choice})
+        draw_state.invalidate()
+        request_render()
+
+    imgui.set_cursor_screen_pos((left, top + header_h + gap))
+    rows_height = max(0.0, (draw_state.height or 0) - header_h - gap - px(4))
+    opened, _ = draw_project_files(input_value, name="files", root=state.selected_project,
+                                   width=width, height=rows_height)
+    return opened, input_value

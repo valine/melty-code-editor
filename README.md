@@ -139,16 +139,30 @@ and press Enter: the file is created (an existing path is simply opened) and
 becomes the selected tab. Escape closes the field. A path that cannot be
 created shows its error under the bar, the way a refused open does.
 
-Tabs are scoped to projects. Every open file belongs to the deepest *marked*
-project containing it, or to no project (`OpenFiles.project_of`, `paths_in`,
-`projects`); `open_paths` stays the one persisted list. The tab bar shows the
-tabs of the project selected in the shortcuts column, or the no-project tabs
-when the selected folder is in none. Selecting a project brings back the tab
-it showed last; opening or jumping to a file elsewhere (File → Open, search,
-go to definition, a new project) selects that file's project. Dragging a tab
-reorders it among its own project's tabs. Marking or unmarking a folder
-re-scopes its tabs at once. Each editor tile has its own selected project.
-`draw_code_editor(project_tabs=False)` shows every tab, as before.
+A project is any folder. The saved ones (Projects → Add Folder…, the marked
+folders of the shared file-meta store) lead the **project selector**, a
+dropdown: the saved projects, a divider, the filesystem shortcuts the shortcuts
+column shows (home, the XDG folders, the root), a divider, Choose Folder….
+
+The tab bar shows the open files inside the selected project
+(`OpenFiles.paths_in`); `open_paths` stays the one persisted list. Selecting a
+project brings back the tab it showed last; opening or jumping to a file
+outside it (File → Open, search, go to definition, a new project) selects that
+file's project: its saved project, else its repository root or folder.
+Dragging a tab reorders it among its own project's tabs.
+`draw_code_editor(project_tabs=False)` shows every tab.
+
+The **Files** tile (`project_tree.py`) is the selector over that project's
+file tree. A code editor draws the same selector at the top of its files
+column, so either works alone; side by side they link and the editor drops its
+selector: the tree's project is the editor's, in both directions (pick in the
+tree, or let the editor follow a tab, a crumb or a shortcuts row). The link
+icon before the tree's selector lists the editor tiles: "Nearest editor" (the
+default) follows the layout, or check any set of them, so every editor can
+share one tree's project, each editor can have its own tree, or an unchecked
+editor keeps its own project and selector. The link is a `ProjectLink` on the
+shared `OpenFiles` (`link_project` / `project_link`); files picked in the tree
+open in its first linked editor.
 
 **File → New Project…** opens the New Project window (a child OS window,
 `new_project.py`): a template, a name and location, the Python interpreter

@@ -18,9 +18,11 @@ windows each frame with `open_requested`; both backends must behave identically.
 Run: `./melty-code-editor FILE...`.
 Smoke test: `MELTY_BENCH=1 .venv/bin/python editor.py FILE`.
 Read-only files / library installs are refused up front.
-Tabs are scoped: `OpenFiles.project_of(path)` is the deepest marked project or None, and
-the tab bar shows the scope of the editor's selected project (`EditorProjectState`, in
-meltygui_pro's `draw_code_editor`); `open_paths` is still the one flat persisted list.
+A project is any folder (saved = marked). `draw_project_selector` (meltygui_pro) is drawn by
+the Files tile (`project_tree.py`) and by `draw_code_editor` when no tree links it. A tree
+shares its project with editors through a `ProjectLink` on the shared `OpenFiles`
+(`link_project`); tiles find each other by the sibling draw_state walk and never write a
+sibling's draw_state. The tab bar shows `OpenFiles.paths_in(selected project)`.
 File → New Project… is `new_project.py` over `project_templates/`: one sub-folder per
 template, each a `create(name, ...)` function returning `{path: str | bytes}`; its
 parameters are the window's inputs. A view returns its input's type (a `str` there).
