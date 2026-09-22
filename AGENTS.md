@@ -32,3 +32,10 @@ Search → Search… / Ctrl+Shift+F uses `meltygui_pro.global_search`, over the 
 project roots (`project_roots()` in editor.py).
 The toolkit guide is `../meltygui/docs/APPS.md`; package ownership and migration
 notes are `../meltygui-pro/docs/PACKAGE_SPLIT.md`.
+
+## Icons
+The only icon font is Font Awesome 5 Free (`meltygui/resources/fontawesome-webfont.ttf`), merged
+into every UI font. Before using an icon, look its codepoint up in `meltygui/model/icon_model.py`
+(`FA_ICONS`, generated from that font's cmap); a codepoint not listed there renders as `?`. Never
+use Octicons / Nerd Font / Material / FA6-only codepoints, and write icons as `\uXXXX` escapes in
+normal `str` literals (no raw strings, no literal glyph pasted into source).

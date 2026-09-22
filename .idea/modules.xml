@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/melty_code_editor.iml" filepath="$PROJECT_DIR$/melty_code_editor.iml" />
+      <module fileurl="file://$PROJECT_DIR$/codeeditor-melty.iml" filepath="$PROJECT_DIR$/codeeditor-melty.iml" />
     </modules>
   </component>
 </project>
