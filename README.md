@@ -93,7 +93,7 @@ The app uses two sibling checkouts, installed **editable** into its own Python
 3.12 venv:
 
 - `../meltygui`: Apache-2.0 UI, text, inspection, file browser and tensor toolkit.
-- `../meltygui_pro`: proprietary code editor, projects, Git, environments and
+- `../meltygui-pro`: proprietary code editor, projects, Git, environments and
   dependency management.
 
 The native ImGui wheel must be available in `../meltygui/dist/release`; see

@@ -31,4 +31,4 @@ parameters are the window's inputs. A view returns its input's type (a `str` the
 Search → Search… / Ctrl+Shift+F uses `meltygui_pro.global_search`, over the app's
 project roots (`project_roots()` in editor.py).
 The toolkit guide is `../meltygui/docs/APPS.md`; package ownership and migration
-notes are `../meltygui_pro/docs/PACKAGE_SPLIT.md`.
+notes are `../meltygui-pro/docs/PACKAGE_SPLIT.md`.

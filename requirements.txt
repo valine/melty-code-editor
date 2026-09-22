@@ -2,5 +2,5 @@
 --find-links ../meltygui/dist/release
 # `claude`: the Claude Code chat tile's backend (claude-agent-sdk).
 -e ../meltygui[tensor,claude]
--e ../meltygui_pro
+-e ../meltygui-pro
 torch>=2.2

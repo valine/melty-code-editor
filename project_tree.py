@@ -499,8 +499,8 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
     from meltygui.files.fast_file_explorer import tinted_text
     from meltygui.models.file_meta import FileMeta
     from meltygui.core.windowing.glfw_utils import request_render
-    from meltygui.core.cache.tile_cache import add_shadow
-    from meltygui.core.cache.tile_cache import clear_glows
+    from meltygui.core.cache.tile_marks import add_shadow
+    from meltygui.core.cache.tile_marks import clear_glows
 
     # [tint=(0.55, 0.72, 0.95)]
     folder_icon = f"\uf07b"

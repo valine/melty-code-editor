@@ -45,4 +45,4 @@ editor.py offers it in `multi_instance_renderers`. Its view, backends and detach
 a test run); a tile's new conversations start in the selected tab's project through
 meltygui_pro's `chat_project` extension service (`integration.py`).
 The toolkit guide is `../meltygui/docs/APPS.md`; package ownership and migration
-notes are `../meltygui_pro/docs/PACKAGE_SPLIT.md`.
+notes are `../meltygui-pro/docs/PACKAGE_SPLIT.md`.
