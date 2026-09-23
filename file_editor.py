@@ -1,7 +1,7 @@
 """One file/version per tile; siblings contribute only text and pane geometry.
 
 The old Code Editor remains a separate renderer. Everything specific to this
-tile lives here, including its short-lived Git reader and comparison scope.
+tile lives here; GitProxy owns file values, loading and watching.
 """
 import threading
 from pathlib import Path
@@ -10,111 +10,14 @@ from meltygui import imgui, draw_dropdown, draw_text, render_func
 from meltygui.core.conversion.dict_conversion import DictConversion
 from meltygui.core.rendering.core_decoration import no_save
 from meltygui.core.runtime.lifecycle import module_is_live
-from meltygui.core.runtime.toggles import Toggles
 from meltygui.core.windowing.glfw_utils import request_render
-from meltygui.editor.diff import diff_opcodes, _diff_disp_span
-from meltygui.hdr_color import pack_color
-from meltygui.view.header_view import flat_button
+from meltygui.editor.diff import diff_opcodes
+from meltygui_pro.models.tab_bar import TabBarState
+from meltygui_pro.editor.code_editor import prepare_editor_tabs, _draw_tab_bar_rows
 from meltygui_pro.models.open_files import OpenFiles
 
 
-class FileVersions:
-    """Selection adapter over the shared GitProxy's version-qualified values."""
-
-    def __init__(self, path):
-        from meltygui_pro.editor.git import proxies_for
-        self.path = path
-        self.repo = proxies_for(path)[0]
-
-    def read(self, version):
-        history = self.repo.file_history[self.path]
-        options = {"Current": "current", "Filesystem": "filesystem", "HEAD": "HEAD"}
-        options.update({meta.label: key for key, meta in history.log.items()})
-        source = self.repo.files(version)
-        value = source.get(self.path)
-        if value is None:
-            return options, None, "File is absent or unavailable in this version.", source
-        if not isinstance(value, str):
-            return options, None, "This version contains binary data.", source
-        return options, value, None, source
-
-
-class VersionReader:
-    """Finite jobs on selection/watch events; the shared proxy owns watching."""
-
-    def __init__(self, owner):
-        self.owner = owner
-        self.request = None
-        self.result = None
-        self._repo = None
-        self._thread = None
-        self._lock = threading.Lock()
-        self._closed = False
-
-    def changed(self, kind, path):
-        # Pending edits don't change filesystem/commit text, but a filesystem
-        # event can change the available history or the selected moving ref.
-        if kind == "current" and self.owner.version != "current":
-            return
-        self.owner.source_revision += 1
-        request_render()
-
-    def select(self, path, version):
-        request = path, version, self.owner.source_revision
-        with self._lock:
-            if self._closed or request == self.request:
-                return
-            self.request = request
-            if self._thread is not None:
-                return
-            self._thread = threading.Thread(target=self.run, daemon=True,
-                                            name="file-editor-version-read")
-            self._thread.start()
-
-    def run(self):
-        served = None
-        while module_is_live(globals()):
-            with self._lock:
-                request = self.request
-                if self._closed or request == served:
-                    self._thread = None
-                    return
-            path, version, _revision = request
-            try:
-                model = FileVersions(path)
-                with self._lock:
-                    if self._closed:
-                        self._thread = None
-                        return
-                    if self._repo is not None:
-                        self._repo.unsubscribe(self.changed)
-                    self._repo = model.repo
-                    self._repo.subscribe(self.changed, paths=(path,))
-                options, text, error, source = model.read(version)
-            except Exception as caught:
-                options, text, error, source = {}, None, str(caught), None
-            with self._lock:
-                if not self._closed and request == self.request:
-                    self.result = (path, version), options, text, error, source
-                    self.owner.version_ready += 1
-                    request_render()
-                served = request
-
-    def write(self, path, text):
-        source = self.result[4]
-        source[path] = text
-        if source.writable:
-            self.result = self.result[:2] + (text, None, source)
-
-    def close(self):
-        with self._lock:
-            self._closed = True
-            if self._repo is not None:
-                self._repo.unsubscribe(self.changed)
-                self._repo = None
-
-
-@no_save("version_ready", "source_revision", "siblings", "_reader", "_pane", "_text", "_line_numbers")
+@no_save("version_ready", "siblings", "_file", "_pane", "_text", "_line_numbers")
 class FileEditorState(DictConversion):
     def __init__(self):
         super().__init__()
@@ -122,17 +25,33 @@ class FileEditorState(DictConversion):
         self.version = "current"
         self.sibling_tile_id = None
         self.version_ready = 0
-        self.source_revision = 0
         self.siblings = ()
-        self._reader = None
+        self._file = None
         self._pane = None
         self._text = None
         self._line_numbers = None
 
+    def changed(self):
+        self.version_ready += 1
+        request_render()
+
+    def bind(self, value):
+        if self._file is value:
+            return
+        self.close()
+        self._file = value
+        if value is not None:
+            value.subscribe(self.changed)
+
     def close(self):
-        if self._reader is not None:
-            self._reader.close()
-            self._reader = None
+        # A live state may still own the reader from before this refactor.
+        # Retire its subscription when rebinding; the removed class is not kept.
+        retired = vars(self).pop("_reader", None)
+        if retired is not None:
+            retired.close()
+        if self._file is not None:
+            self._file.unsubscribe(self.changed)
+            self._file = None
         self._pane = self._text = None
 
 
@@ -174,45 +93,30 @@ def adopt_selection(files, state, instance):
 
 
 def version_value(state):
-    """Consume only the result for the selected source; retain no hidden host."""
+    """Presentation of the selected proxy, with no file-loading machinery."""
     ready = state.version_ready
-    revision = state.source_revision
     options = {"Current": "current", "Filesystem": "filesystem", "HEAD": "HEAD"}
-    result = state._reader.result if state._reader is not None else None
-    if result is not None and result[0][0] == state.selected_path:
-        options.update(result[1])
+    value = state._file
+    if value is not None and str(value.repo.root / value.path) == state.selected_path:
+        options.update(value.versions)
     if state.version not in options.values():
         options[state.version[:12]] = state.version
-    if result is not None and result[0] == (state.selected_path, state.version):
-        return options, result[2], result[3]
-    return options, None, "Loading version…"
-
-
-def _tabs(draw_state, files, state, paths, left, top, width):
-    """Wrapped file tabs; changing/closing a tab only selects this editor."""
-    row_height, x, y = 26.0, 0.0, 0.0
-    changed = False
-    for path in paths:
-        label = Path(path).name
-        tab_width = min(width, max(90.0, imgui.calc_text_size(label)[0] + 38.0))
-        if x and x + tab_width > width:
-            x, y = 0.0, y + row_height
-        imgui.set_cursor_screen_pos((left + x, top + y))
-        if flat_button(label, draw_state, f"file-tab:{path}", width=max(1, tab_width - 22),
-                       height=row_height, alpha=1.0 if state.selected_path == path else 0.0,
-                       color=(0.20, 0.30, 0.48), layout=False):
-            state.selected_path = path
-            changed = True
-        imgui.set_cursor_screen_pos((left + x + tab_width - 22, top + y))
-        if flat_button(f"\uf00d", draw_state, f"close-file:{path}", width=22,
-                       height=row_height, alpha=0.0, layout=False):
-            files.close_file(path)
-            changed = True
-        x += tab_width + 3.0
-    return changed, y + row_height if paths else 0.0
+    if (value is None or str(value.repo.root / value.path) != state.selected_path
+            or value.version != state.version):
+        return options, None, "Loading version…"
+    text = value.get("value")
+    if value.error:
+        return options, None, value.error
+    if text is None:
+        return options, None, "Loading version…" if value.loading else "File is absent or unavailable in this version."
+    if not isinstance(text, str):
+        return options, None, "This version contains binary data."
+    return options, text, None
 
 
 def cleanup_file_editor(draw_state):
+    from meltygui_pro.editor.git import forget_consumer
+    forget_consumer(draw_state)
     state = draw_state.misc.get("file_editor_state")
     if state is not None:
         state.close()
@@ -223,19 +127,25 @@ def cleanup_file_editor(draw_state):
              display_name="File Editor", icon=f"\uf15c", tint=(0.20, 0.30, 0.48))
 def draw_file_editor(input_value: OpenFiles, draw_state=None,
                      file_editor_state: FileEditorState = None, instance=0,
-                     layout_frame=None):
+                     layout_frame=None, tab_bar_state: TabBarState = None):
     state, files = file_editor_state, input_value
     if not isinstance(files, OpenFiles):
         return False, input_value
+    from meltygui_pro.editor.git import note_consumer
+    note_consumer(draw_state)
     paths = adopt_selection(files, state, instance)
     left, top = draw_state.abs_left, draw_state.abs_top
     width, height = draw_state.width, draw_state.height
-    changed, tab_height = _tabs(draw_state, files, state, paths, left, top, width)
+    (tabs, tab_button_height, tab_row_height, swatch_width,
+     layout_tabs, hold_close) = prepare_editor_tabs(
+        paths, paths, [Path(path).name for path in paths], draw_state, tab_bar_state)
+    tab_height = layout_tabs(width) if paths else 0
+    changed = False
     if state.selected_path not in files.open_paths:
         state.selected_path = next(iter(p for p in paths if p in files.open_paths), None)
     path = state.selected_path
     options, text, status = version_value(state)
-    imgui.set_cursor_screen_pos((left, top + tab_height))
+    imgui.set_cursor_screen_pos((left, top))
     picked, version = draw_dropdown(
         state.version, collection=options, name="Version", show_name=False,
         display_label=next((label for label, value in options.items() if value == state.version), state.version),
@@ -249,7 +159,7 @@ def draw_file_editor(input_value: OpenFiles, draw_state=None,
         siblings[label] = other_id
     if state.sibling_tile_id is not None and state.sibling_tile_id not in siblings.values():
         siblings["Unavailable editor"] = state.sibling_tile_id
-    imgui.set_cursor_screen_pos((left + width * 0.5 + 2, top + tab_height))
+    imgui.set_cursor_screen_pos((left + width * 0.5 + 2, top))
     picked, sibling = draw_dropdown(
         state.sibling_tile_id, collection=siblings, name="Compare with", show_name=False,
         display_label=next(label for label, value in siblings.items() if value == state.sibling_tile_id),
@@ -259,10 +169,9 @@ def draw_file_editor(input_value: OpenFiles, draw_state=None,
         changed = True
     # Exactly one text view, including loading/empty/error states. Its identity
     # includes the version, so historic cursors/folds never replace the working ones.
-    imgui.set_cursor_screen_pos((left, top + tab_height + 30))
+    imgui.set_cursor_screen_pos((left, top + 30))
     editable = path is not None and state.version in ("current", "filesystem") and text is not None
-    source = (state._reader.result[4] if text is not None and state._reader is not None else None)
-    file_value = source.file(path) if source is not None else None
+    file_value = state._file if text is not None else None
     displayed = text if text is not None else (status if path else "Open a file from File → Open or a Files tile.")
     if text is not None and (state._line_numbers is None or state._line_numbers[0] is not text):
         from meltygui.editor.text_editor import _line_starts
@@ -279,7 +188,7 @@ def draw_file_editor(input_value: OpenFiles, draw_state=None,
         roster_live_hold=editable and state.version == "current", autocomplete=editable, shadow=False,
         use_cache=True)
     if edited and editable and replacement != text:
-        state._reader.write(path, replacement)
+        file_value["value"] = replacement
         text = replacement
         changed = True
     state._pane, state._text = pane, text
@@ -302,13 +211,33 @@ def draw_file_editor(input_value: OpenFiles, draw_state=None,
             pane.text_cursor_pos = pane.text_selection_start = pane.text_selection_end = position
             pane.scroll_offset = (pane.scroll_offset[0], max(0, line * pane._diff_line_px - pane.height * 0.4))
         files.jump_to_path = files.jump_to_line = files.jump_to_token = None
+    def select_tab(selected_path):
+        nonlocal changed
+        state.selected_path = selected_path
+        changed = True
+
+    imgui.set_cursor_screen_pos((left, top + height - tab_height))
+    bar_left, bar_top = imgui.get_cursor_pos()
+    closed = _draw_tab_bar_rows(
+        draw_state, files, tabs, paths, state.selected_path, instance,
+        bar_left, bar_top, tab_button_height, tab_row_height, swatch_width,
+        on_select=select_tab)
+    if closed is not None:
+        hold_close(closed)
+        if state.selected_path == closed:
+            remaining = [other for other in paths if other != closed]
+            state.selected_path = (remaining[min(paths.index(closed), len(remaining) - 1)]
+                                   if remaining else None)
+        files.close_file(closed)
+        draw_state.invalidate()
+        request_render()
+        changed = True
     # Dispatch only after rendering; the next render consumes the completed value.
     if path is not None:
-        if state._reader is None:
-            state._reader = VersionReader(state)
-        state._reader.select(path, state.version)
-    elif state._reader is not None:
-        state.close()
+        from meltygui_pro.editor.git import proxies_for
+        state.bind(proxies_for(path)[0].file(path, state.version))
+    else:
+        state.bind(None)
     return changed, input_value
 
 
@@ -342,9 +271,25 @@ class FileEditorComparisons(DictConversion):
             state.close()
         self._endpoints = self._requests = self._results = {}
 
+    def invalidate_panes(self):
+        """Changed overlays must replace, rather than stack on, baked washes."""
+        from meltygui_pro.editor.git import _flag_external_change
+        for view, state in tuple(self._endpoints.values()):
+            if state._pane is not None:
+                _flag_external_change(state._pane)
+                state._pane.invalidate_up(max_depth=6)
+            if view is not None:
+                _flag_external_change(view)
+                view.invalidate_up(max_depth=6)
+        request_render()
+
     def dispatch(self, requests):
         if self._closed:
             return
+        before = {key: value[0] for key, value in self._requests.items()}
+        after = {key: value[0] for key, value in requests.items()}
+        if before != after:
+            self.invalidate_panes()
         self._requests = requests
         if self._thread is not None and self._thread.is_alive():
             return
@@ -367,7 +312,7 @@ class FileEditorComparisons(DictConversion):
             return
         self._results = results
         self.ready += 1
-        request_render()
+        self.invalidate_panes()
 
 
 def comparison_pairs(endpoints):
@@ -379,60 +324,16 @@ def comparison_pairs(endpoints):
     return sorted(pairs)
 
 
-def _line_band(pane, start, end):
-    if not hasattr(pane, "_diff_top_inset"):
-        return None
-    d0, d1 = _diff_disp_span(pane, start, end)
-    top = pane.abs_top
-    clip_top, clip_bottom = pane._diff_clip_off
-    lo, hi = top + clip_top, top + pane.height - clip_bottom
-    origin = top + pane._diff_top_inset - pane.scroll_offset[1]
-    y0 = min(hi, max(lo, origin + d0 * pane._diff_line_px))
-    y1 = min(hi, max(lo, origin + d1 * pane._diff_line_px))
-    return y0, max(y0 + 2.0, y1)
-
-
 def _draw_ribbons(draw_state, pane_a, pane_b, blocks):
-    """Only paint the space between panes, so pane cache captures stay clean."""
-    a_left, b_left = pane_a.abs_left, pane_b.abs_left
-    if a_left > b_left:
+    """Use the established full-line washes and their connected seam ribbon."""
+    from meltygui_pro.editor.code_editor import _draw_compare_ribbons, _pane_pos
+    if _pane_pos(pane_a)[0] > _pane_pos(pane_b)[0]:
         pane_a, pane_b = pane_b, pane_a
         reverse = {"insert": "delete", "delete": "insert", "replace": "replace"}
         blocks = [(reverse[tag], j0, j1, i0, i1) for tag, i0, i1, j0, j1 in blocks]
-    x0, x1 = pane_a.abs_left + pane_a.width, pane_b.abs_left
-    # Stacked panes connect in their shared right margin. The same line bands
-    # remain meaningful when there isn't a left-to-right seam.
-    stacked = x1 <= x0
-    if stacked:
-        x0 = max(pane_a.abs_left + pane_a.width, pane_b.abs_left + pane_b.width)
-        x1 = min(draw_state.abs_left + draw_state.width, x0 + 5.0)
-    if x1 <= x0:
-        return
-    colors = {"insert": Toggles.CodeEditor.ribbon_insert_tint,
-              "delete": Toggles.CodeEditor.ribbon_delete_tint,
-              "replace": Toggles.CodeEditor.ribbon_replace_tint}
-    draw_list = imgui.get_window_draw_list()
-    steps = max(2, int(Toggles.CodeEditor.ribbon_curve_steps))
-    for tag, i0, i1, j0, j1 in blocks:
-        a, b = _line_band(pane_a, i0, i1), _line_band(pane_b, j0, j1)
-        if a is None or b is None:
-            continue
-        color = colors[tag]
-        fill = pack_color(*color[:3], Toggles.CodeEditor.ribbon_fill_alpha)
-        flags = draw_list.flags
-        # Shared tessellation edges must not get antialiased individually.
-        draw_list.flags = flags & ~imgui.DRAW_LIST_ANTI_ALIASED_FILL
-        try:
-            for step in range(steps):
-                t0, t1 = step / steps, (step + 1) / steps
-                s0, s1 = t0 * t0 * (3 - 2 * t0), t1 * t1 * (3 - 2 * t1)
-                left, right = x0 + (x1 - x0) * t0, x0 + (x1 - x0) * t1
-                draw_list.add_quad_filled(left, a[0] + (b[0] - a[0]) * s0,
-                                          right, a[0] + (b[0] - a[0]) * s1,
-                                          right, a[1] + (b[1] - a[1]) * s1,
-                                          left, a[1] + (b[1] - a[1]) * s0, fill)
-        finally:
-            draw_list.flags = flags
+    bands = [(i0, i1, j0, j1, tag) for tag, i0, i1, j0, j1 in blocks]
+    _draw_compare_ribbons(draw_state, pane_a, pane_b, bands,
+                          label_left="", label_right="")
 
 
 def draw_file_editor_comparisons(draw_state, state, live_ids):

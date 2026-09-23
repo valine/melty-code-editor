@@ -1,15 +1,17 @@
 """Run from the app with `.venv/bin/python -m pytest tests/test_file_editor.py`."""
 import shutil
 import subprocess
-import time
+import threading
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
 from file_editor import (
-    FileEditorState, FileEditorComparisons, FileVersions, VersionReader,
-    adopt_selection, comparison_pairs, version_value, _line_band)
+    FileEditorState, FileEditorComparisons,
+    adopt_selection, comparison_pairs, version_value, _draw_ribbons)
 from meltygui_pro.models.open_files import OpenFiles
+from meltygui_pro.editor.git import proxies_for
 
 
 @pytest.fixture
@@ -32,6 +34,17 @@ def repository(tmp_path):
     return tmp_path, path, git
 
 
+def loaded_file(path, version):
+    value = proxies_for(path)[0].file(path, version)
+    done = threading.Event()
+    value.subscribe(done.set)
+    try:
+        assert done.wait(5), "GitProxy did not publish its file value"
+    finally:
+        value.unsubscribe(done.set)
+    return value
+
+
 def test_versions_follow_renames_and_distinguish_disk_head_and_empty(repository):
     root, old, git = repository
     first = git("rev-parse", "HEAD")
@@ -39,35 +52,40 @@ def test_versions_follow_renames_and_distinguish_disk_head_and_empty(repository)
     git("commit", "-qm", "Rename")
     path = root / "renamed.py"
     path.write_text("value = 2\n")
-    versions = FileVersions(str(path))
-    options, value, error, source = versions.read(first)
-    assert first in options.values() and value == "value = 1\n" and error is None
-    assert versions.read("HEAD")[1] == "value = 1\n"
-    assert versions.read("filesystem")[1] == "value = 2\n"
+    value = loaded_file(path, first)
+    assert first in value.versions.values() and value["value"] == "value = 1\n"
+    assert loaded_file(path, "HEAD")["value"] == "value = 1\n"
+    assert loaded_file(path, "filesystem")["value"] == "value = 2\n"
     path.write_text("")
-    assert versions.read("filesystem")[1:3] == ("", None)
+    assert loaded_file(path, "filesystem")["value"] == ""
     path.write_bytes(b"\x00\xff")
-    assert "binary" in versions.read("filesystem")[2]
+    state = FileEditorState()
+    state.selected_path, state.version = str(path), "filesystem"
+    state._file = loaded_file(path, "filesystem")
+    assert "binary" in version_value(state)[2]
     path.unlink()
-    assert "absent" in versions.read("filesystem")[2]
+    state._file = loaded_file(path, "filesystem")
+    assert "absent" in version_value(state)[2]
 
 
 def test_moving_head_refreshes_without_recreating_model(repository):
     _root, path, git = repository
-    versions = FileVersions(str(path))
-    assert versions.read("HEAD")[1] == "value = 1\n"
+    value = loaded_file(path, "HEAD")
+    assert value["value"] == "value = 1\n"
+    pinned = value.source
     path.write_text("value = 3\n")
     git("add", ".")
     git("commit", "-qm", "Second")
-    assert versions.read("HEAD")[1] == "value = 3\n"
+    refreshed = loaded_file(path, "HEAD")
+    assert refreshed is value and value["value"] == "value = 3\n"
+    assert pinned[path] == "value = 1\n"
 
 
 def test_linked_worktree_versions(repository, tmp_path):
     root, _path, git = repository
     checkout = root.parent / (root.name + "-linked")
     git("worktree", "add", "-qb", "linked", str(checkout))
-    versions = FileVersions(str(checkout / "original.py"))
-    assert versions.read("HEAD")[1] == "value = 1\n"
+    assert loaded_file(checkout / "original.py", "HEAD")["value"] == "value = 1\n"
 
 
 def test_selection_is_local_and_only_target_consumes_jump():
@@ -89,20 +107,22 @@ def test_selection_is_local_and_only_target_consumes_jump():
 def test_version_switch_never_serves_old_file_or_revision():
     state = FileEditorState()
     state.selected_path, state.version = "/a.py", "HEAD"
-    state._reader = SimpleNamespace(result=(("/a.py", "filesystem"), {}, "wrong", None))
+    state._file = SimpleNamespace(repo=SimpleNamespace(root=Path("/")),
+                                 path="a.py", version="filesystem", versions={},
+                                 error=None, loading=False, get=lambda key: "")
     assert version_value(state)[1] is None
-    state._reader.result = (("/b.py", "HEAD"), {}, "wrong", None)
+    state._file.path, state._file.version = "b.py", "HEAD"
     assert version_value(state)[1] is None
-    state._reader.result = (("/a.py", "HEAD"), {}, "", None)
+    state._file.path = "a.py"
     assert version_value(state)[1:] == ("", None)
 
 
-def test_comparisons_deduplicate_reciprocal_links_and_retire_readers():
+def test_comparisons_deduplicate_reciprocal_links_and_release_subscriptions():
     a, b = FileEditorState(), FileEditorState()
     a.selected_path = b.selected_path = "/a.py"
     a.sibling_tile_id, b.sibling_tile_id = "b", "a"
     calls = []
-    b._reader = SimpleNamespace(close=lambda: calls.append("closed"))
+    b._file = SimpleNamespace(unsubscribe=lambda callback: calls.append("closed"))
     endpoints = {"a": (None, a), "b": (None, b)}
     group = FileEditorComparisons()
     group.reconcile(endpoints)
@@ -130,45 +150,62 @@ def test_diff_results_keep_texts_alive_and_do_not_recompute_identical_inputs(mon
     assert group._results == {}
 
 
-def test_folded_scrolled_line_bands_use_live_pane_geometry():
-    pane = SimpleNamespace(abs_top=100, height=200, _diff_top_inset=10,
-                           _diff_clip_off=(10, 5), _diff_line_px=20,
-                           scroll_offset=(0, 20), _diff_d2b=[0, 1, 8, 9])
-    assert _line_band(pane, 8, 9) == (130, 150)
-    pane.abs_top = 300
-    assert _line_band(pane, 8, 9) == (330, 350)
+def test_full_line_ribbons_use_existing_renderer_and_reverse_swapped_panes(monkeypatch):
+    from meltygui_pro.editor import code_editor
+    calls = []
+    monkeypatch.setattr(code_editor, "_draw_compare_ribbons", lambda *args, **kwargs: calls.append((args, kwargs)))
+    left = SimpleNamespace(_abs_left=lambda: 10, _abs_top=lambda: 100)
+    right = SimpleNamespace(_abs_left=lambda: 510, _abs_top=lambda: 100)
+    window = object()
+    _draw_ribbons(window, right, left, [("insert", 2, 2, 3, 6)])
+    args, kwargs = calls[0]
+    assert args == (window, left, right, [(3, 6, 2, 2, "delete")])
+    assert kwargs == {"label_left": "", "label_right": ""}
+
+
+def test_comparison_change_invalidates_baked_washes_once(monkeypatch):
+    import file_editor
+    from unittest.mock import Mock
+    monkeypatch.setattr(file_editor, "request_render", lambda: None)
+    group, state = FileEditorComparisons(), FileEditorState()
+    pane = SimpleNamespace(_parent=None, invalidate_up=Mock())
+    state._pane = pane
+    group._endpoints = {"one": (None, state)}
+    group._requests = {("one", "two"): ((1, 2), "a", "b")}
+    group.dispatch({})
+    pane.invalidate_up.assert_called_once_with(max_depth=6)
+    assert pane._external_change
+    group.dispatch({})
+    assert pane.invalidate_up.call_count == 1
 
 
 def test_saved_state_keeps_choices_and_excludes_runtime(tmp_path):
     from meltygui.core.conversion.load_save_v2 import load, save
     state = FileEditorState()
     state.selected_path, state.version, state.sibling_tile_id = "/a.py", "HEAD", "second"
-    state._reader = object()
+    state._file = object()
     path = tmp_path / "file-editor.pkl"
     save(state, path)
     restored = load(path, run_on_load=False)
     assert (restored.selected_path, restored.version, restored.sibling_tile_id) == ("/a.py", "HEAD", "second")
-    assert restored._reader is None and restored._pane is None
+    assert restored._file is None and restored._pane is None
 
 
-def test_reader_stops_when_closed(repository, monkeypatch):
-    import file_editor
-    monkeypatch.setattr(file_editor, "request_render", lambda: None)
+def test_tiles_share_proxy_and_release_only_their_own_subscription(repository):
     _root, path, _git = repository
-    state = FileEditorState()
-    reader = VersionReader(state)
-    try:
-        reader.select(str(path), "HEAD")
-        deadline = time.monotonic() + 8
-        while reader.result is None and time.monotonic() < deadline:
-            time.sleep(0.01)
-        assert reader.result[2:4] == ("value = 1\n", None)
-    finally:
-        reader.close()
-        thread = reader._thread
-        if thread is not None:
-            thread.join(1)
-    assert reader._thread is None or not reader._thread.is_alive()
+    a, b = FileEditorState(), FileEditorState()
+    value = proxies_for(path)[0].file(path, "HEAD")
+    a.bind(value)
+    b.bind(value)
+    assert a._file is b._file
+    a.close()
+    assert b.changed in value._listeners and a.changed not in value._listeners
+    b.close()
+    assert not value._listeners
+    thread = value._thread
+    if thread is not None:
+        thread.join(5)
+        assert not thread.is_alive()
 
 
 def test_both_editor_types_are_recognized_by_workspace():
@@ -183,3 +220,13 @@ def test_both_editor_types_are_recognized_by_workspace():
     app.reconcile_editors(files)
     assert files.active_instance == new.id and files.primary_instance == old.id
     assert app.file_editor_ids() == {new.id}
+
+
+def test_rebinding_retires_a_pre_refactor_reader():
+    calls = []
+    state = FileEditorState()
+    state._reader = SimpleNamespace(close=lambda: calls.append("retired"))
+    value = SimpleNamespace(subscribe=lambda callback: calls.append("subscribed"))
+    state.bind(value)
+    assert calls == ["retired", "subscribed"]
+    assert "_reader" not in vars(state)
