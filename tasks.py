@@ -403,11 +403,10 @@ def status_text(state):
 
 @render_func(multi_instance=True, tint=(0.36, 0.47, 0.42), icon='', display_name='Tasks',
              selectable=False, disable_scroll=True, show_add_delete=False, is_tree=False,
-             show_bg=False, shadow=False, show_header=False, use_cache=False)
+             show_bg=False, shadow=False, show_header=False, use_cache=False, tile_toolbar=True)
 def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
-               header_height=30.0, **kwargs):
-    """The Tasks tile: project name, task dropdown, Run / Stop, status, and
-    the output. `input_value` is the tile's `OpenFiles`, returned unchanged."""
+               header_height=28.0, tile_toolbar_rect=None, **kwargs):
+    """The Tasks tile: output and status above a bottom task/run/stop toolbar. `input_value` is the tile's `OpenFiles`, returned unchanged."""
     global _pending, _pending_error
     from meltygui.core.windowing.glfw_utils import request_render
     from meltygui.view.text_view import draw_text
@@ -434,40 +433,61 @@ def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
     left, top = imgui.get_cursor_screen_pos()
     width = draw_state.content_width or (draw_state.width or 240)
     gap, header_h, unique = px(4), px(header_height), kwargs.get('instance')
-    button_w = px(64)
-    project_label = Path(root).name if root else 'no project'
-    imgui.set_cursor_screen_pos((left, top + (header_h - imgui.get_text_line_height()) * 0.5))
-    imgui.text(project_label)
-    label_w = imgui.calc_text_size(project_label)[0] + gap * 2
-    imgui.set_cursor_screen_pos((left + label_w, top))
-    if names:
+    button_w = px(30)
+    # Change this cap to adjust the task selector on wide tiles.
+    selector_max_w = px(280)
+    body_left, body_top = left, top
+    if tile_toolbar_rect is None:
+        toolbar_x, toolbar_y, toolbar_w, header_h = 0, max(0, (draw_state.height or 0) - header_h), width, header_h
+    else:
+        toolbar_x, toolbar_y, toolbar_w, header_h = tile_toolbar_rect
+    left, top = body_left + toolbar_x, body_top + toolbar_y
+    width = toolbar_w
+    selector_w = min(selector_max_w, max(0, width - 2 * button_w - 2 * gap))
+    imgui.set_cursor_screen_pos((left, top))
+    if names and selector_w > 0:
         picked, choice = draw_dropdown(state.task, collection=names, name='task', show_header=False,
-                                       width=max(px(80), width - label_w - button_w - 2 * gap),
-                                       trigger_height=header_height, shadow=False)
+                                       width=selector_w,
+                                       trigger_height=header_h / Melty.ui_scale, shadow=False)
         if picked and isinstance(choice, str):
             state.task = choice
             draw_state.invalidate()
     else:
-        imgui.set_cursor_screen_pos((left + label_w, top + (header_h - imgui.get_text_line_height()) * 0.5))
+        imgui.set_cursor_screen_pos((left, top + (header_h - imgui.get_text_line_height()) * 0.5))
+        Melty.push_clip((left, top, left + selector_w, top + header_h))
         imgui.text(NO_TASKS if root else 'Open a project to run tasks')
-    imgui.set_cursor_screen_pos((left + width - button_w, top + (header_h - px(24)) * 0.5))
-    if state.running:
-        if flat_button(f'Stop##tasks-stop{unique}', draw_state, f'tasks-stop::{unique}',
-                       width=button_w, height=24):
-            stop_task(state)
-    elif names and flat_button(f'Run##tasks-run{unique}', draw_state, f'tasks-run::{unique}',
-                               width=button_w, height=24):
+        Melty.pop_clip()
+    controls_left = left + selector_w + gap
+    button_top = top + (header_h - px(24)) * 0.5
+    imgui.set_cursor_screen_pos((controls_left, button_top))
+    run_enabled = bool(names) and not state.running
+    if flat_button(f'\uf04b##tasks-run{unique}', draw_state if run_enabled else None,
+                   f'tasks-run::{unique}', width=button_w, height=px(24),
+                   color=(0.16, 0.75, 0.30), text_color=(0.24, 0.90, 0.40),
+                   hovered=None if run_enabled else False) and run_enabled:
         start_task(state, root, state.task)
+    imgui.set_cursor_screen_pos((controls_left + button_w + gap, button_top))
+    stop_color = (0.90, 0.20, 0.18) if state.running else (0.42, 0.42, 0.42)
+    if flat_button(f'\uf04d##tasks-stop{unique}', draw_state if state.running else None,
+                   f'tasks-stop::{unique}', width=button_w, height=px(24),
+                   color=stop_color, text_color=stop_color,
+                   hovered=None if state.running else False) and state.running:
+        stop_task(state)
 
+    # The body may disappear entirely at minimum height; the toolbar stays visible.
     status_h = px(20)
-    imgui.set_cursor_screen_pos((left, top + header_h + gap))
-    imgui.text(status_text(state))
-    imgui.set_cursor_screen_pos((left, top + header_h + gap + status_h))
-    output_h = max(px(40), (draw_state.height or 0) - header_h - status_h - 2 * gap - px(4))
-    _, _, output_ds = draw_text(state.output, name=f'task-output##{unique}', width=width,
-                                height=output_h, editable=False, syntax_highlight=False,
-                                autocomplete=False, wrap=True, show_header=False,
-                                show_widgets=False, use_cache=False, return_extras=True)
+    output_ds = None
+    if toolbar_y >= status_h:
+        imgui.set_cursor_screen_pos((body_left, body_top))
+        imgui.text(f'{Path(root).name if root else "no project"}  {status_text(state)}')
+    output_h = max(0, toolbar_y - status_h - gap)
+    if output_h >= px(20):
+        imgui.set_cursor_screen_pos((body_left, body_top + status_h + gap))
+        _, _, output_ds = draw_text(state.output, name=f'task-output##{unique}',
+                                    width=draw_state.content_width, height=output_h,
+                                    editable=False, syntax_highlight=False,
+                                    autocomplete=False, wrap=True, show_header=False,
+                                    show_widgets=False, use_cache=False, return_extras=True)
     # Follow the tail while running; scrolling up stops following until the next run.
     if output_ds is not None:
         max_y = getattr(output_ds, '_max_scroll_y', None)
