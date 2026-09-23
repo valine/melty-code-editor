@@ -53,6 +53,7 @@ from new_project import draw_new_project, main_files
 import tasks
 from meltygui.core.layout.tile_manager_core import TileManagerState, draw_tiles
 from meltygui.core.core_render import render_func
+from meltygui.core.windowing.window_visibility import WindowCallState
 from meltygui_pro.models.open_files import OpenFiles
 from meltygui.core.melty import Melty
 from meltygui.code.fileref import writable_file_refusal
@@ -285,7 +286,10 @@ def draw_new_field(width):
 @render_func(use_cache=True, on_cleanup=cleanup_file_editor_comparisons)
 def editor(input_value: object, draw_state,
            tile_state: TileManagerState = None, multi_instance_renderers=(),
-           file_comparisons: FileEditorComparisons = None):
+           file_comparisons: FileEditorComparisons = None,
+           open_file_dialog: WindowCallState = None,
+           add_folder_dialog: WindowCallState = None,
+           new_project_dialog: WindowCallState = None):
     global open_requested, add_project_requested, new_project_requested
     menu_height = 25.0
     meltygui.draw_menu_bar({'File': {'New…': request_new, 'New Project…': request_new_project,
@@ -298,35 +302,41 @@ def editor(input_value: object, draw_state,
         request_new()
     if pressed('ctrl+shift+r'):
         tasks.request_rerun()
-    changed, path = meltygui.draw_file_selector(
-        str(paths[0].parent) if paths else None, name='Open file', glfw_window=True,
-        open_requested=open_requested or pressed('ctrl+o'), context_menu=FOLDER_MENU,
-        window_size=(720, 640))
+    open_requested = open_requested or pressed('ctrl+o')
+    if open_file_dialog.needs_call(open_requested):
+        changed, path = open_file_dialog.draw(
+            meltygui.draw_file_selector, str(paths[0].parent) if paths else None,
+            name='Open file', glfw_window=True, open_requested=open_requested,
+            context_menu=FOLDER_MENU, window_size=(720, 640))
+        if changed:
+            open_file(path)
     open_requested = False
-    if changed:
-        open_file(path)
-    # Projects → Add Folder…: the same explorer as a folder picker; the
-    # chosen folder (or a right-clicked one) is marked in the shared store.
-    changed, folder = meltygui.draw_file_selector(
-        str(default_new_dir()), name='Add project folder', glfw_window=True,
-        open_requested=add_project_requested, choose_folder=True, context_menu=FOLDER_MENU,
-        window_size=(720, 640))
+    # Closed dialogs do no rendering or default-folder lookup. Active windows
+    # still refresh their lifecycle and deliver selections after closing.
+    if add_folder_dialog.needs_call(add_project_requested):
+        changed, folder = add_folder_dialog.draw(
+            meltygui.draw_file_selector, str(default_new_dir()),
+            name='Add project folder', glfw_window=True,
+            open_requested=add_project_requested, choose_folder=True,
+            context_menu=FOLDER_MENU, window_size=(720, 640))
+        if changed:
+            mark_project(folder)
     add_project_requested = False
-    if changed:
-        mark_project(folder)
-    # File → New Project…: the templates of project_templates/ as a form.
-    created, project = draw_new_project(
-        str(default_project_location()), name='New Project', glfw_window=True,
-        open_requested=new_project_requested, window_size=(560, 720))
+    if new_project_dialog.needs_call(new_project_requested):
+        created, project = new_project_dialog.draw(
+            draw_new_project, str(default_project_location()),
+            name='New Project', glfw_window=True,
+            open_requested=new_project_requested, window_size=(560, 720))
+        if created:
+            project_created(project)
     new_project_requested = False
-    if created:
-        project_created(project)
     if new_draft is not None:
         draw_new_field(draw_state.width)
     if open_error:
         imgui.text_wrapped(open_error)
     app_model.reconcile_editors(open_files)
     added_tasks = app_model.ensure_tasks(open_files) if tasks.pending_run() else False
+    app_model.bind_open_files(open_files)
     layout_changed = draw_tiles(
         app_model.tiles, draw_state, tile_state=tile_state,
         multi_instance_renderers=(draw_main_editor, draw_chat, *multi_instance_renderers),

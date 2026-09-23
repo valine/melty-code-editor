@@ -28,7 +28,7 @@ and every live run at app exit). Closing the tile does not stop a run: the
 state, and the process with it, come back with the tile.
 
 The picker follows its injected Files view's selected project, falling
-back to the nearest editor, selected tab or saved project. Run identity and
+back to the selected tab or saved project when unlinked. Run identity and
 output stay separate from the per-project picker selection.
 The Run menu (editor.py) lists the same tasks and runs one in the first Tasks
 tile through `request_run`.
@@ -527,7 +527,8 @@ def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
                                     width=draw_state.content_width, height=output_h,
                                     editable=False, syntax_highlight=False,
                                     autocomplete=False, wrap=True, show_header=False,
-                                    show_widgets=False, use_cache=False, return_extras=True)
+                                    show_widgets=False, use_cache=True, freeze_resize=True,
+                                    return_extras=True)
     # Follow the tail while running; scrolling up stops following until the next run.
     if output_ds is not None:
         follow_output(state, output_ds, px(2))

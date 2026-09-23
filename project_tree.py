@@ -50,6 +50,7 @@ from meltygui.core.conversion.dict_conversion import DictConversion
 from meltygui.core.melty import Melty, FileWatch
 from meltygui.code.fileref import writable_file_refusal
 from meltygui.hdr_color import pack_color
+from meltygui_pro.models.editor_project import ProjectSelection
 from meltygui_pro.models.open_files import OpenFiles
 from meltygui_pro.models.projects import project_roots, project_for
 from editor_settings import settings
@@ -106,12 +107,6 @@ def open_path(open_files, path, instance):
     open_files.jump_to_path = str(path)
     open_files.jump_to_instance = instance
     return None
-
-
-
-
-
-
 
 
 # ── the rows ────────────────────────────────────────────────────────────────
@@ -415,12 +410,69 @@ def follow_rename(open_files, old, new):
             open_files.jump_no_focus = True
 
 
+def draw_file_badge(draw_list, x, y, size, color, badge, alpha=1.0):
+    """Tinted page with a small codec accent; geometry stays inside the tint chip."""
+    label, accent, mark = badge
+    unit = size / 28.0
+    # Change these proportions to adjust the page/badge balance.
+    left, top = x + 5 * unit, y + unit
+    right, bottom = x + 23 * unit, y + 26 * unit
+    fold = 5 * unit
+    ink = pack_color(0.08, 0.10, 0.13, alpha)
+    if mark == "image":
+        # The same white-to-metadata-tint blend as the other file bases.
+        # A dark inset makes the landscape distinct even with no assigned tint.
+        draw_list.add_rect_filled(x + unit, y + 2 * unit, x + 27 * unit,
+                                  y + 19 * unit, color, rounding=unit)
+        draw_list.add_rect_filled(x + 3 * unit, y + 4 * unit, x + 25 * unit,
+                                  y + 17 * unit, ink)
+        draw_list.add_triangle_filled(x + 4 * unit, y + 16 * unit,
+                                      x + 10 * unit, y + 9 * unit,
+                                      x + 16 * unit, y + 16 * unit, color)
+        draw_list.add_triangle_filled(x + 12 * unit, y + 16 * unit,
+                                      x + 18 * unit, y + 11 * unit,
+                                      x + 24 * unit, y + 16 * unit, color)
+        draw_list.add_circle_filled(x + 20 * unit, y + 7 * unit, 1.5 * unit, color)
+    else:
+        draw_list.add_rect_filled(left, top, right - fold, bottom, color, rounding=unit)
+        draw_list.add_rect_filled(right - fold, top + fold, right, bottom, color)
+        draw_list.add_triangle_filled(right - fold, top, right, top + fold,
+                                      right - fold, top + fold, color)
+        draw_list.add_line(right - fold, top, right - fold, top + fold, ink, unit)
+        draw_list.add_line(right - fold, top + fold, right, top + fold, ink, unit)
+    if mark == "python":
+        # Interlocking blue/yellow snakes, drawn as vectors so no brand font is needed.
+        blue = pack_color(0.18, 0.43, 0.65, alpha)
+        yellow = pack_color(1.0, 0.82, 0.28, alpha)
+        sx, sy = x + 8 * unit, y + 4 * unit
+        for dx, dy, width, height, paint in (
+                (3, 0, 7, 5, blue), (0, 4, 7, 5, blue),
+                (5, 5, 7, 5, yellow), (2, 9, 7, 4, yellow)):
+            draw_list.add_rect_filled(sx + dx * unit, sy + dy * unit,
+                                      sx + (dx + width) * unit, sy + (dy + height) * unit,
+                                      paint, rounding=2 * unit)
+        draw_list.add_circle_filled(sx + 5 * unit, sy + 2 * unit, 0.7 * unit, ink)
+        draw_list.add_circle_filled(sx + 7 * unit, sy + 11 * unit, 0.7 * unit, ink)
+    # A narrow colored footer leaves the page itself predominantly file-tinted.
+    draw_list.add_rect_filled(x, y + 18 * unit, x + size, y + 27 * unit,
+                              pack_color(*accent, alpha), rounding=unit)
+    imgui.set_window_font_scale(0.36)
+    try:
+        extent = imgui.calc_text_size(label)
+        # Dark red needs light lettering; the brighter badges use dark lettering.
+        lettering = pack_color(1.0, 0.93, 0.93, alpha) if label == "MD" else ink
+        draw_list.add_text(x + (size - extent.x) * 0.5,
+                           y + 22.5 * unit - extent.y * 0.5, lettering, label)
+    finally:
+        imgui.set_window_font_scale(1.0)
+
+
 @render_func(tint=(0.32, 0.42, 0.54), selectable=False, disable_scroll=False, show_add_delete=False,
              is_tree=False, show_bg=False, shadow=False, show_header=False)
 def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeState = None,
                        root=None, file_metadata=None, left_mouse_down=False, left_mouse_double_clicked=False,
                        right_mouse_down=False, menu_target=None,
-                      row_height=20.0, left_pad=6.0, indent=12.0, glyph_width=18.0,
+                      row_height=20.0, left_pad=6.0, indent=12.0, glyph_width=24.0,
                       chevron_width=13.0, default_tint=(0.32, 0.42, 0.54, 1.0),
                       select_boost=0.22, plain_select_boost=0.06, select_shadow=2.0,
                       select_rounding=3.0, hover_boost=0.06, hover_alpha=0.05,
@@ -435,6 +487,7 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
     from meltygui.files.fast_file_explorer import _scroll_row_into_view
     from meltygui.files.fast_file_explorer import claim_keyboard
     from meltygui.files.fast_file_explorer import row_icon
+    from meltygui.code.codec_registry import file_badge_for_path
     from meltygui.files.fast_file_explorer import row_tint_bg
     from meltygui.files.fast_file_explorer import search_keys
     from meltygui.files.fast_file_explorer import search_typed
@@ -589,7 +642,7 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
         request_render()
 
     def open_row(index):
-        """A file: open it in the editor to the left (and leave the search,
+        """A file: open it in a linked editor (and leave the search,
         the file shown in the tree). A folder: toggle it, or leave the
         search with it open."""
         path, is_dir, _depth = rows[index]
@@ -707,7 +760,8 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
 
     # ── rows: viewport-culled, straight to the draw list ──
     from meltygui.view.collection_view import draw_tuple_fast
-    chip_size = px(17)
+    # Keep the icon and its tint hit target inside the original 20px file row.
+    chip_size = px(18)
     name_field = None
     text_y_pad = (row_h - imgui.get_font_size()) * 0.5
     for i, (path, is_dir, depth) in enumerate(rows):
@@ -718,6 +772,8 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
         entry = meta.get(str(path)) if meta is not None else None
         tint = FileMeta.painted_tint(entry)
         icon = row_icon(path, is_dir, entry, folder_icon, file_icon)
+        badge = (file_badge_for_path(path) if not is_dir
+                 and not (isinstance(entry, dict) and entry.get("icon")) else None)
         spans = hit_spans.get(i)
         name_rgba, glyph_rgba = (folder_rgba if is_dir else text_rgba), text_rgba
         faded = searching and spans is None          # a folder leading to a match
@@ -761,10 +817,13 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
             tuple(tint) if tint is not None else FileMeta.tint, draw_state,
             view_id=f"tree_tint_{path}", x=x,
             y=ry0 + (row_h - chip_size) * 0.5, size=chip_size,
-            empty_tint_icon=True, icon=icon, icon_color=icon_col,
+            empty_tint_icon=True, icon="" if badge else icon, icon_color=icon_col,
             hovered=row_hovered and x <= mouse_x < x + chip_size,
             setter=lambda value, _path=str(path): set_folder_tint(_path, value))
         imgui.set_cursor_screen_pos(chip_cursor)
+        if badge:
+            draw_file_badge(draw_list, x, ry0 + (row_h - chip_size) * 0.5,
+                            chip_size, icon_col, badge, glyph_rgba[3])
         if tint_changed:
             set_folder_tint(str(path), new_tint)
             draw_state.invalidate()
@@ -843,24 +902,16 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
     return False, input_value
 
 
-# ── the tile: the selector, the editor links, the rows ─────────────────────
+# ── the tile: the selector and the rows ─────────────────────
 
 
-
-
-class ProjectPanelState(DictConversion):
+class ProjectPanelState(ProjectSelection):
     """The Files tile's selected project and row menu state."""
 
     def __init__(self):
         super().__init__()
         self.selected_project = None
         self._menu = {}             # the rows' right-click target + the menu's pending request
-
-
-
-
-
-
 
 
 def set_folder_tint(folder, tint):
@@ -900,10 +951,6 @@ def default_project(open_files):
     return str(saved[0] if saved else Path.home())
 
 
-
-
-
-
 @render_func(multi_instance=True, tint=(0.32, 0.42, 0.54), icon=f"\uf07c", display_name="Files",
              selectable=False, disable_scroll=True, show_add_delete=False, is_tree=False,
              show_bg=False, shadow=False, show_header=False, use_cache=False)
@@ -915,8 +962,9 @@ def draw_project_tree(input_value: object, draw_state, panel_state: ProjectPanel
     from meltygui_pro.editor.project_selector import draw_project_selector
     state = panel_state
     open_files = input_value if isinstance(input_value, OpenFiles) else None
-    if not state.selected_project or not Path(state.selected_project).is_dir():
-        state.selected_project = default_project(open_files)
+    initialized = not state.selected_project or not Path(state.selected_project).is_dir()
+    if initialized:
+        state.set_project(default_project(open_files))
 
     px = Melty.px
     left, top = imgui.get_cursor_screen_pos()
@@ -943,15 +991,21 @@ def draw_project_tree(input_value: object, draw_state, panel_state: ProjectPanel
                                             width=max(px(60), width - chip_w - gap),
                                             trigger_height=header_height)
     if changed:
-        state.selected_project = folder
+        state.set_project(folder)
         draw_state.invalidate()
         request_render()
+    project_path = Path(state.selected_project)
+    draw_state.nickname = project_path.name or str(project_path)
+    # Expose the same project colour the instance paints, for source menus.
+    project_tint = folder_tint(state.selected_project)
+    if len(project_tint) < 4 or project_tint[3]:
+        draw_state.current_tint = tuple(project_tint[:3])
     imgui.set_cursor_screen_pos((left, top + header_h + gap))
     rows_height = max(0.0, (draw_state.height or 0) - header_h - gap - px(4))
     opened, _ = draw_project_files(input_value, name="files", root=state.selected_project,
                                    width=width, height=rows_height,
                                    context_menu=file_menu(state._menu), menu_target=state._menu)
-    return changed or tint_changed or opened, input_value
+    return initialized or changed or tint_changed or opened, input_value
 
 
 draw_project_tree.tile_background = lambda tile: _TILE_FILLS.get(tile.id)

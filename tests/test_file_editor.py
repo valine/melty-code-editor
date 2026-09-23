@@ -121,17 +121,17 @@ def test_version_switch_never_serves_old_file_or_revision():
 def test_comparisons_deduplicate_reciprocal_links_and_release_subscriptions():
     a, b = FileEditorState(), FileEditorState()
     a.selected_path = b.selected_path = "/a.py"
-    a.sibling_tile_id, b.sibling_tile_id = "b", "a"
+    view_a, view_b = SimpleNamespace(_kwargs={}), SimpleNamespace(_kwargs={})
+    view_a._kwargs["diff_with"], view_b._kwargs["diff_with"] = view_b, view_a
     calls = []
     b._file = SimpleNamespace(unsubscribe=lambda callback: calls.append("closed"))
-    endpoints = {"a": (None, a), "b": (None, b)}
+    endpoints = {"a": (view_a, a), "b": (view_b, b)}
     group = FileEditorComparisons()
     group.reconcile(endpoints)
     assert comparison_pairs(endpoints) == [("a", "b")]
-    assert a.siblings[0][0] == "b"
-    group.reconcile({"a": (None, a)})
-    assert calls == ["closed"] and a.siblings == ()
-    assert a.sibling_tile_id == "b"  # Stable identity survives temporary removal.
+    group.reconcile({"a": (view_a, a)})
+    assert calls == ["closed"]
+    assert view_a._kwargs["diff_with"] is view_b
     assert comparison_pairs(group._endpoints) == []
 
 
@@ -183,12 +183,12 @@ def test_comparison_change_invalidates_baked_washes_once(monkeypatch):
 def test_saved_state_keeps_choices_and_excludes_runtime(tmp_path):
     from meltygui.core.conversion.load_save_v2 import load, save
     state = FileEditorState()
-    state.selected_path, state.version, state.sibling_tile_id = "/a.py", "HEAD", "second"
+    state.selected_path, state.version = "/a.py", "HEAD"
     state._file = object()
     path = tmp_path / "file-editor.pkl"
     save(state, path)
     restored = load(path, run_on_load=False)
-    assert (restored.selected_path, restored.version, restored.sibling_tile_id) == ("/a.py", "HEAD", "second")
+    assert (restored.selected_path, restored.version) == ("/a.py", "HEAD")
     assert restored._file is None and restored._pane is None
 
 

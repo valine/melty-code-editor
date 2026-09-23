@@ -22,9 +22,9 @@ Smoke test: `MELTY_BENCH=1 .venv/bin/python editor.py FILE`.
 Read-only files / library installs are refused up front.
 A project is any folder (saved = marked). `draw_project_selector` (meltygui_pro) is drawn by
 the Files tile (`project_tree.py`) and by `draw_code_editor` when no tree links it. A tree
-shares its project with editors through a `ProjectLink` on the shared `OpenFiles`
-(`link_project`); tiles find each other by the sibling draw_state walk and never write a
-sibling's draw_state. The tab bar shows `OpenFiles.paths_in(selected project)`.
+owns the project selection. Code Editor, File Editor and Tasks receive
+`files_view: DrawState[draw_project_tree]` through the tile framework. The consumer
+link picker chooses Auto, a Files tile, or Unlinked; no sibling discovery is used. The tab bar shows `OpenFiles.paths_in(selected project)`.
 File → New Project… is `new_project.py` over `project_templates/`: one sub-folder per
 template, each a `create(name, ...)` function returning `{path: str | bytes}`; its
 parameters are the window's inputs. A view returns its input's type (a `str` there).
@@ -39,9 +39,13 @@ writes generated entries to the manifest using its normal pending-save lifecycle
 have a root-relative `module` path and run current editor text with package context in the project's
 interpreter. Ordinary entries remain command strings or `cmd` / `cwd` / `env` tables.
 One `TaskState` per tile owns its process and streamed output; `stop_task` ends the process group
-(Stop and app exit). The picker follows the nearest live sibling Files tile's ProjectLink, with editor/tab
-fallbacks, and persists its selected task per project. Run identity/output remain separate. Run → Tasks ▸ and Ctrl+Shift+R use
+(Stop and app exit). The picker follows its injected Files view, with selected-tab/project
+fallbacks when unlinked, and persists its selected task per project. Run identity/output remain separate. Run → Tasks ▸ and Ctrl+Shift+R use
 the same task runner. A request opens a Tasks tile if absent. The old Run File/F5 console is removed.
+File Editor keeps its file/version state private in `draw_state.misc`. Its
+`diff_with: DrawState[draw_file_editor]` parameter selects the comparison view
+through the link menu; Self contained disables comparison. Saved legacy targets
+are migrated into tile bindings.
 The toolkit guide is `../meltygui/docs/APPS.md`; package ownership and migration
 notes are `../meltygui-pro/docs/PACKAGE_SPLIT.md`.
 

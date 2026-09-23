@@ -1,5 +1,3 @@
-from meltygui import DrawState
-from project_tree import draw_project_tree, project_selection
 """One file/version per tile; siblings contribute only text and pane geometry.
 
 The old Code Editor remains a separate renderer. Everything specific to this
@@ -8,7 +6,9 @@ tile lives here; GitProxy owns file values, loading and watching.
 import threading
 from pathlib import Path
 
-from meltygui import imgui, draw_dropdown, draw_text, render_func
+from meltygui import imgui, draw_text, render_func, DrawState
+from meltygui.view.dropdown_view import fast_draw_dropdown
+from project_tree import draw_project_tree, project_selection
 from meltygui.core.conversion.dict_conversion import DictConversion
 from meltygui.core.rendering.core_decoration import no_save
 from meltygui.core.runtime.lifecycle import module_is_live
@@ -19,19 +19,19 @@ from meltygui_pro.editor.code_editor import prepare_editor_tabs, _draw_tab_bar_r
 from meltygui_pro.models.open_files import OpenFiles
 
 
-@no_save("version_ready", "siblings", "_file", "_pane", "_text", "_line_numbers")
+@no_save("version_ready", "_file", "_pane", "_text", "_line_numbers", "_comparison", "_diff_folds")
 class FileEditorState(DictConversion):
     def __init__(self):
         super().__init__()
         self.selected_path = None
         self.version = "current"
-        self.sibling_tile_id = None
         self.version_ready = 0
-        self.siblings = ()
         self._file = None
         self._pane = None
         self._text = None
         self._line_numbers = None
+        self._comparison = None
+        self._diff_folds = None
 
     def changed(self):
         self.version_ready += 1
@@ -84,7 +84,7 @@ def adopt_selection(files, state, instance, project_source=None):
         if not path.startswith(OpenFiles.GIT_DIFF_PREFIX):
             if link is not None and path not in paths:
                 from meltygui_pro.models.projects import project_for
-                link.selected_project = str(project_for(path) or Path(path).parent)
+                link.set_project(str(project_for(path) or Path(path).parent))
                 paths = [p for p in files.paths_in(link.selected_project)
                          if not p.startswith(OpenFiles.GIT_DIFF_PREFIX)]
             state.selected_path = path
@@ -126,10 +126,12 @@ def cleanup_file_editor(draw_state):
              on_cleanup=cleanup_file_editor,
              display_name="File Editor", icon=f"\uf15c", tint=(0.20, 0.30, 0.48))
 def draw_file_editor(input_value: OpenFiles, draw_state=None,
-                     file_editor_state: FileEditorState = None, instance=0,
+                     diff_with: "DrawState[draw_file_editor]" = None, instance=0,
                      layout_frame=None, tab_bar_state: TabBarState = None,
                      files_view: DrawState[draw_project_tree] = None):
-    state, files = file_editor_state, input_value
+    from meltygui.core.rendering.injected_state import owned_state
+    state = owned_state(draw_state, "file_editor_state", FileEditorState)
+    files = input_value
     if not isinstance(files, OpenFiles):
         return False, input_value
     from meltygui_pro.editor.git import note_consumer
@@ -148,27 +150,18 @@ def draw_file_editor(input_value: OpenFiles, draw_state=None,
     path = state.selected_path
     options, text, status = version_value(state)
     imgui.set_cursor_screen_pos((left, top))
-    picked, version = draw_dropdown(
+    picked, version = fast_draw_dropdown(
         state.version, collection=options, name="Version", show_name=False,
         display_label=next((label for label, value in options.items() if value == state.version), state.version),
-        width=max(1, width * 0.5 - 2), height=28, show_header=False)
+        width=max(1, width - (94 if state._comparison is not None else 0)), height=28, show_header=False)
     if picked:
         state.version = version
         options, text, status = version_value(state)
         changed = True
-    siblings = {"No comparison": None}
-    for other_id, label in state.siblings:
-        siblings[label] = other_id
-    if state.sibling_tile_id is not None and state.sibling_tile_id not in siblings.values():
-        siblings["Unavailable editor"] = state.sibling_tile_id
-    imgui.set_cursor_screen_pos((left + width * 0.5 + 2, top))
-    picked, sibling = draw_dropdown(
-        state.sibling_tile_id, collection=siblings, name="Compare with", show_name=False,
-        display_label=next(label for label, value in siblings.items() if value == state.sibling_tile_id),
-        width=max(1, width * 0.5 - 2), height=28, show_header=False)
-    if picked:
-        state.sibling_tile_id = sibling
-        changed = True
+    if state._comparison is not None:
+        from meltygui_pro.editor.comparison import draw_comparison_controls
+        imgui.set_cursor_screen_pos((left + max(0, width - 86), top))
+        draw_comparison_controls(draw_state, state._comparison)
     # One codec-selected view, including loading/empty/error states. Its identity
     # includes the version, so historic cursors/folds never replace the working ones.
     imgui.set_cursor_screen_pos((left, top + 30))
@@ -197,6 +190,8 @@ def draw_file_editor(input_value: OpenFiles, draw_state=None,
         syntax_language="python" if path and path.endswith(".py") else "text",
         show_header=False, show_file_header=False, gutter_indent=True, freeze_resize=True,
         roster_live_hold=editable and state.version == "current", autocomplete=editable, shadow=False,
+        diff_fold_ranges=state._diff_folds if is_text else None,
+        expand_diff=state._comparison.expand_diff if state._comparison is not None else None,
         use_cache=True)
     if edited and editable:
         file_value["value"] = replacement
@@ -259,6 +254,7 @@ class FileEditorComparisons(DictConversion):
     def __init__(self):
         super().__init__()
         self.ready = 0
+        self.interactions = {}
         self._endpoints = {}
         self._requests = {}
         self._results = {}
@@ -270,11 +266,6 @@ class FileEditorComparisons(DictConversion):
             if key not in endpoints:
                 state.close()
         self._endpoints = endpoints
-        for key, (_view, state) in endpoints.items():
-            state.siblings = tuple(
-                (other_id, f"{Path(other.selected_path).name if other.selected_path else 'Empty'}"
-                 f" · {other.version[:12]} · {other_id}")
-                for other_id, (_other_view, other) in endpoints.items() if other_id != key)
 
     def close(self):
         self._closed = True
@@ -327,12 +318,35 @@ class FileEditorComparisons(DictConversion):
 
 
 def comparison_pairs(endpoints):
+    """Compare only injected view references; each editor retains its own state."""
+    by_view = {id(view): key for key, (view, _state) in endpoints.items()}
     pairs = set()
-    for key, (_view, state) in endpoints.items():
-        sibling = state.sibling_tile_id
-        if sibling != key and sibling in endpoints:
-            pairs.add(tuple(sorted((key, sibling))))
+    for key, (view, _state) in endpoints.items():
+        target = (view._kwargs or {}).get('diff_with') if view is not None else None
+        other = by_view.get(id(target)) if target is not None else None
+        if other is not None and other != key:
+            pairs.add(tuple(sorted((key, other))))
     return sorted(pairs)
+
+
+def migrate_comparison_link(tile):
+    """Translate an old saved comparison once; discard whole-editor sharing."""
+    from meltygui.core.layout.tile_links import prepare_endpoint
+    from meltygui.state.view_reference import view_identifier
+    endpoint = prepare_endpoint(tile)
+    state = endpoint.draw_state.misc.get('file_editor_state')
+    key = view_identifier(draw_file_editor)
+    bindings = dict(tile.links.get(key, {}))
+    changed = 'file_editor_state' in bindings
+    bindings.pop('file_editor_state', None)
+    if state is not None:
+        old_target = vars(state).pop('sibling_tile_id', None)
+        vars(state).pop('siblings', None)
+        if old_target is not None and 'diff_with' not in bindings:
+            bindings['diff_with'] = (old_target, key, None)
+            changed = True
+    if changed:
+        tile.links = {**tile.links, key: bindings}
 
 
 def _draw_ribbons(draw_state, pane_a, pane_b, blocks):
@@ -352,7 +366,11 @@ def draw_file_editor_comparisons(draw_state, state, live_ids):
                  if key in live_ids}
     state.reconcile(endpoints)
     ready = state.ready  # Track async diff completion in the containing view.
+    from meltygui_pro.editor.comparison import ComparisonState, synchronize_comparison
+    from meltygui_pro.editor.code_editor import _diff_gap_folds
+    from meltygui.core.runtime.toggles import Toggles
     requests = {}
+    presentations = {}
     for pair in comparison_pairs(endpoints):
         a, b = (endpoints[key][1] for key in pair)
         if a._text is None or b._text is None or a._pane is None or b._pane is None:
@@ -361,7 +379,41 @@ def draw_file_editor_comparisons(draw_state, state, live_ids):
         requests[pair] = token, a._text, b._text
         result = state._results.get(pair)
         if result is not None and result[0] == token:
+            interaction = state.interactions.get(pair)
+            if interaction is None:
+                interaction = state.interactions[pair] = ComparisonState()
+            bands = [(i0, i1, j0, j1, tag) for tag, i0, i1, j0, j1 in result[1]]
+            synchronize_comparison(interaction, a._pane, b._pane, bands,
+                                   a._text, b._text, (pair, token[:2], token[3:5]))
+            fold_settings = (Toggles.CodeEditor.diff_fold_context,
+                             Toggles.TextEditor.diff_preview_lines_below,
+                             Toggles.TextEditor.diff_preview_lines_above)
+            cached = interaction.misc.get('fold_ranges')
+            if cached is None or cached[0] is not result or cached[1] != fold_settings:
+                ranges = tuple(_diff_gap_folds(
+                    [(band[side * 2], band[side * 2 + 1]) for band in bands],
+                    text.count("\n") + 1, *fold_settings)
+                    for side, text in enumerate((a._text, b._text)))
+                cached = result, fold_settings, ranges
+                interaction.misc['fold_ranges'] = cached
+            for side, key in enumerate(pair):
+                folds = cached[2][side]
+                # A tile can participate in several pairs; its outgoing link
+                # owns the fold layout and toolbar, otherwise the first incoming.
+                view = endpoints[key][0]
+                outgoing = (view._kwargs or {}).get('diff_with') is endpoints[pair[1-side]][0]
+                if key not in presentations or outgoing:
+                    presentations[key] = interaction, folds
             _draw_ribbons(draw_state, a._pane, b._pane, result[1])
+    for key, (view, editor) in endpoints.items():
+        interaction, folds = presentations.get(key, (None, None))
+        if editor._comparison is not interaction or editor._diff_folds != folds:
+            editor._comparison, editor._diff_folds = interaction, folds
+            view.invalidate_up(max_depth=6)
+            request_render()
+    for pair, interaction in state.interactions.items():
+        if pair not in requests:
+            interaction.misc.clear()  # Retain preferences, release old text/layouts.
     state._results = {key: value for key, value in state._results.items() if key in requests}
     state.dispatch(requests)
 
