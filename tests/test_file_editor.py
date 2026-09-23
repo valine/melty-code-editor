@@ -231,3 +231,43 @@ def test_rebinding_retires_a_pre_refactor_reader():
     state.bind(value)
     assert calls == ["retired", "subscribed"]
     assert "_reader" not in vars(state)
+
+
+def test_tab_overlay_reflows_at_live_bottom_without_registering_inputs(monkeypatch):
+    from unittest.mock import Mock
+    import file_editor
+    from meltygui.core.melty import Melty
+    from meltygui.view import header_view
+    from meltygui_pro.editor.code_editor import prepare_editor_tabs
+    from meltygui_pro.models.tab_bar import TabBarState
+
+    monkeypatch.setattr(file_editor.imgui, 'calc_text_size', lambda text: SimpleNamespace(x=50, y=16))
+    monkeypatch.setattr(file_editor.imgui, 'set_window_font_scale', lambda scale: None)
+    monkeypatch.setattr(file_editor.imgui, 'get_mouse_pos', lambda: (-100, -100))
+    monkeypatch.setattr(Melty, 'on_drag', False)
+    ds = SimpleNamespace(misc={}, _bounding_hovered=False, width=400, height=300,
+                         abs_left=20, abs_top=30, bg_color=(.1, .1, .1, 1),
+                         on_action=Mock(side_effect=AssertionError('overlay registered input')))
+    state = FileEditorState()
+    ds.misc['file_editor_state'] = state
+    paths = ['/tmp/overlay-first.txt', '/tmp/overlay-second.txt']
+    tabs, button_height, row_height, swatch_width, layout, _ = prepare_editor_tabs(
+        paths, paths, ['first', 'second'], ds, TabBarState())
+    assert all(tab['badge'][0] == 'TXT' for tab in tabs)
+    for tab in tabs:
+        tab['paint_style'] = {'color': (.2, .3, .4), 'text_color': (1, 1, 1)}
+    state._tab_overlay = tabs, layout, button_height, row_height, swatch_width, ds.bg_color
+    paint = Mock()
+    monkeypatch.setattr(header_view, 'flat_button', paint)
+    dl = Mock()
+    file_editor.draw_file_editor_overlay(ds, dl)
+    assert [call.kwargs['pos'][1] for call in paint.call_args_list] == [283, 283]
+    assert all(call.kwargs['layout'] is False and call.kwargs['draw_list'] is dl
+               for call in paint.call_args_list)
+    # The same prepared data reflows on a frozen frame without running the body.
+    paint.reset_mock()
+    ds.width, ds.height = tabs[0]['w'] + 14, 200
+    file_editor.draw_file_editor_overlay(ds, dl)
+    assert [call.kwargs['pos'][1] for call in paint.call_args_list] == [139, 183]
+    assert dl.push_clip_rect.call_count == dl.pop_clip_rect.call_count == 4
+    ds.on_action.assert_not_called()
