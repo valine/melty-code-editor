@@ -44,14 +44,14 @@ from meltygui import glfw_window, pressed, imgui, window_api as glfw
 # Register tensor views for inline captures, including project-process arrays.
 from meltygui import draw_voxels, draw_line_graph
 from app_model import EditorAppModel
-from tile_views import draw_main_editor, draw_chat
+from tile_views import draw_main_editor, draw_chat  # noqa: F401  tile_views registers the Tasks tile
 from project_tree import draw_project_tree, open_path  # noqa: F401  draw_project_tree registers the Files tile
 from editor_settings import settings
 from new_project import draw_new_project, main_files
+import tasks
 from meltygui.core.layout.tile_manager_core import TileManagerState, draw_tiles
 from meltygui.core.core_render import render_func
 from meltygui_pro.models.open_files import OpenFiles
-from meltygui_pro.models.project_run_state import ProjectRunState
 from meltygui.core.melty import Melty
 from meltygui.code.fileref import writable_file_refusal
 from meltygui.view.header_view import draw_header
@@ -73,6 +73,8 @@ for path in paths:
 # the command line are added, and the first is posted as the pending jump,
 # which selects its tab; with no files the editor draws last run's tabs.
 open_files = meltygui.persisted('open_files', OpenFiles, app_id='melty-code-editor')
+tasks.project_tasks = meltygui.persisted('project_tasks', tasks.ProjectTasks,
+                                       app_id='melty-code-editor')
 app_model = meltygui.persisted('tile_layout', EditorAppModel, app_id='melty-code-editor')
 app_model.bind_open_files(open_files)
 for path in paths:
@@ -114,7 +116,6 @@ def implicit_projects():
 search = meltygui_pro.global_search(categories=('Code',), roots=project_roots, open_files=open_files)
 
 open_requested = False
-run_requested = False
 add_project_requested = False
 new_project_requested = False
 open_error = None
@@ -235,9 +236,24 @@ def open_file(filename):
     open_error = open_path(open_files, filename, open_files.active_instance)
 
 
-def request_run_file():
-    global run_requested
-    run_requested = True
+def selected_tab_project():
+    """The selected tab's project root (str), or None without a file tab."""
+    selected = open_files.active_path
+    if isinstance(selected, str) and not selected.startswith(OpenFiles.GIT_DIFF_PREFIX):
+        root = project_for(selected)
+        return str(root) if root else None
+    return None
+
+
+def run_menu():
+    """The selected tab's project tasks, rebuilt each frame."""
+    menu = {'Rerun last task (Ctrl+Shift+R)': tasks.request_rerun}
+    root = selected_tab_project()
+    names = list(tasks.read_tasks(root)) if root else []
+    if names:
+        menu['Tasks'] = {name: (lambda _name=name, _root=root: tasks.request_run(_root, _name))
+                         for name in names}
+    return menu
 
 
 def quit_window():
@@ -265,18 +281,20 @@ def draw_new_field(width):
 @glfw_window(name=paths[0].name if len(paths) == 1 else 'Code Editor', app_id='melty-code-editor',
              with_header=draw_header, bg_offset=-3, tint=(0.34, 0.52, 0.73), settings=settings)
 @render_func(use_cache=True)
-def editor(input_value: object, draw_state, run_state: ProjectRunState = None,
+def editor(input_value: object, draw_state,
            tile_state: TileManagerState = None, multi_instance_renderers=()):
-    global open_requested, add_project_requested, new_project_requested, run_requested
+    global open_requested, add_project_requested, new_project_requested
     menu_height = 25.0
     meltygui.draw_menu_bar({'File': {'New…': request_new, 'New Project…': request_new_project,
                                   'Open…': request_open},
-                         'Run': {'Run file (F5)': request_run_file},
+                         'Run': run_menu(),
                          'Projects': projects_menu(),
                          'Search': {'Search…': search.open}},
                         name='menu', bar_height=menu_height)
     if new_draft is None and pressed('ctrl+n'):
         request_new()
+    if pressed('ctrl+shift+r'):
+        tasks.request_rerun()
     changed, path = meltygui.draw_file_selector(
         str(paths[0].parent) if paths else None, name='Open file', glfw_window=True,
         open_requested=open_requested or pressed('ctrl+o'), context_menu=FOLDER_MENU,
@@ -305,22 +323,10 @@ def editor(input_value: object, draw_state, run_state: ProjectRunState = None,
     if open_error:
         imgui.text_wrapped(open_error)
     app_model.reconcile_editors(open_files)
+    added_tasks = app_model.ensure_tasks(open_files) if tasks.pending_run() else False
     layout_changed = draw_tiles(
         app_model.tiles, draw_state, tile_state=tile_state,
         multi_instance_renderers=(draw_main_editor, draw_chat, *multi_instance_renderers),
         content_top=imgui.get_cursor_screen_pos()[1])
     app_model.reconcile_editors(open_files)
-    if run_requested or pressed('f5'):
-        run_requested = False
-        selected = open_files.active_path
-        if selected and pathlib.Path(selected).is_file():
-            run_state.start(selected)
-    from meltygui_pro.editor.run_console import draw_project_run_console
-    from meltygui.core.rendering.mode import Mode
-    _, _, console_state = draw_project_run_console(run_state, name='Run file', mode=Mode.WINDOW,
-                             closed=not run_state.opened, parent_window=draw_state,
-                             min_width=620, width=650, height=340, keep_in_view=True,
-                             window_pos=(max(10, draw_state.width - 680), 210), return_extras=True)
-    if run_state.opened and console_state.closed:
-        run_state.opened = False
-    return layout_changed, input_value
+    return layout_changed or added_tasks, input_value

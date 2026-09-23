@@ -26,3 +26,14 @@ class EditorAppModel(DictConversion):
         if open_files.active_instance not in instances:
             open_files.active_instance = open_files.primary_instance
             open_files.active_path = None
+
+    def ensure_tasks(self, open_files):
+        """A queued run must have a visible output tile, even in a fresh layout."""
+        from tasks import draw_tasks
+        if any(isinstance(tile, Tile) and tile.render_func is draw_tasks
+               for _path, tile in walk(self.tiles)):
+            return False
+        tile = Tile('Tasks', tint=(0.36, 0.47, 0.42),
+                    render_func=draw_tasks, input_value=open_files)
+        self.tiles = Split('y', [self.tiles, tile])
+        return True

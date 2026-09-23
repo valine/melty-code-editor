@@ -506,7 +506,7 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
     folder_icon = f"\uf07b"
     # [tint=(0.55, 0.72, 0.95)]
     file_icon = f"\uf15b"
-    text_rgba = (0.92, 0.92, 0.92, 1.0)
+    text_rgba = (0.867, 0.858, 0.874, 1.0)
     text_col = pack_color(*text_rgba)
     dim_col = pack_color(0.6, 0.63, 0.68, 1.0)
     folder_rgba = (0.78, 0.84, 0.92, 1.0)
@@ -761,6 +761,8 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
         request_render()
 
     # ── rows: viewport-culled, straight to the draw list ──
+    from meltygui.view.collection_view import draw_tuple_fast
+    chip_size = px(17)
     name_field = None
     text_y_pad = (row_h - imgui.get_font_size()) * 0.5
     for i, (path, is_dir, depth) in enumerate(rows):
@@ -809,7 +811,19 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
                    (cx - radius + px(1), cy - radius, cx + radius - px(1), cy, cx - radius + px(1), cy + radius))
             draw_list.add_triangle_filled(*tri, icon_col)
         x += chevron_w
-        draw_list.add_text(x, ry0 + text_y_pad, icon_col, icon)
+        chip_cursor = imgui.get_cursor_screen_pos()
+        tint_changed, new_tint = draw_tuple_fast(
+            tuple(tint) if tint is not None else FileMeta.tint, draw_state,
+            view_id=f"tree_tint_{path}", x=x,
+            y=ry0 + (row_h - chip_size) * 0.5, size=chip_size,
+            empty_tint_icon=True, icon=icon, icon_color=icon_col,
+            hovered=row_hovered and x <= mouse_x < x + chip_size,
+            setter=lambda value, _path=str(path): set_folder_tint(_path, value))
+        imgui.set_cursor_screen_pos(chip_cursor)
+        if tint_changed:
+            set_folder_tint(str(path), new_tint)
+            draw_state.invalidate()
+            request_render()
         name_x = x + glyph_w
         name = path.name or str(path)
         if spans:
@@ -930,13 +944,10 @@ def open_target(tile_ds):
 
 
 def set_folder_tint(folder, tint):
-    """Paint `folder` in the shared file-meta store (the editor tab chip's write)."""
-    from meltygui.models.file_meta import FileMeta, file_meta_store
-    meta = file_meta_store()
-    entry = meta.get(folder)
-    if not isinstance(entry, dict):
-        entry = meta[folder] = FileMeta()
-    entry["tint"] = tint
+    """Set a file/folder tint in shared metadata; None removes the tint."""
+    from meltygui.models.file_meta import file_meta_store
+    from meltygui.model.file_metadata_model import set_row_tint
+    set_row_tint(file_meta_store(), folder, tint)
 
 
 def folder_tint(folder):
@@ -1052,14 +1063,13 @@ def draw_project_tree(input_value: object, draw_state, panel_state: ProjectPanel
     # the folder's row in every tree): the tab bar's chip, picker and undo.
     from meltygui.view.collection_view import draw_tuple_fast
     chip, chip_w = px(17), px(24)
-    unpainted = len(tint) >= 4 and not tint[3]
     project = state.selected_project
     tint_changed, new_tint = draw_tuple_fast(
-        tint[:3] + (1.0,) if unpainted else tint, draw_state, view_id=f"project_tint_{project}",
+        tint, draw_state, view_id=f"project_tint_{project}",
         x=left + arrow_w + gap + (chip_w - chip) * 0.5, y=top + (header_h - chip) * 0.5,
-        swatch=tint if unpainted else None,
-        setter=lambda value, _folder=project: isinstance(value, tuple) and set_folder_tint(_folder, value))
-    if tint_changed and isinstance(new_tint, tuple):
+        empty_tint_icon=True,
+        setter=lambda value, _folder=project: set_folder_tint(_folder, value))
+    if tint_changed:
         set_folder_tint(project, new_tint)
         draw_state.invalidate()
         request_render()

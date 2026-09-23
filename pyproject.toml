@@ -1,0 +1,3 @@
+[tool.melty.tasks]
+test = "python -m pytest tests -q"
+smoke = "MELTY_BENCH=1 python editor.py editor.py"

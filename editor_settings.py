@@ -36,6 +36,11 @@ class CodeEditorSettings:
         # Dotfiles and dot-folders in the Files tile (and its search).
         show_hidden = False
 
+    class Tasks:
+        # Also write generated module tasks to the project's pyproject.toml.
+        # Task lists always persist with the app session, like open files.
+        save_tasks = False
+
 
 # CodeEditorSettings as a dict: the root window's settings window edits it,
 # the render functions read it.
