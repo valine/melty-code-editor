@@ -20,16 +20,16 @@ A value is the command string, or a table with ``cmd`` and optionally ``cwd``
 the project root with the project's environment (`analysis_project`) first on
 PATH, so ``pytest`` is the project's pytest.
 
-One injected `TaskState` per tile: the selected task name persists; the
+One injected `TaskState` per tile: selected task names persist per project; the
 process, its reader thread and the output are the session's. `start_task`
 spawns the command in its own process group and a daemon thread that appends
 the output and wakes the window; `stop_task` ends the group (the Stop button,
 and every live run at app exit). Closing the tile does not stop a run: the
 state, and the process with it, come back with the tile.
 
-Before its first run the tile uses the nearest code editor's project, else
-the selected tab's, else the first saved project. After a request it retains
-that run's project so the label, task selection and output agree.
+The picker follows the nearest live sibling Files tile's ProjectLink, falling
+back to the nearest editor, selected tab or saved project. Run identity and
+output stay separate from the per-project picker selection.
 The Run menu (editor.py) lists the same tasks and runs one in the first Tasks
 tile through `request_run`.
 """
@@ -78,8 +78,9 @@ project_tasks = ProjectTasks()
 class TaskState(DictConversion):
     def __init__(self):
         super().__init__()
-        self.task = None          # the selected task name (persists)
-        self.project = None       # project of the selected/run task (persists)
+        self.selected_tasks = {}  # project root -> picker selection (persists)
+        self.task = None          # last run task name (persists)
+        self.project = None       # last run project (persists)
         self.process = None       # subprocess.Popen while running
         self.thread = None        # the reader thread
         self.output = ''          # what the tile shows, the last OUTPUT_LIMIT chars
@@ -228,6 +229,7 @@ def start_task(state, root, name):
         if state.thread is not None:
             state.thread.join(KILL_AFTER + 1.0)
     task = read_tasks(root).get(name)
+    state.selected_tasks[str(root)] = name
     state.task = name
     state.project = str(root)
     state.error = None
@@ -374,12 +376,30 @@ def pending_run():
 # ── the tile ────────────────────────────────────────────────────────────────
 
 def tile_project(draw_state, open_files):
-    """The nearest code editor's selected project, else the selected tab's,
-    else the first saved project; None with nothing to go on."""
+    """Follow the nearest live sibling Files link, then editor/tab fallbacks."""
+    parent = draw_state._parent
+    trees = []
+    if parent is not None and parent is not draw_state:
+        for sibling in parent._view_children.values():
+            if sibling is draw_state or sibling._parent is not parent:
+                continue
+            if sibling._view_func is None or sibling._view_func.__name__ != 'draw_project_tree':
+                continue
+            link = sibling._project_link
+            if link is None or not link.alive() or not sibling.width or not sibling.height:
+                continue
+            dx = max(0, sibling.abs_left - draw_state.abs_left - (draw_state.width or 0),
+                     draw_state.abs_left - sibling.abs_left - sibling.width)
+            dy = max(0, sibling.abs_top - draw_state.abs_top - (draw_state.height or 0),
+                     draw_state.abs_top - sibling.abs_top - sibling.height)
+            trees.append((dx * dx + dy * dy, link))
+    if trees:
+        folder = min(trees, key=lambda item: item[0])[1].folder
+        return str(folder) if folder else None
     editor = target_editor(draw_state)
     if editor is not None:
         project_state = editor.misc.get('project_state')
-        folder = getattr(project_state, 'selected_project', None)
+        folder = project_state.selected_project if project_state is not None else None
         if folder and Path(folder).is_dir():
             return str(folder)
     path = open_files.active_path if open_files is not None else None
@@ -389,6 +409,19 @@ def tile_project(draw_state, open_files):
             return str(root)
     saved = project_roots()
     return str(saved[0]) if saved else None
+
+
+def selected_task(state, root, tasks):
+    """Restore a project's picker; migrate an older tile's saved run selection."""
+    selections = state.selected_tasks
+    if state.project and state.task:
+        selections.setdefault(str(state.project), state.task)
+    if not root:
+        return None
+    root = str(root)
+    if selections.get(root) not in tasks:
+        selections[root] = next(iter(tasks), None)
+    return selections[root]
 
 
 def status_text(state):
@@ -418,16 +451,16 @@ def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
         pending_root, name = _pending
         _pending = None
         if _pending_error is not None:
+            state.selected_tasks[pending_root] = name
             state.project, state.task, state.error = pending_root, name, _pending_error
             _pending_error = None
         else:
             start_task(state, pending_root, name)
 
-    root = getattr(state, 'project', None) or tile_project(draw_state, open_files)
+    root = tile_project(draw_state, open_files)
     tasks = read_tasks(root) if root else {}
     names = list(tasks)
-    if state.task not in tasks and names and not state.running:
-        state.task = names[0]
+    choice = selected_task(state, root, tasks)
 
     px = Melty.px
     left, top = imgui.get_cursor_screen_pos()
@@ -446,11 +479,11 @@ def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
     selector_w = min(selector_max_w, max(0, width - 2 * button_w - 2 * gap))
     imgui.set_cursor_screen_pos((left, top))
     if names and selector_w > 0:
-        picked, choice = draw_dropdown(state.task, collection=names, name='task', show_header=False,
+        picked, choice = draw_dropdown(choice, collection=names, name='task', show_header=False,
                                        width=selector_w,
                                        trigger_height=header_h / Melty.ui_scale, shadow=False)
         if picked and isinstance(choice, str):
-            state.task = choice
+            state.selected_tasks[str(root)] = choice
             draw_state.invalidate()
     else:
         imgui.set_cursor_screen_pos((left, top + (header_h - imgui.get_text_line_height()) * 0.5))
@@ -465,7 +498,7 @@ def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
                    f'tasks-run::{unique}', width=button_w, height=px(24),
                    color=(0.16, 0.75, 0.30), text_color=(0.24, 0.90, 0.40),
                    hovered=None if run_enabled else False) and run_enabled:
-        start_task(state, root, state.task)
+        start_task(state, root, choice)
     imgui.set_cursor_screen_pos((controls_left + button_w + gap, button_top))
     stop_color = (0.90, 0.20, 0.18) if state.running else (0.42, 0.42, 0.42)
     if flat_button(f'\uf04d##tasks-stop{unique}', draw_state if state.running else None,
@@ -479,7 +512,8 @@ def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
     output_ds = None
     if toolbar_y >= status_h:
         imgui.set_cursor_screen_pos((body_left, body_top))
-        imgui.text(f'{Path(root).name if root else "no project"}  {status_text(state)}')
+        output_root = state.project or root
+        imgui.text(f'{Path(output_root).name if output_root else "no project"}  {status_text(state)}')
     output_h = max(0, toolbar_y - status_h - gap)
     if output_h >= px(20):
         imgui.set_cursor_screen_pos((body_left, body_top + status_h + gap))
@@ -490,12 +524,12 @@ def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
                                     show_widgets=False, use_cache=False, return_extras=True)
     # Follow the tail while running; scrolling up stops following until the next run.
     if output_ds is not None:
-        max_y = getattr(output_ds, '_max_scroll_y', None)
+        max_y = output_ds._max_scroll_y
         if max_y is not None:
             at_end = output_ds.scroll_offset[1] >= max_y - px(2)
             if state.running and state._follow and not at_end:
                 output_ds.scroll_offset = (output_ds.scroll_offset[0], max_y)
-            elif getattr(output_ds, 'scrolled', False) and not at_end:
+            elif output_ds.scrolled and not at_end:
                 state._follow = False
     if state.running:
         draw_state.invalidate()

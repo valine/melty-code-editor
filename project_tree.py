@@ -72,7 +72,7 @@ SEARCH_SKIP = frozenset({"__pycache__", "node_modules", ".git", ".venv", "venv"}
 # The search index stops growing here: a home folder marked as a project
 # must not stall the first keystroke.
 SEARCH_LIMIT = 60000
-EDITOR_VIEW = "draw_code_editor"
+EDITOR_VIEWS = {"draw_code_editor", "draw_file_editor"}
 
 
 class ProjectTreeState(DictConversion):
@@ -136,7 +136,7 @@ def sibling_editors(draw_state):
     for sib in parent._view_children.values():
         if sib is None or sib is draw_state or sib._parent is not parent:
             continue
-        if getattr(sib._view_func, "__name__", None) != EDITOR_VIEW:
+        if getattr(sib._view_func, "__name__", None) not in EDITOR_VIEWS:
             continue
         if sib.last_seen is None or Melty.frame_count - sib.last_seen > 1:
             continue

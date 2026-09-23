@@ -4,6 +4,7 @@ from meltygui_pro import draw_code_editor
 from meltygui_pro.models.open_files import OpenFiles
 from editor_settings import settings
 from tasks import draw_tasks, request_module_run
+from file_editor import draw_file_editor
 
 
 def draw_main_editor(input_value: OpenFiles, **kwargs):

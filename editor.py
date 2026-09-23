@@ -45,6 +45,8 @@ from meltygui import glfw_window, pressed, imgui, window_api as glfw
 from meltygui import draw_voxels, draw_line_graph
 from app_model import EditorAppModel
 from tile_views import draw_main_editor, draw_chat  # noqa: F401  tile_views registers the Tasks tile
+from file_editor import (FileEditorComparisons, draw_file_editor_comparisons,
+                         cleanup_file_editor_comparisons)
 from project_tree import draw_project_tree, open_path  # noqa: F401  draw_project_tree registers the Files tile
 from editor_settings import settings
 from new_project import draw_new_project, main_files
@@ -280,9 +282,10 @@ def draw_new_field(width):
 
 @glfw_window(name=paths[0].name if len(paths) == 1 else 'Code Editor', app_id='melty-code-editor',
              with_header=draw_header, bg_offset=-3, tint=(0.34, 0.52, 0.73), settings=settings)
-@render_func(use_cache=True)
+@render_func(use_cache=True, on_cleanup=cleanup_file_editor_comparisons)
 def editor(input_value: object, draw_state,
-           tile_state: TileManagerState = None, multi_instance_renderers=()):
+           tile_state: TileManagerState = None, multi_instance_renderers=(),
+           file_comparisons: FileEditorComparisons = None):
     global open_requested, add_project_requested, new_project_requested
     menu_height = 25.0
     meltygui.draw_menu_bar({'File': {'New…': request_new, 'New Project…': request_new_project,
@@ -328,5 +331,6 @@ def editor(input_value: object, draw_state,
         app_model.tiles, draw_state, tile_state=tile_state,
         multi_instance_renderers=(draw_main_editor, draw_chat, *multi_instance_renderers),
         content_top=imgui.get_cursor_screen_pos()[1])
+    draw_file_editor_comparisons(draw_state, file_comparisons, app_model.file_editor_ids())
     app_model.reconcile_editors(open_files)
     return layout_changed or added_tasks, input_value

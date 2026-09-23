@@ -39,8 +39,8 @@ writes generated entries to the manifest using its normal pending-save lifecycle
 have a root-relative `module` path and run current editor text with package context in the project's
 interpreter. Ordinary entries remain command strings or `cmd` / `cwd` / `env` tables.
 One `TaskState` per tile owns its process and streamed output; `stop_task` ends the process group
-(Stop and app exit). Before its first run the tile takes the nearest editor's project, else the
-selected tab's; after a request it retains that task's project. Run → Tasks ▸ and Ctrl+Shift+R use
+(Stop and app exit). The picker follows the nearest live sibling Files tile's ProjectLink, with editor/tab
+fallbacks, and persists its selected task per project. Run identity/output remain separate. Run → Tasks ▸ and Ctrl+Shift+R use
 the same task runner. A request opens a Tasks tile if absent. The old Run File/F5 console is removed.
 The toolkit guide is `../meltygui/docs/APPS.md`; package ownership and migration
 notes are `../meltygui-pro/docs/PACKAGE_SPLIT.md`.

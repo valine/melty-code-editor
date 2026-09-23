@@ -18,14 +18,19 @@ class EditorAppModel(DictConversion):
                 tile.input_value = open_files
 
     def reconcile_editors(self, open_files):
-        from tile_views import draw_main_editor
+        from tile_views import draw_main_editor, draw_file_editor
         editors = [tile for _path, tile in walk(self.tiles)
-                   if isinstance(tile, Tile) and tile.render_func is draw_main_editor]
+                   if isinstance(tile, Tile) and tile.render_func in (draw_main_editor, draw_file_editor)]
         instances = {tile.id for tile in editors}
         open_files.primary_instance = editors[0].id if editors else 0
         if open_files.active_instance not in instances:
             open_files.active_instance = open_files.primary_instance
             open_files.active_path = None
+
+    def file_editor_ids(self):
+        from file_editor import draw_file_editor
+        return {tile.id for _path, tile in walk(self.tiles)
+                if isinstance(tile, Tile) and tile.render_func is draw_file_editor}
 
     def ensure_tasks(self, open_files):
         """A queued run must have a visible output tile, even in a fresh layout."""

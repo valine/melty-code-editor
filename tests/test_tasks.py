@@ -203,3 +203,39 @@ def test_invalid_manifest_is_not_overwritten_when_saving(tmp_path, monkeypatch):
     tasks.request_module_run(str(path), str(tmp_path))
     assert tasks._pending_error
     assert manifest.read_text() == '[unfinished\n'
+
+
+def test_project_selection_restores_while_another_task_runs(tmp_path):
+    from meltygui.core.conversion.load_save_v2 import save, load
+    state = tasks.TaskState()
+    state.project, state.task, state.running = '/a', 'second', True
+    assert tasks.selected_task(state, '/a', {'first': {}, 'second': {}}) == 'second'
+    assert tasks.selected_task(state, '/b', {'other': {}}) == 'other'
+    assert (state.project, state.task, state.running) == ('/a', 'second', True)
+    assert tasks.selected_task(state, '/a', {'first': {}, 'second': {}}) == 'second'
+    assert tasks.selected_task(state, '/empty', {}) is None
+    assert tasks.selected_task(state, '/a', {'first': {}}) == 'first'
+    session = tmp_path / 'selection.pkl'
+    save(state, session)
+    restored = load(session, run_on_load=False)
+    assert restored.selected_tasks == state.selected_tasks
+
+
+def test_tasks_follow_live_sibling_tree_link(monkeypatch):
+    from types import SimpleNamespace as NS
+    from meltygui_pro.models.open_files import ProjectLink
+    parent = NS(_view_children={})
+    tile = NS(_parent=parent, abs_left=0, abs_top=0, width=100, height=100)
+    def tree(x, folder, seen):
+        owner = NS(_parent=parent, _view_func=NS(__name__='draw_project_tree'),
+                   abs_left=x, abs_top=0, width=100, height=100, last_seen=seen)
+        owner._project_link = ProjectLink(NS(selected_project=folder), owner)
+        return owner
+    monkeypatch.setattr(tasks.Melty, 'frame_count', 10)
+    near, far, stale = tree(100, '/a', 10), tree(400, '/b', 10), tree(0, '/stale', 8)
+    parent._view_children = dict(near=near, far=far, stale=stale)
+    assert tasks.tile_project(tile, None) == '/a'
+    near._project_link.state.selected_project = '/changed'
+    assert tasks.tile_project(tile, None) == '/changed'
+    near._view_func = NS(__name__='draw_other')
+    assert tasks.tile_project(tile, None) == '/b'
