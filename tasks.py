@@ -27,7 +27,7 @@ the output and wakes the window; `stop_task` ends the group (the Stop button,
 and every live run at app exit). Closing the tile does not stop a run: the
 state, and the process with it, come back with the tile.
 
-The picker follows the nearest live sibling Files tile's ProjectLink, falling
+The picker follows its injected Files view's selected project, falling
 back to the nearest editor, selected tab or saved project. Run identity and
 output stay separate from the per-project picker selection.
 The Run menu (editor.py) lists the same tasks and runs one in the first Tasks
@@ -56,7 +56,8 @@ from meltygui.view.header_view import flat_button
 from meltygui.view.dropdown_view import draw_dropdown
 from meltygui_pro.models.open_files import OpenFiles
 from meltygui_pro.models.projects import project_for, project_roots
-from project_tree import target_editor
+from project_tree import draw_project_tree, project_selection
+from meltygui import DrawState
 
 OUTPUT_LIMIT = 200_000       # chars of output kept, the console's limit
 KILL_AFTER = 3.0             # seconds between SIGTERM and SIGKILL
@@ -380,33 +381,11 @@ def pending_run():
 
 # ── the tile ────────────────────────────────────────────────────────────────
 
-def tile_project(draw_state, open_files):
-    """Follow the nearest live sibling Files link, then editor/tab fallbacks."""
-    parent = draw_state._parent
-    trees = []
-    if parent is not None and parent is not draw_state:
-        for sibling in parent._view_children.values():
-            if sibling is draw_state or sibling._parent is not parent:
-                continue
-            if sibling._view_func is None or sibling._view_func.__name__ != 'draw_project_tree':
-                continue
-            link = sibling._project_link
-            if link is None or not link.alive() or not sibling.width or not sibling.height:
-                continue
-            dx = max(0, sibling.abs_left - draw_state.abs_left - (draw_state.width or 0),
-                     draw_state.abs_left - sibling.abs_left - sibling.width)
-            dy = max(0, sibling.abs_top - draw_state.abs_top - (draw_state.height or 0),
-                     draw_state.abs_top - sibling.abs_top - sibling.height)
-            trees.append((dx * dx + dy * dy, link))
-    if trees:
-        folder = min(trees, key=lambda item: item[0])[1].folder
-        return str(folder) if folder else None
-    editor = target_editor(draw_state)
-    if editor is not None:
-        project_state = editor.misc.get('project_state')
-        folder = project_state.selected_project if project_state is not None else None
-        if folder and Path(folder).is_dir():
-            return str(folder)
+def tile_project(files_view, open_files):
+    """Read the explicitly injected Files selection, with a standalone fallback."""
+    selection = project_selection(files_view)
+    if selection is not None:
+        return str(selection.selected_project) if selection.selected_project else None
     path = open_files.active_path if open_files is not None else None
     if isinstance(path, str) and not path.startswith(OpenFiles.GIT_DIFF_PREFIX):
         root = project_for(path)
@@ -457,6 +436,7 @@ def status_text(state):
              selectable=False, disable_scroll=True, show_add_delete=False, is_tree=False,
              show_bg=False, shadow=False, show_header=False, use_cache=False, tile_toolbar=True)
 def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
+               files_view: DrawState[draw_project_tree] = None,
                header_height=28.0, tile_toolbar_rect=None, **kwargs):
     """The Tasks tile: output and status above a bottom task/run/stop toolbar. `input_value` is the tile's `OpenFiles`, returned unchanged."""
     global _pending, _pending_error
@@ -476,7 +456,7 @@ def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
         else:
             start_task(state, pending_root, name)
 
-    root = tile_project(draw_state, open_files)
+    root = tile_project(files_view, open_files)
     tasks = read_tasks(root) if root else {}
     names = list(tasks)
     choice = selected_task(state, root, tasks)
@@ -495,6 +475,13 @@ def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
         toolbar_x, toolbar_y, toolbar_w, header_h = tile_toolbar_rect
     left, top = body_left + toolbar_x, body_top + toolbar_y
     width = toolbar_w
+    from meltygui_pro.editor.code_editor import _draw_nav_buttons, _nav_button_tints
+    back_tint, forward_tint, _ = _nav_button_tints()
+    imgui.set_cursor_screen_pos((left, top + (header_h - px(24)) * 0.5))
+    _draw_nav_buttons(draw_state, back_tint, forward_tint)
+    navigation_w = 2 * button_w + 6 + gap
+    left += navigation_w
+    width = max(0, width - navigation_w)
     selector_w = min(selector_max_w, max(0, width - 2 * button_w - 2 * gap))
     imgui.set_cursor_screen_pos((left, top))
     if names and selector_w > 0:

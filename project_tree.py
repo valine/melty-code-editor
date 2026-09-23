@@ -6,17 +6,11 @@ A tile editor (``@render_func(multi_instance=True)``: the tile picker offers
 it, the tile view instantiates it and its injected ``ProjectPanelState``).
 The header stays put: the project selector (`draw_project_selector`: the saved
 projects, a divider, the filesystem shortcuts, Choose Folder… — a project is
-any folder) and, before it, a small link arrow whose popover lists the code editor
-tiles. The rows under it (`draw_project_files`) are that folder's tree; a
+any folder). The rows under it (`draw_project_files`) are that folder's tree; a
 folder row toggles on a click, a file row opens on a double-click (or Enter).
 
-The tree SHARES its project with the editors it is linked to (a
-``ProjectLink`` registered on the shared ``OpenFiles``): a linked editor shows
-this project's tabs, drops its own selector, and when it moves to another
-project (a jump, a search pick) the tree follows. By default the link is the
-nearest editor; the arrow's popover links any set of them instead — every
-editor on one tree, a tree per editor, or none. An editor no tree links keeps
-its own selector and its own project.
+The tree owns the selected project. Tasks and editor tiles receive it through
+DrawState[draw_project_tree]; draw_tiles supplies their per-parameter link pickers.
 
 The rows are the file browser's listing (`draw_file_listing`): names straight
 to the draw list, viewport-culled, each wearing its file-meta tint and icon,
@@ -38,19 +32,14 @@ New → File / Folder, Add to Projects and Move to Trash (`gio trash`) (`file_me
 in place like a rename: Enter commits, Esc or a click elsewhere leaves the
 name. Open tabs follow a renamed file or folder (`follow_rename`).
 
-The whole tile's background is the project folder's file-meta tint, dark
-and saturated (`tile_fill`, painted by the tile manager through
+The whole tile's background uses the browser's folder wash and file-meta tint
+(`tile_fill`, painted by the tile manager through
 `draw_project_tree.tile_background`); the chip beside the selector edits it.
 
-A file opens in the first editor the tree is linked to, else the code-editor
-tile ADJACENT TO THE TREE'S LEFT, else the closest one: `target_editor` finds them by the sibling draw_state walk (the
-dim picker's `_sibling_dim_keys`) — the tiles of a host are all children of
-the host's draw_state, so the editors are the tree's siblings rendering
-`draw_code_editor`, each carrying its tile's ``instance`` and its live box.
-The open itself is the model's: ``jump_to_path`` + ``jump_to_instance`` on
-the shared ``OpenFiles``, adopted by that editor on its next frame.
+A file opens in the active editor linked to this Files view, else the first
+linked editor. Links are consumer-owned DrawState[draw_project_tree] parameters.
+The shared OpenFiles model carries the open request into the editor's body.
 """
-import math
 import os
 from pathlib import Path
 
@@ -61,7 +50,7 @@ from meltygui.core.conversion.dict_conversion import DictConversion
 from meltygui.core.melty import Melty, FileWatch
 from meltygui.code.fileref import writable_file_refusal
 from meltygui.hdr_color import pack_color
-from meltygui_pro.models.open_files import OpenFiles, ProjectLink
+from meltygui_pro.models.open_files import OpenFiles
 from meltygui_pro.models.projects import project_roots, project_for
 from editor_settings import settings
 
@@ -72,7 +61,6 @@ SEARCH_SKIP = frozenset({"__pycache__", "node_modules", ".git", ".venv", "venv"}
 # The search index stops growing here: a home folder marked as a project
 # must not stall the first keystroke.
 SEARCH_LIMIT = 60000
-EDITOR_VIEWS = {"draw_code_editor", "draw_file_editor"}
 
 
 class ProjectTreeState(DictConversion):
@@ -120,56 +108,10 @@ def open_path(open_files, path, instance):
     return None
 
 
-# ── the sibling draw_state walk ─────────────────────────────────────────────
-
-def sibling_editors(draw_state):
-    """The code-editor tiles rendering beside this tree: [(draw_state, box)],
-    box = (x0, y0, x1, y1) absolute. Found by walking the render tree (the
-    parent's _view_children index, where every rendered child self-registers)
-    and recognizing the renderer by its stable name; nothing is written on
-    a sibling. A tile switched to another editor leaves its old draw_state
-    registered, so only the ones seen this frame or the last count."""
-    parent = draw_state._parent if draw_state is not None else None
-    if parent is None or parent is draw_state:      # a root ds parents itself
-        return []
-    editors = []
-    for sib in parent._view_children.values():
-        if sib is None or sib is draw_state or sib._parent is not parent:
-            continue
-        if getattr(sib._view_func, "__name__", None) not in EDITOR_VIEWS:
-            continue
-        if sib.last_seen is None or Melty.frame_count - sib.last_seen > 1:
-            continue
-        instance = (sib._kwargs or {}).get("instance")
-        if instance is None or not sib.width or not sib.height:
-            continue
-        editors.append((sib, (sib.abs_left, sib.abs_top,
-                                   sib.abs_left + sib.width, sib.abs_top + sib.height)))
-    return editors
 
 
-def target_editor(draw_state, slack=24.0):
-    """The editor a file opens in (its draw_state): the one whose right edge
-    meets this tile's left edge (within `slack`: the divider, the grips) over
-    a shared span of rows — the nearest, then the longest shared span — else the
-    editor closest to this tile, box to box. None without an editor tile."""
-    editors = sibling_editors(draw_state)
-    if not editors:
-        return None
-    x0, y0 = draw_state.abs_left, draw_state.abs_top
-    x1, y1 = x0 + (draw_state.width or 0), y0 + (draw_state.height or 0)
-    left = []
-    for editor, (ex0, ey0, ex1, ey1) in editors:
-        shared = min(y1, ey1) - max(y0, ey0)
-        if ex1 <= x0 + slack and shared > 0:
-            left.append((x0 - ex1, -shared, editor))
-    if left:
-        return min(left, key=lambda item: item[:2])[2]
 
-    def distance(box):
-        ex0, ey0, ex1, ey1 = box
-        return math.hypot(max(0.0, ex0 - x1, x0 - ex1), max(0.0, ey0 - y1, y0 - ey1))
-    return min(editors, key=lambda item: distance(item[1]))[0]
+
 
 
 # ── the rows ────────────────────────────────────────────────────────────────
@@ -660,7 +602,10 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
         elif is_dir:
             toggle(path)
         if not is_dir and open_files is not None:
-            editor = open_target(draw_state._parent)
+            editors = project_editors(draw_state._parent)
+            editor = next((item for item in editors
+                           if item._kwargs.get("instance") == open_files.active_instance),
+                          next(iter(editors), None))
             instance = (open_files.active_instance if editor is None
                         else editor._kwargs["instance"])
             state._error = open_path(open_files, path, instance)
@@ -670,8 +615,8 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
                 if editor is not None and Melty.cache is not None and editor._tile_id is not None:
                     Melty.cache.invalidate_up(editor._tile_id, force=True, max_depth=4)
                 # Every other editor shows the same OpenFiles: its tab bar has a new tab.
-                tile_ds = draw_state._parent
-                wake_editors(tile_ds, {instance for instance, _editor in ordered_editors(tile_ds)})
+                for linked_editor in editors:
+                    linked_editor.invalidate()
                 open_files.jump_no_focus = False
                 state._armed = False                 # the editor takes the keyboard
                 if Melty.text_focused_ds is draw_state:
@@ -858,8 +803,8 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
         elif entered:
             state._error, renamed = commit_name(state, open_files)
             if renamed is not None:
-                tile_ds = draw_state._parent
-                wake_editors(tile_ds, {instance for instance, _editor in ordered_editors(tile_ds)})
+                for linked_editor in editors:
+                    linked_editor.invalidate()
         if state._naming is None:
             draw_state.invalidate()
             request_render()
@@ -900,47 +845,22 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
 
 # ── the tile: the selector, the editor links, the rows ─────────────────────
 
-# The link popover's row for "follow the layout".
-LINK_NEAREST = "@nearest"
+
 
 
 class ProjectPanelState(DictConversion):
-    """The Files tile's injected state: its project (any folder) and the
-    editors it shares that project with."""
+    """The Files tile's selected project and row menu state."""
 
     def __init__(self):
         super().__init__()
         self.selected_project = None
-        # Editor instances (tile ids) picked in the arrow's popover; None
-        # links the nearest editor, [] none.
-        self.linked = None
-        self._shared = None         # the folder the linked editors were last woken for
         self._menu = {}             # the rows' right-click target + the menu's pending request
-        self._targets = ()          # this frame's linked editor instances
 
 
-def ordered_editors(draw_state):
-    """The sibling editors in reading order: [(instance, draw_state)]."""
-    editors = sorted(sibling_editors(draw_state), key=lambda item: (round(item[1][1] / 40.0), item[1][0]))
-    return [(editor._kwargs["instance"], editor) for editor, _box in editors]
 
 
-def linked_instances(draw_state, state):
-    """The editor instances this tree shares its project with."""
-    editors = ordered_editors(draw_state)
-    if state.linked is None:
-        nearest = target_editor(draw_state)
-        return [nearest._kwargs["instance"]] if nearest is not None else []
-    return [instance for instance, _editor in editors if instance in state.linked]
 
 
-def open_target(tile_ds):
-    """Where a file opens: the first linked editor, else the nearest."""
-    targets = getattr(tile_ds, "_link_targets", ())
-    for instance, editor in ordered_editors(tile_ds):
-        if instance in targets:
-            return editor
-    return target_editor(tile_ds)
 
 
 def set_folder_tint(folder, tint):
@@ -956,24 +876,13 @@ def folder_tint(folder):
     return tuple(FileMeta.painted_tint(file_meta_store().get(folder)) or FileMeta.tint)
 
 
-def tile_fill(tint, fallback, saturation=0.75, brightness=0.085):
-    """The tile's background, packed: the project folder's tint kept in hue,
-    saturated and dark so the rows stay readable. An unpainted folder wears
-    `fallback`. How to change: raise `brightness` for a lighter wash, lower
-    `saturation` toward 0 for a greyer one."""
-    import colorsys
+def tile_fill(tint, fallback, folder_bg_boost=-0.23):
+    """Use the browser's folder wash; adjust its boost alongside browser()."""
+    from meltygui.files.fast_file_explorer import row_tint_bg
     painted = len(tint) < 4 or bool(tint[3])
-    key = (tuple((tint if painted else fallback)[:3]), saturation, brightness)
-    packed = _TILE_FILL_MEMO.get(key)
-    if packed is None:
-        hue, tint_saturation, _value = colorsys.rgb_to_hsv(*key[0])
-        # A grey tint has no hue to saturate: it stays grey.
-        rgb = colorsys.hsv_to_rgb(hue, saturation if tint_saturation > 0.05 else 0.0, brightness)
-        packed = _TILE_FILL_MEMO[key] = pack_color(*rgb, 1.0)
-    return packed
+    return row_tint_bg()(tint if painted else fallback, folder_bg_boost)
 
 
-_TILE_FILL_MEMO = {}
 # tile id -> packed fill, written by each Files tile's body and read by the
 # tile manager through `draw_project_tree.tile_background` (the whole tile,
 # grips and picker included: the view is clipped to the box inside them).
@@ -991,74 +900,30 @@ def default_project(open_files):
     return str(saved[0] if saved else Path.home())
 
 
-def wake_editors(draw_state, instances):
-    """A linked editor adopts the project INSIDE its body: past its blit cache."""
-    for instance, editor in ordered_editors(draw_state):
-        if instance in instances and Melty.cache is not None and editor._tile_id is not None:
-            Melty.cache.invalidate_up(editor._tile_id, force=True, max_depth=4)
 
 
-def link_rows(draw_state, state, targets):
-    """The arrow's popover: {label: LINK_NEAREST | instance}. A check marks
-    what is linked now; an editor is named by its place and its selected tab."""
-    from meltygui.model.dropdown_model import DD_DIVIDER
-    # [tint=(0.45, 0.85, 0.55)]
-    check = f"\uf00c"
-    rows = {(f"{check}  " if state.linked is None else "     ") + "Nearest editor": LINK_NEAREST,
-            "divider:editors": DD_DIVIDER}
-    editors = ordered_editors(draw_state)
-    for number, (instance, editor) in enumerate(editors, start=1):
-        tab = getattr(editor, "selected_tab", None)
-        name = Path(tab.removeprefix(OpenFiles.GIT_DIFF_PREFIX)).name if isinstance(tab, str) else "no tab"
-        rows[(f"{check}  " if instance in targets else "     ") + f"Editor {number}  ·  {name}"] = instance
-    if not editors:
-        rows["     No code editor tiles"] = None
-    return rows
 
 
 @render_func(multi_instance=True, tint=(0.32, 0.42, 0.54), icon=f"\uf07c", display_name="Files",
              selectable=False, disable_scroll=True, show_add_delete=False, is_tree=False,
              show_bg=False, shadow=False, show_header=False, use_cache=False)
 def draw_project_tree(input_value: object, draw_state, panel_state: ProjectPanelState = None,
-                      header_height=30.0, arrow_width=30.0, **kwargs):
+                      header_height=30.0, **kwargs):
     """The Files tile (see the module docstring). `input_value` is the tile's:
     the app's ``OpenFiles``; it is returned unchanged."""
     from meltygui.core.windowing.glfw_utils import request_render
-    from meltygui.view.dropdown_view import draw_dropdown
     from meltygui_pro.editor.project_selector import draw_project_selector
     state = panel_state
     open_files = input_value if isinstance(input_value, OpenFiles) else None
     if not state.selected_project or not Path(state.selected_project).is_dir():
         state.selected_project = default_project(open_files)
 
-    # ── the link: this tree's project is the linked editors' project ──
-    targets = linked_instances(draw_state, state)
-    draw_state._link_targets = tuple(targets)
-    if open_files is not None:
-        link = getattr(draw_state, "_project_link", None)
-        if link is None or link.state is not state:
-            link = draw_state._project_link = ProjectLink(state, draw_state)
-        open_files.link_project(link, targets)
-    if state._shared != state.selected_project or state._targets != tuple(targets):
-        # The project moved (here, or in a linked editor) or the links did:
-        # every editor concerned re-reads the link.
-        wake_editors(draw_state, set(targets) | set(state._targets))
-        state._shared, state._targets = state.selected_project, tuple(targets)
-        request_render()
-
     px = Melty.px
     left, top = imgui.get_cursor_screen_pos()
     width = draw_state.content_width or (draw_state.width or 240)
-    gap, arrow_w, header_h = px(4), px(arrow_width), px(header_height)
+    gap, header_h = px(4), px(header_height)
     tint = folder_tint(state.selected_project)
     _TILE_FILLS[kwargs.get("instance")] = tile_fill(tint, draw_state.current_tint)
-    # The link arrow leads the row: its popover opens rightwards, inside the tile.
-    # [tint=(0.62, 0.78, 0.98)]
-    arrow = f"\uf0c1"
-    picked, choice = draw_dropdown(
-        None, collection=link_rows(draw_state, state, targets), name="linked-editors",
-        display_label=arrow, trigger_caret=("", ""), show_header=False, tint=draw_state.current_tint,
-        width=arrow_w, trigger_height=header_h, text_pad=px(3), shadow=False, text_align="center")
     # The project folder's colour (its file-meta tint: the tile's background,
     # the folder's row in every tree): the tab bar's chip, picker and undo.
     from meltygui.view.collection_view import draw_tuple_fast
@@ -1066,36 +931,42 @@ def draw_project_tree(input_value: object, draw_state, panel_state: ProjectPanel
     project = state.selected_project
     tint_changed, new_tint = draw_tuple_fast(
         tint, draw_state, view_id=f"project_tint_{project}",
-        x=left + arrow_w + gap + (chip_w - chip) * 0.5, y=top + (header_h - chip) * 0.5,
+        x=left + (chip_w - chip) * 0.5, y=top + (header_h - chip) * 0.5,
         empty_tint_icon=True,
         setter=lambda value, _folder=project: set_folder_tint(_folder, value))
     if tint_changed:
         set_folder_tint(project, new_tint)
         draw_state.invalidate()
         request_render()
-    imgui.set_cursor_screen_pos((left + arrow_w + gap + chip_w + gap, top))
+    imgui.set_cursor_screen_pos((left + chip_w + gap, top))
     changed, folder = draw_project_selector(state.selected_project, name="project-selector",
-                                            width=max(px(60), width - arrow_w - chip_w - 2 * gap),
+                                            width=max(px(60), width - chip_w - gap),
                                             trigger_height=header_height)
     if changed:
         state.selected_project = folder
         draw_state.invalidate()
         request_render()
-    if picked:
-        if choice == LINK_NEAREST:
-            state.linked = None
-        elif choice is not None:
-            chosen = set(targets if state.linked is None else state.linked)
-            state.linked = sorted(chosen ^ {choice})
-        draw_state.invalidate()
-        request_render()
-
     imgui.set_cursor_screen_pos((left, top + header_h + gap))
     rows_height = max(0.0, (draw_state.height or 0) - header_h - gap - px(4))
     opened, _ = draw_project_files(input_value, name="files", root=state.selected_project,
                                    width=width, height=rows_height,
                                    context_menu=file_menu(state._menu), menu_target=state._menu)
-    return opened, input_value
+    return changed or tint_changed or opened, input_value
 
 
 draw_project_tree.tile_background = lambda tile: _TILE_FILLS.get(tile.id)
+
+
+def project_selection(files_view):
+    """The selection owned by an injected Files view, or no shared project."""
+    return files_view.misc.get("panel_state") if files_view is not None else None
+
+
+def project_editors(files_view):
+    """Editors subscribed through framework injection, used for file-open routing."""
+    if Melty.cache is None:
+        return []
+    return sorted((consumer for consumer in Melty.cache.parameter_dependencies.subscribers(files_view)
+                   if getattr(consumer._view_func, "__name__", None)
+                   in {"draw_main_editor", "draw_code_editor", "draw_file_editor"}),
+                  key=lambda consumer: str(consumer._kwargs.get("instance", "")))

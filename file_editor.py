@@ -1,3 +1,5 @@
+from meltygui import DrawState
+from project_tree import draw_project_tree, project_selection
 """One file/version per tile; siblings contribute only text and pane geometry.
 
 The old Code Editor remains a separate renderer. Everything specific to this
@@ -72,9 +74,9 @@ def file_editor_endpoints(parent):
     return endpoints
 
 
-def adopt_selection(files, state, instance):
-    link = files.project_link(instance)
-    paths = files.paths_in(link.folder) if link is not None else files.open_paths
+def adopt_selection(files, state, instance, project_source=None):
+    link = project_source
+    paths = files.paths_in(link.selected_project) if link is not None else files.open_paths
     paths = [path for path in paths if not path.startswith(OpenFiles.GIT_DIFF_PREFIX)]
     target = files.jump_to_instance or files.active_instance
     if target == instance and files.jump_to_path in files.open_paths:
@@ -82,8 +84,8 @@ def adopt_selection(files, state, instance):
         if not path.startswith(OpenFiles.GIT_DIFF_PREFIX):
             if link is not None and path not in paths:
                 from meltygui_pro.models.projects import project_for
-                link.select(str(project_for(path) or Path(path).parent))
-                paths = [p for p in files.paths_in(link.folder)
+                link.selected_project = str(project_for(path) or Path(path).parent)
+                paths = [p for p in files.paths_in(link.selected_project)
                          if not p.startswith(OpenFiles.GIT_DIFF_PREFIX)]
             state.selected_path = path
             state.version = "current"
@@ -109,8 +111,6 @@ def version_value(state):
         return options, None, value.error
     if text is None:
         return options, None, "Loading version…" if value.loading else "File is absent or unavailable in this version."
-    if not isinstance(text, str):
-        return options, None, "This version contains binary data."
     return options, text, None
 
 
@@ -127,13 +127,15 @@ def cleanup_file_editor(draw_state):
              display_name="File Editor", icon=f"\uf15c", tint=(0.20, 0.30, 0.48))
 def draw_file_editor(input_value: OpenFiles, draw_state=None,
                      file_editor_state: FileEditorState = None, instance=0,
-                     layout_frame=None, tab_bar_state: TabBarState = None):
+                     layout_frame=None, tab_bar_state: TabBarState = None,
+                     files_view: DrawState[draw_project_tree] = None):
     state, files = file_editor_state, input_value
     if not isinstance(files, OpenFiles):
         return False, input_value
     from meltygui_pro.editor.git import note_consumer
     note_consumer(draw_state)
-    paths = adopt_selection(files, state, instance)
+    project_source = project_selection(files_view)
+    paths = adopt_selection(files, state, instance, project_source)
     left, top = draw_state.abs_left, draw_state.abs_top
     width, height = draw_state.width, draw_state.height
     (tabs, tab_button_height, tab_row_height, swatch_width,
@@ -167,38 +169,47 @@ def draw_file_editor(input_value: OpenFiles, draw_state=None,
     if picked:
         state.sibling_tile_id = sibling
         changed = True
-    # Exactly one text view, including loading/empty/error states. Its identity
+    # One codec-selected view, including loading/empty/error states. Its identity
     # includes the version, so historic cursors/folds never replace the working ones.
     imgui.set_cursor_screen_pos((left, top + 30))
-    editable = path is not None and state.version in ("current", "filesystem") and text is not None
     file_value = state._file if text is not None else None
+    editable = file_value is not None and file_value.writable
+    is_text = isinstance(text, str)
     displayed = text if text is not None else (status if path else "Open a file from File → Open or a Files tile.")
-    if text is not None and (state._line_numbers is None or state._line_numbers[0] is not text):
+    if is_text and (state._line_numbers is None or state._line_numbers[0] is not text):
         from meltygui.editor.text_editor import _line_starts
         state._line_numbers = text, range(1, len(_line_starts(text)) + 1)
-    edited, replacement, pane = draw_text(
+    context_menu = {}
+    if editable and is_text and Path(path).suffix.lower() == ".py":
+        from tasks import request_module_run
+        link = project_source
+        root = link.selected_project if link is not None else None
+        context_menu["Run"] = lambda path=path, root=root: request_module_run(path, root)
+    from meltygui.code.new_converters import _codec_view
+    view = _codec_view(file_value.codec if file_value is not None else None, displayed, draw_text)
+    edited, replacement, pane = view(
         displayed, name=f"file:{path}:{state.version}",
         file_key=file_value.display_path if file_value is not None else path,
-        source_context=file_value,
-        line_numbers=state._line_numbers[1] if text is not None else None,
+        source_context=file_value, context_menu=context_menu,
+        line_numbers=state._line_numbers[1] if is_text else None,
         width=width, height=max(1, height - tab_height - 30), return_extras=True,
-        editable=editable, syntax_highlight=text is not None,
+        editable=editable, syntax_highlight=is_text,
         syntax_language="python" if path and path.endswith(".py") else "text",
         show_header=False, show_file_header=False, gutter_indent=True, freeze_resize=True,
         roster_live_hold=editable and state.version == "current", autocomplete=editable, shadow=False,
         use_cache=True)
-    if edited and editable and replacement != text:
+    if edited and editable:
         file_value["value"] = replacement
         text = replacement
         changed = True
-    state._pane, state._text = pane, text
+    state._pane, state._text = pane, text if isinstance(text, str) else None
     if draw_state._bounding_hovered:
         files.active_instance = instance
     if files.active_instance == instance:
         files.active_path = path
     if path is not None and files.jump_to_path == path and (
-            files.jump_to_instance or files.active_instance) == instance and editable:
-        if files.jump_to_line is not None:
+            files.jump_to_instance or files.active_instance) == instance and file_value is not None:
+        if files.jump_to_line is not None and is_text:
             from meltygui.editor.text_editor import _line_starts
             starts = _line_starts(text)
             line = max(0, min(files.jump_to_line - 1, len(starts) - 1))

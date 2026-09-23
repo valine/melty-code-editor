@@ -62,7 +62,8 @@ def test_versions_follow_renames_and_distinguish_disk_head_and_empty(repository)
     state = FileEditorState()
     state.selected_path, state.version = str(path), "filesystem"
     state._file = loaded_file(path, "filesystem")
-    assert "binary" in version_value(state)[2]
+    # The registered text codec owns decoding, including its Latin-1 fallback.
+    assert version_value(state)[1:] == ("\x00ÿ", None)
     path.unlink()
     state._file = loaded_file(path, "filesystem")
     assert "absent" in version_value(state)[2]

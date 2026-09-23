@@ -221,24 +221,15 @@ def test_project_selection_restores_while_another_task_runs(tmp_path):
     assert restored.selected_tasks == state.selected_tasks
 
 
-def test_tasks_follow_live_sibling_tree_link(monkeypatch):
+def test_tasks_follow_injected_files_selection():
     from types import SimpleNamespace as NS
-    from meltygui_pro.models.open_files import ProjectLink
-    parent = NS(_view_children={})
-    tile = NS(_parent=parent, abs_left=0, abs_top=0, width=100, height=100)
-    def tree(x, folder, seen):
-        owner = NS(_parent=parent, _view_func=NS(__name__='draw_project_tree'),
-                   abs_left=x, abs_top=0, width=100, height=100, last_seen=seen)
-        owner._project_link = ProjectLink(NS(selected_project=folder), owner)
-        return owner
-    monkeypatch.setattr(tasks.Melty, 'frame_count', 10)
-    near, far, stale = tree(100, '/a', 10), tree(400, '/b', 10), tree(0, '/stale', 8)
-    parent._view_children = dict(near=near, far=far, stale=stale)
-    assert tasks.tile_project(tile, None) == '/a'
-    near._project_link.state.selected_project = '/changed'
-    assert tasks.tile_project(tile, None) == '/changed'
-    near._view_func = NS(__name__='draw_other')
-    assert tasks.tile_project(tile, None) == '/b'
+    selection = NS(selected_project='/chosen')
+    source = NS(misc={'panel_state': selection})
+    assert tasks.tile_project(source, None) == '/chosen'
+    selection.selected_project = '/changed'
+    assert tasks.tile_project(source, None) == '/changed'
+    selection.selected_project = None
+    assert tasks.tile_project(source, None) is None
 
 
 def test_output_follow_scroll_and_completion():
