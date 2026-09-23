@@ -180,3 +180,26 @@ def test_task_request_opens_one_tasks_tile():
     assert not app.ensure_tasks(files)
     tiles = [tile for _, tile in walk(app.tiles) if getattr(tile, 'render_func', None) is tasks.draw_tasks]
     assert len(tiles) == 1 and tiles[0].input_value is files
+
+
+def test_save_setting_creates_manifest_for_module_request(tmp_path, monkeypatch):
+    import editor_settings
+    from meltygui_pro.models.project_kind import manifest_data
+    monkeypatch.setattr(editor_settings, 'settings', {'Tasks': {'save_tasks': True}})
+    path = tmp_path / 'main.py'
+    path.write_text('print("hello")\n')
+    tasks.request_module_run(str(path), str(tmp_path))
+    assert tasks._pending_error is None
+    assert manifest_data(tmp_path)['tool']['melty']['tasks']['Run main.py']['module'] == 'main.py'
+
+
+def test_invalid_manifest_is_not_overwritten_when_saving(tmp_path, monkeypatch):
+    import editor_settings
+    monkeypatch.setattr(editor_settings, 'settings', {'Tasks': {'save_tasks': True}})
+    path = tmp_path / 'main.py'
+    path.write_text('print("hello")\n')
+    manifest = tmp_path / 'pyproject.toml'
+    manifest.write_text('[unfinished\n')
+    tasks.request_module_run(str(path), str(tmp_path))
+    assert tasks._pending_error
+    assert manifest.read_text() == '[unfinished\n'

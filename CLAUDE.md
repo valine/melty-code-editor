@@ -56,6 +56,17 @@ notes are `../meltygui-pro/docs/PACKAGE_SPLIT.md`.
 
 ## Designing and writing new features
 
+**Persist by default.** Save all app state by default so the app feels consistent
+between launches. Assume each feature's state persists through draw state, injected
+state objects, the app model, or automatic code changes, whichever owns that state.
+Decide exclusions from automatic persistence case by case, only when necessary for
+project load time or app stability. Use `@no_save` for those deliberate exclusions;
+do not assume a feature's state is temporary just because it was created at runtime.
+
+**Code is data.** Melty is Lisp-like by design and encourages treating code as data.
+Apply that principle when designing features and choosing how to represent, inspect,
+edit, and persist their state and behavior.
+
 The toolkit-wide rule is `../meltygui/docs/APPS.md` → "Designing a feature"; here it
 reads:
 

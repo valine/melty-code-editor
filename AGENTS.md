@@ -30,13 +30,18 @@ template, each a `create(name, ...)` function returning `{path: str | bytes}`; i
 parameters are the window's inputs. A view returns its input's type (a `str` there).
 Search → Search… / Ctrl+Shift+F uses `meltygui_pro.global_search`, over the app's
 project roots (`project_roots()` in editor.py).
-The Tasks tile is `tasks.py` (`draw_tasks`, `@render_func(multi_instance=True)`): the selected
-project's `[tool.melty.tasks]` from its `pyproject.toml` (a name → command string, or a table with
-`cmd` / `cwd` / `env`), read through `manifest_data`; one `TaskState` per tile; `start_task` runs the
-command through the shell in the project's venv with a reader thread streaming into the tile,
-`stop_task` ends the process group (the Stop button, and every live run at exit). Its project is
-the nearest editor's, else the selected tab's. Run → Tasks ▸ lists the selected tab's project's
-tasks and runs one in the first Tasks tile (`request_run`); Ctrl+Shift+R reruns the last.
+The Tasks tile is `tasks.py` (`draw_tasks`, `@render_func(multi_instance=True)`). Each project's
+task list lives in `ProjectTasks.projects[root]`, persisted as `project_tasks` beside OpenFiles,
+and merges `[tool.melty.tasks]` from the pending `pyproject.toml` through `manifest_data`.
+Right-click → Run on a Python editor pane adds/reuses a task for that exact module and project.
+`CodeEditorSettings.Tasks.save_tasks = False` keeps definitions in the app session; True also
+writes generated entries to the manifest using its normal pending-save lifecycle. Module entries
+have a root-relative `module` path and run current editor text with package context in the project's
+interpreter. Ordinary entries remain command strings or `cmd` / `cwd` / `env` tables.
+One `TaskState` per tile owns its process and streamed output; `stop_task` ends the process group
+(Stop and app exit). Before its first run the tile takes the nearest editor's project, else the
+selected tab's; after a request it retains that task's project. Run → Tasks ▸ and Ctrl+Shift+R use
+the same task runner. A request opens a Tasks tile if absent. The old Run File/F5 console is removed.
 The toolkit guide is `../meltygui/docs/APPS.md`; package ownership and migration
 notes are `../meltygui-pro/docs/PACKAGE_SPLIT.md`.
 
@@ -47,6 +52,17 @@ into every UI font. Before using an icon, look its codepoint up in `meltygui/mod
 use Octicons / Nerd Font / Material / FA6-only codepoints, and write icons as `\uXXXX` escapes in
 normal `str` literals (no raw strings, no literal glyph pasted into source).
 ## Designing and writing new features
+
+**Persist by default.** Save all app state by default so the app feels consistent
+between launches. Assume each feature's state persists through draw state, injected
+state objects, the app model, or automatic code changes, whichever owns that state.
+Decide exclusions from automatic persistence case by case, only when necessary for
+project load time or app stability. Use `@no_save` for those deliberate exclusions;
+do not assume a feature's state is temporary just because it was created at runtime.
+
+**Code is data.** Melty is Lisp-like by design and encourages treating code as data.
+Apply that principle when designing features and choosing how to represent, inspect,
+edit, and persist their state and behavior.
 
 The toolkit-wide rule is `../meltygui/docs/APPS.md` → "Designing a feature"; here it
 reads:
