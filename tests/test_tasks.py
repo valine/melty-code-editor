@@ -239,3 +239,44 @@ def test_tasks_follow_live_sibling_tree_link(monkeypatch):
     assert tasks.tile_project(tile, None) == '/changed'
     near._view_func = NS(__name__='draw_other')
     assert tasks.tile_project(tile, None) == '/b'
+
+
+def test_output_follow_scroll_and_completion():
+    from meltygui.state.new_core_model import DrawState
+    state, output = tasks.TaskState(), DrawState()
+    state.running = True
+    output._max_scroll_y = 100
+    output.scroll_offset = (0, 0)
+    tasks.follow_output(state, output, 2)
+    assert output.scroll_offset == (0, 100)
+    # New lines grow the range without moving the reader upward.
+    output._max_scroll_y = 150
+    tasks.follow_output(state, output, 2)
+    assert output.scroll_offset == (0, 150)
+    # Moving upward must win over automatic following, including with new output.
+    output.scroll_offset = (0, 80)
+    output._max_scroll_y = 200
+    tasks.follow_output(state, output, 2)
+    assert not state._follow
+    assert output.scroll_offset == (0, 80)
+    state.running = False
+    tasks.follow_output(state, output, 2)  # formerly raised AttributeError: scrolled
+    assert output.scroll_offset == (0, 80)
+
+
+def test_output_follow_range_clamp_and_unmeasured_content():
+    from meltygui.state.new_core_model import DrawState
+    state, output = tasks.TaskState(), DrawState()
+    state.running = True
+    tasks.follow_output(state, output, 2)
+    assert state._output_scroll_y is None
+    output._max_scroll_y = 100
+    tasks.follow_output(state, output, 2)
+    # A larger viewport or trimmed output clamps the offset; keep following.
+    output._max_scroll_y = 50
+    output.scroll_offset = (0, 50)
+    tasks.follow_output(state, output, 2)
+    assert state._follow
+    output._max_scroll_y = 120
+    tasks.follow_output(state, output, 2)
+    assert output.scroll_offset == (0, 120)

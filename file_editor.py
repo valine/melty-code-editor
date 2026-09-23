@@ -184,7 +184,7 @@ def draw_file_editor(input_value: OpenFiles, draw_state=None,
         width=width, height=max(1, height - tab_height - 30), return_extras=True,
         editable=editable, syntax_highlight=text is not None,
         syntax_language="python" if path and path.endswith(".py") else "text",
-        show_header=False, show_file_header=False, gutter_indent=True,
+        show_header=False, show_file_header=False, gutter_indent=True, freeze_resize=True,
         roster_live_hold=editable and state.version == "current", autocomplete=editable, shadow=False,
         use_cache=True)
     if edited and editable and replacement != text:

@@ -1,3 +1,10 @@
 [tool.melty.tasks]
 test = "python -m pytest tests -q"
 smoke = "MELTY_BENCH=1 python editor.py editor.py"
+
+[tool.melty.tasks."Run editor.py"]
+cmd = "python -m editor"
+cwd = "."
+module = "editor.py"
+
+[tool.melty.tasks."Run editor.py".env]

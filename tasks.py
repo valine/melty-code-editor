@@ -74,8 +74,11 @@ class ProjectTasks(DictConversion):
 project_tasks = ProjectTasks()
 
 
-@no_save('process', 'thread', 'output', 'running', 'exit', 'started', 'ended', 'error', '_follow')
+@no_save('process', 'thread', 'output', 'running', 'exit', 'started', 'ended', 'error', '_follow', '_output_scroll_y')
 class TaskState(DictConversion):
+    # Existing live instances also start without a previous output position.
+    _output_scroll_y = None
+
     def __init__(self):
         super().__init__()
         self.selected_tasks = {}  # project root -> picker selection (persists)
@@ -90,6 +93,7 @@ class TaskState(DictConversion):
         self.ended = 0.0
         self.error = None         # why the last start was refused
         self._follow = True       # the output pane follows the tail
+        self._output_scroll_y = None  # frame history, meaningful only for this run
 
 
 # ── the tasks ───────────────────────────────────────────────────────────────
@@ -245,6 +249,7 @@ def start_task(state, root, name):
     state.exit = None
     state.started, state.ended = time.monotonic(), 0.0
     state._follow = True
+    state._output_scroll_y = None
     try:
         env = task_environment(root)
         env.update(task['env'])
@@ -424,6 +429,20 @@ def selected_task(state, root, tasks):
     return selections[root]
 
 
+def follow_output(state, output_ds, tolerance):
+    """Follow new output until the reader moves upward; range clamps aren't input."""
+    max_y = output_ds._max_scroll_y
+    if max_y is None:
+        return
+    x, y = output_ds.scroll_offset
+    previous_y = state._output_scroll_y
+    if (previous_y is not None and y < min(previous_y, max_y) - tolerance):
+        state._follow = False
+    if state.running and state._follow and y < max_y - tolerance:
+        output_ds.scroll_offset = (x, max_y)
+    state._output_scroll_y = output_ds.scroll_offset[1]
+
+
 def status_text(state):
     if state.error:
         return state.error
@@ -524,13 +543,7 @@ def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
                                     show_widgets=False, use_cache=False, return_extras=True)
     # Follow the tail while running; scrolling up stops following until the next run.
     if output_ds is not None:
-        max_y = output_ds._max_scroll_y
-        if max_y is not None:
-            at_end = output_ds.scroll_offset[1] >= max_y - px(2)
-            if state.running and state._follow and not at_end:
-                output_ds.scroll_offset = (output_ds.scroll_offset[0], max_y)
-            elif output_ds.scrolled and not at_end:
-                state._follow = False
+        follow_output(state, output_ds, px(2))
     if state.running:
         draw_state.invalidate()
         request_render()
