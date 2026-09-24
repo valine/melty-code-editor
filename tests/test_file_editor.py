@@ -265,6 +265,7 @@ def test_tab_overlay_reflows_at_live_bottom_without_registering_inputs(monkeypat
     paint = Mock()
     monkeypatch.setattr(header_view, 'flat_button', paint)
     dl = Mock()
+    file_editor.draw_file_editor_overlay_background(ds, dl)
     file_editor.draw_file_editor_overlay(ds, dl)
     assert [call.kwargs['pos'][1] for call in paint.call_args_list] == [283, 283]
     place.assert_called_once_with(state._pane, (20, 60, 400, 223), ds.abs_clip_rect)
@@ -272,15 +273,17 @@ def test_tab_overlay_reflows_at_live_bottom_without_registering_inputs(monkeypat
                for call in paint.call_args_list)
     # The same prepared data reflows on a frozen frame without running the body.
     paint.reset_mock()
-    child_paint = Mock()
+    from unittest.mock import create_autospec
+    child_paint = create_autospec(overlay.paint_cached_view)
     monkeypatch.setattr(overlay, 'paint_cached_view', child_paint)
     ds._blit_served_frame = Melty.frame_count
     ds.width, ds.height = tabs[0]['w'] + 14, 200
+    file_editor.draw_file_editor_overlay_background(ds, dl)
     file_editor.draw_file_editor_overlay(ds, dl)
     assert [call.kwargs['pos'][1] for call in paint.call_args_list] == [139, 183]
     assert place.call_args.args == (state._pane, (20, 60, ds.width, 79), ds.abs_clip_rect)
     assert dl.push_clip_rect.call_count == dl.pop_clip_rect.call_count == 4
-    child_paint.assert_called_once_with(state._pane, dl)
+    child_paint.assert_called_once_with(state._pane)
     ds.on_action.assert_not_called()
 
 

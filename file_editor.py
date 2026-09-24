@@ -124,6 +124,26 @@ def cleanup_file_editor(draw_state):
         state.close()
 
 
+def draw_file_editor_overlay_background(draw_state, draw_list):
+    """Place and paint the pane before its live image/other overlays run."""
+    from meltygui.core.melty import Melty
+    state = draw_state.misc.get("file_editor_state")
+    if state is None or state._tab_overlay is None:
+        return
+    tabs, layout_tabs, *_ = state._tab_overlay
+    height = layout_tabs(draw_state.width) if tabs else 0
+    left = draw_state.abs_left
+    if state._pane is not None:
+        from meltygui.core.rendering.overlay import place_overlay_view
+        place_overlay_view(state._pane,
+                           (left, draw_state.abs_top + 30, draw_state.width,
+                            max(1, draw_state.height - height - 30)),
+                           draw_state.abs_clip_rect)
+        if getattr(draw_state, "_blit_served_frame", None) == Melty.frame_count:
+            from meltygui.core.rendering.overlay import paint_cached_view
+            paint_cached_view(state._pane)
+
+
 def draw_file_editor_overlay(draw_state, draw_list):
     """Paint prepared tabs at live bounds; all input stays in the normal body."""
     from meltygui.core.melty import Melty
@@ -136,15 +156,6 @@ def draw_file_editor_overlay(draw_state, draw_list):
     tabs, layout_tabs, button_height, row_height, swatch_width, background = state._tab_overlay
     height = layout_tabs(draw_state.width) if tabs else 0
     left, top = draw_state.abs_left, draw_state.abs_top + draw_state.height - height
-    if state._pane is not None:
-        from meltygui.core.rendering.overlay import place_overlay_view
-        place_overlay_view(state._pane,
-                           (left, draw_state.abs_top + 30, draw_state.width,
-                            max(1, draw_state.height - height - 30)),
-                           draw_state.abs_clip_rect)
-        if getattr(draw_state, "_blit_served_frame", None) == Melty.frame_count:
-            from meltygui.core.rendering.overlay import paint_cached_view
-            paint_cached_view(state._pane, draw_list)
     if not tabs:
         return
     # Retain the body's resolved, tint-aware background when tabs cover frozen text.
@@ -184,6 +195,7 @@ def draw_file_editor_overlay(draw_state, draw_list):
 
 @render_func(multi_instance=True, use_cache=True, disable_scroll=True,
              on_cleanup=cleanup_file_editor, draw_overlay=draw_file_editor_overlay,
+             draw_overlay_background=draw_file_editor_overlay_background,
              display_name="File Editor", icon=f"\uf15c", tint=(0.20, 0.30, 0.48))
 def draw_file_editor(input_value: OpenFiles, draw_state=None,
                      diff_with: "DrawState[draw_file_editor]" = None, instance=0,

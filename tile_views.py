@@ -26,9 +26,11 @@ draw_main_editor.__header_defaults__ = {"tint": (0.11, 0.12, 0.17), "icon": "\uf
                                         "display_name": "Code Editor"}
 
 
-# The Claude Code chat tile: meltygui's view, one call with no render boundary
-# of its own. A tile split from an editor inherits its OpenFiles, so new
-# conversations start in the selected tab's project (meltygui_pro's
-# `chat_project` service). The name keeps tiles of sessions saved as
-# `tile_views.draw_chat` resolving.
-draw_chat = draw_claude_chat
+def draw_chat(input_value: OpenFiles, files_view: DrawState[draw_project_tree] = None, **kwargs):
+    """Use the Files tile's project without coupling the chat view to this app."""
+    selection = project_selection(files_view)
+    project = selection.selected_project if selection is not None else None
+    return draw_claude_chat(input_value, project_filter=project, files_view=files_view, **kwargs)
+
+
+draw_chat.__header_defaults__ = draw_claude_chat.__header_defaults__

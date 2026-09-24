@@ -7,7 +7,7 @@ from meltygui.core.melty import Melty
 from meltygui.core.cache.parameter_dependencies import ParameterDependencies
 from meltygui_pro.models.open_files import OpenFiles
 from project_tree import draw_project_tree, project_selection, project_editors
-from tile_views import draw_main_editor
+from tile_views import draw_main_editor, draw_chat
 from file_editor import draw_file_editor, FileEditorState, adopt_selection
 from tasks import draw_tasks, tile_project
 from app_model import EditorAppModel
@@ -17,7 +17,7 @@ def test_all_consumers_resolve_files_and_unlink_persists(monkeypatch):
     monkeypatch.setattr(Melty, 'draw_state_registry', {})
     model = EditorAppModel()
     tiles = [Tile(render_func=view) for view in
-             (draw_project_tree, draw_main_editor, draw_file_editor, draw_tasks)]
+             (draw_project_tree, draw_main_editor, draw_file_editor, draw_tasks, draw_chat)]
     model.tiles = Split('x', tiles)
     files = OpenFiles()
     model.bind_open_files(files)
@@ -111,3 +111,26 @@ def test_old_comparison_choice_migrates_once(monkeypatch):
     set_binding(endpoint, 'diff_with', None)
     migrate_comparison_link(tile)
     assert bindings_for(endpoint).get('diff_with') is None
+
+
+def test_chat_forwards_link_and_selected_project(monkeypatch):
+    import tile_views
+    monkeypatch.setattr(Melty, 'draw_state_registry', {})
+    model = EditorAppModel()
+    from meltygui import draw_claude_chat
+    model.tiles = Split(children=[Tile(render_func=draw_project_tree), Tile(render_func=draw_claude_chat)])
+    files = OpenFiles()
+    model.bind_open_files(files)
+    source, chat = prepare_endpoints(model.tiles).values()
+    assert chat.tile.render_func is draw_chat
+    render = Mock(return_value=(False, files))
+    monkeypatch.setattr(tile_views, 'draw_claude_chat', render)
+    for project in ('/first', '/second', None):
+        project_selection(source.draw_state).selected_project = project
+        draw_chat(files, **resolve_parameters(chat, {source.tile.id: source, chat.tile.id: chat}))
+        assert render.call_args.kwargs['project_filter'] == project
+        assert render.call_args.kwargs['files_view'] is source.draw_state
+    set_binding(chat, 'files_view', None)
+    model.bind_open_files(files)
+    draw_chat(files, **resolve_parameters(chat, {source.tile.id: source, chat.tile.id: chat}))
+    assert render.call_args.kwargs == {'project_filter': None, 'files_view': None}

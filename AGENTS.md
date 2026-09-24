@@ -22,9 +22,9 @@ Smoke test: `MELTY_BENCH=1 .venv/bin/python editor.py FILE`.
 Read-only files / library installs are refused up front.
 A project is any folder (saved = marked). `draw_project_selector` (meltygui_pro) is drawn by
 the Files tile (`project_tree.py`) and by `draw_code_editor` when no tree links it. A tree
-owns the project selection. Code Editor, File Editor and Tasks receive
+owns the project selection. Code Editor, File Editor, Tasks and Claude Code receive
 `files_view: DrawState[draw_project_tree]` through the tile framework. The consumer
-link picker chooses Auto, a Files tile, or Unlinked; no sibling discovery is used. The tab bar shows `OpenFiles.paths_in(selected project)`.
+link picker chooses Auto, a Files tile, or Unlinked; no sibling discovery is used. The tab bar shows `OpenFiles.paths_in(selected project)`. Claude Code filters both conversation lists to that project and its subfolders; Unlinked shows all projects.
 File → New Project… is `new_project.py` over `project_templates/`: one sub-folder per
 template, each a `create(name, ...)` function returning `{path: str | bytes}`; its
 parameters are the window's inputs. A view returns its input's type (a `str` there).

@@ -13,14 +13,19 @@ class EditorAppModel(DictConversion):
 
     def bind_open_files(self, open_files):
         """Retain the existing app's saved tabs when adopting the tile layout."""
-        from tile_views import draw_main_editor, draw_file_editor
+        from tile_views import draw_main_editor, draw_file_editor, draw_chat
+        from meltygui import draw_claude_chat
         from tasks import draw_tasks
         from meltygui.state.view_reference import view_identifier
         from meltygui.core.layout.tile_links import AUTO
         for _path, tile in walk(self.tiles):
             if isinstance(tile, Tile):
                 tile.input_value = open_files
-                if tile.render_func in (draw_main_editor, draw_file_editor, draw_tasks):
+                # Older chat tiles saved the library renderer before the app
+                # wrapper supplied their Files link.
+                if tile.render_func is draw_claude_chat:
+                    tile.render_func = draw_chat
+                if tile.render_func in (draw_main_editor, draw_file_editor, draw_tasks, draw_chat):
                     # Initialize each renderer once. An explicit Unlinked choice
                     # leaves its empty binding map, so it stays unlinked.
                     key = view_identifier(tile.render_func)
