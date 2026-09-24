@@ -134,10 +134,19 @@ def draw_file_editor_overlay(draw_state, draw_list):
     if state is None or state._tab_overlay is None:
         return
     tabs, layout_tabs, button_height, row_height, swatch_width, background = state._tab_overlay
+    height = layout_tabs(draw_state.width) if tabs else 0
+    left, top = draw_state.abs_left, draw_state.abs_top + draw_state.height - height
+    if state._pane is not None:
+        from meltygui.core.rendering.overlay import place_overlay_view
+        place_overlay_view(state._pane,
+                           (left, draw_state.abs_top + 30, draw_state.width,
+                            max(1, draw_state.height - height - 30)),
+                           draw_state.abs_clip_rect)
+        if getattr(draw_state, "_blit_served_frame", None) == Melty.frame_count:
+            from meltygui.core.rendering.overlay import paint_cached_view
+            paint_cached_view(state._pane, draw_list)
     if not tabs:
         return
-    height = layout_tabs(draw_state.width)
-    left, top = draw_state.abs_left, draw_state.abs_top + draw_state.height - height
     # Retain the body's resolved, tint-aware background when tabs cover frozen text.
     draw_list.add_rect_filled(left, top, left + draw_state.width, top + height,
                               pack_color(*background[:3], 1.0))
@@ -306,7 +315,7 @@ def draw_file_editor(input_value: OpenFiles, draw_state=None,
     return changed, input_value
 
 
-@no_save("ready", "_endpoints", "_requests", "_results", "_thread", "_closed")
+@no_save("ready", "_endpoints", "_requests", "_results", "_thread", "_closed", "_paint", "_paint_commands")
 class FileEditorComparisons(DictConversion):
     """The workspace's local pairs; neither editor owns its sibling's state."""
 
@@ -319,6 +328,8 @@ class FileEditorComparisons(DictConversion):
         self._results = {}
         self._thread = None
         self._closed = False
+        self._paint = ()
+        self._paint_commands = None
 
     def reconcile(self, endpoints):
         for key, (_view, state) in self._endpoints.items():
@@ -331,6 +342,8 @@ class FileEditorComparisons(DictConversion):
         for _view, state in self._endpoints.values():
             state.close()
         self._endpoints = self._requests = self._results = {}
+        self._paint = ()
+        self._paint_commands = None
 
     def invalidate_panes(self):
         """Changed overlays must replace, rather than stack on, baked washes."""
@@ -408,7 +421,7 @@ def migrate_comparison_link(tile):
         tile.links = {**tile.links, key: bindings}
 
 
-def _draw_ribbons(draw_state, pane_a, pane_b, blocks):
+def _draw_ribbons(draw_state, pane_a, pane_b, blocks, draw_list=None):
     """Use the established full-line washes and their connected seam ribbon."""
     from meltygui_pro.editor.code_editor import _draw_compare_ribbons, _pane_pos
     if _pane_pos(pane_a)[0] > _pane_pos(pane_b)[0]:
@@ -417,7 +430,7 @@ def _draw_ribbons(draw_state, pane_a, pane_b, blocks):
         blocks = [(reverse[tag], j0, j1, i0, i1) for tag, i0, i1, j0, j1 in blocks]
     bands = [(i0, i1, j0, j1, tag) for tag, i0, i1, j0, j1 in blocks]
     _draw_compare_ribbons(draw_state, pane_a, pane_b, bands,
-                          label_left="", label_right="")
+                          label_left="", label_right="", draw_list=draw_list)
 
 
 def draw_file_editor_comparisons(draw_state, state, live_ids):
@@ -430,6 +443,7 @@ def draw_file_editor_comparisons(draw_state, state, live_ids):
     from meltygui.core.runtime.toggles import Toggles
     requests = {}
     presentations = {}
+    paint = []
     for pair in comparison_pairs(endpoints):
         a, b = (endpoints[key][1] for key in pair)
         if a._text is None or b._text is None or a._pane is None or b._pane is None:
@@ -463,7 +477,13 @@ def draw_file_editor_comparisons(draw_state, state, live_ids):
                 outgoing = (view._kwargs or {}).get('diff_with') is endpoints[pair[1-side]][0]
                 if key not in presentations or outgoing:
                     presentations[key] = interaction, folds
-            _draw_ribbons(draw_state, a._pane, b._pane, result[1])
+            if a._pane.abs_left <= b._pane.abs_left:
+                paint.append((a._pane, b._pane, bands))
+            else:
+                reverse = {"insert": "delete", "delete": "insert", "replace": "replace"}
+                paint.append((b._pane, a._pane,
+                              [(j0, j1, i0, i1, reverse[tag])
+                               for i0, i1, j0, j1, tag in bands]))
     for key, (view, editor) in endpoints.items():
         interaction, folds = presentations.get(key, (None, None))
         if editor._comparison is not interaction or editor._diff_folds != folds:
@@ -474,7 +494,55 @@ def draw_file_editor_comparisons(draw_state, state, live_ids):
         if pair not in requests:
             interaction.misc.clear()  # Retain preferences, release old text/layouts.
     state._results = {key: value for key, value in state._results.items() if key in requests}
+    state._paint = tuple(paint)
+    state._paint_commands = prepare_comparison_overlay(draw_state, paint)
     state.dispatch(requests)
+
+
+def prepare_comparison_overlay(draw_state, paint):
+    """Resolve ribbons and shadow marks in the body; retain only paint commands.
+
+    Cached root movement translates these commands; resize and scrolling run
+    the body after child placement and prepare fresh geometry.
+    """
+    from types import SimpleNamespace
+    from meltygui_pro.editor.code_editor import _draw_compare_ribbons
+    commands = []
+    recorder = SimpleNamespace(flags=imgui.get_overlay_draw_list().flags)
+    def record(method):
+        def append(*args, **kwargs):
+            commands.append((recorder.flags, method, args, kwargs))
+        return append
+    for method in ('add_rect_filled', 'add_triangle_filled', 'add_polyline'):
+        setattr(recorder, method, record(method))
+    for pane_a, pane_b, bands in paint:
+        _draw_compare_ribbons(draw_state, pane_a, pane_b, bands,
+                              label_left="", label_right="", draw_list=recorder)
+    return (draw_state.abs_left, draw_state.abs_top), tuple(commands)
+
+
+def draw_file_editor_comparison_overlay(draw_state, draw_list):
+    """Submit prepared ribbon primitives; no diff/layout/shadow work here."""
+    state = draw_state.misc.get("file_comparisons")
+    if state is None or state._paint_commands is None:
+        return
+    origin, commands = state._paint_commands
+    dx, dy = draw_state.abs_left - origin[0], draw_state.abs_top - origin[1]
+    original_flags = flags = draw_list.flags
+    try:
+        for next_flags, method, args, kwargs in commands:
+            if flags != next_flags:
+                draw_list.flags = flags = next_flags
+            if dx or dy:
+                if method == 'add_polyline':
+                    args = ([(x + dx, y + dy) for x, y in args[0]], *args[1:])
+                else:
+                    count = 6 if method == 'add_triangle_filled' else 4
+                    args = (*(value + (dx if i % 2 == 0 else dy)
+                              for i, value in enumerate(args[:count])), *args[count:])
+            getattr(draw_list, method)(*args, **kwargs)
+    finally:
+        draw_list.flags = original_flags
 
 
 def cleanup_file_editor_comparisons(draw_state):

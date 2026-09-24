@@ -153,7 +153,15 @@ Dragging a tab reorders it among its own project's tabs.
 `draw_code_editor(project_tabs=False)` shows every tab.
 
 The **Files** tile (`project_tree.py`) is the selector over that project's
-file tree. A code editor draws the same selector at the top of its files
+file tree. Folder icons throughout the tree, project selector, link menus, and
+file picker use the shared MeltyGUI path-icon renderer and app artwork from a directly contained `.desktop`
+file's `Icon` entry when available; explicit metadata icons take precedence.
+Absolute and project-relative image paths and installed theme icons are supported.
+PNG/XPM icons load through Pillow; SVG icons use `gdk-pixbuf-thumbnailer` when
+installed. Missing or broken artwork falls back to the folder glyph. Icons are
+decoded in the background, refreshed on file changes, and remain tint controls.
+
+A code editor draws the same selector at the top of its files
 column, so either works alone; side by side they link and the editor drops its
 selector: the tree's project is the editor's, in both directions (pick in the
 tree, or let the editor follow a tab, a crumb or a shortcuts row). The link

@@ -161,7 +161,7 @@ def test_full_line_ribbons_use_existing_renderer_and_reverse_swapped_panes(monke
     _draw_ribbons(window, right, left, [("insert", 2, 2, 3, 6)])
     args, kwargs = calls[0]
     assert args == (window, left, right, [(3, 6, 2, 2, "delete")])
-    assert kwargs == {"label_left": "", "label_right": ""}
+    assert kwargs == {"label_left": "", "label_right": "", "draw_list": None}
 
 
 def test_comparison_change_invalidates_baked_washes_once(monkeypatch):
@@ -257,17 +257,72 @@ def test_tab_overlay_reflows_at_live_bottom_without_registering_inputs(monkeypat
     for tab in tabs:
         tab['paint_style'] = {'color': (.2, .3, .4), 'text_color': (1, 1, 1)}
     state._tab_overlay = tabs, layout, button_height, row_height, swatch_width, ds.bg_color
+    state._pane = object()
+    ds.abs_clip_rect = (20, 30, 420, 330)
+    from meltygui.core.rendering import overlay
+    place = Mock()
+    monkeypatch.setattr(overlay, 'place_overlay_view', place)
     paint = Mock()
     monkeypatch.setattr(header_view, 'flat_button', paint)
     dl = Mock()
     file_editor.draw_file_editor_overlay(ds, dl)
     assert [call.kwargs['pos'][1] for call in paint.call_args_list] == [283, 283]
+    place.assert_called_once_with(state._pane, (20, 60, 400, 223), ds.abs_clip_rect)
     assert all(call.kwargs['layout'] is False and call.kwargs['draw_list'] is dl
                for call in paint.call_args_list)
     # The same prepared data reflows on a frozen frame without running the body.
     paint.reset_mock()
+    child_paint = Mock()
+    monkeypatch.setattr(overlay, 'paint_cached_view', child_paint)
+    ds._blit_served_frame = Melty.frame_count
     ds.width, ds.height = tabs[0]['w'] + 14, 200
     file_editor.draw_file_editor_overlay(ds, dl)
     assert [call.kwargs['pos'][1] for call in paint.call_args_list] == [139, 183]
+    assert place.call_args.args == (state._pane, (20, 60, ds.width, 79), ds.abs_clip_rect)
     assert dl.push_clip_rect.call_count == dl.pop_clip_rect.call_count == 4
+    child_paint.assert_called_once_with(state._pane, dl)
     ds.on_action.assert_not_called()
+
+
+def test_files_settings_overlay_tracks_live_right_edge(monkeypatch):
+    from unittest.mock import Mock
+    import project_tree
+    from meltygui.core.melty import Melty
+    from meltygui_pro.editor import project_selector
+    paint = Mock()
+    monkeypatch.setattr(project_selector, 'draw_project_settings_overlay', paint)
+    monkeypatch.setattr(Melty, 'px', lambda value: value)
+    ds = SimpleNamespace(misc={'panel_state': SimpleNamespace(selected_project='/tmp/project')},
+                         _kwargs={'header_height': 30}, abs_left=20, abs_top=40, width=400)
+    dl = object()
+    project_tree.draw_project_tree_overlay(ds, dl)
+    assert paint.call_args.args == (ds, dl, 390, 40, 30)
+    ds.width = 250
+    project_tree.draw_project_tree_overlay(ds, dl)
+    assert paint.call_args.args == (ds, dl, 240, 40, 30)
+
+
+def test_comparison_overlay_uses_prepared_data_and_translates_cached_root(monkeypatch):
+    from unittest.mock import Mock
+    import file_editor
+    from meltygui_pro.editor import code_editor
+    state = FileEditorComparisons()
+    ds = SimpleNamespace(misc={'file_comparisons': state}, abs_left=10, abs_top=20)
+    dl = Mock(flags=7)
+    monkeypatch.setattr(file_editor.imgui, 'get_overlay_draw_list', lambda: dl)
+    def prepare(owner, a, b, bands, **kwargs):
+        target = kwargs['draw_list']
+        target.add_rect_filled(12, 23, 40, 50, 123)
+        target.flags = 0
+        target.add_polyline([(12, 23), (40, 50)], 456, thickness=2)
+    build = Mock(side_effect=prepare)
+    monkeypatch.setattr(code_editor, '_draw_compare_ribbons', build)
+    state._paint_commands = file_editor.prepare_comparison_overlay(ds, [(object(), object(), [])])
+    dl.add_rect_filled.assert_not_called()
+    build.reset_mock()
+    ds.abs_left, ds.abs_top = 30, 50
+    file_editor.draw_file_editor_comparison_overlay(ds, dl)
+    build.assert_not_called()
+    dl.add_rect_filled.assert_called_once_with(32, 53, 60, 80, 123)
+    dl.add_polyline.assert_called_once_with([(32, 53), (60, 80)], 456, thickness=2)
+    assert dl.flags == 7

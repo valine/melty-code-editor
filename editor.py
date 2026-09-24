@@ -46,6 +46,7 @@ from meltygui import draw_voxels, draw_line_graph
 from app_model import EditorAppModel
 from tile_views import draw_main_editor, draw_chat  # noqa: F401  tile_views registers the Tasks tile
 from file_editor import (FileEditorComparisons, draw_file_editor_comparisons,
+                         draw_file_editor_comparison_overlay,
                          cleanup_file_editor_comparisons)
 from project_tree import draw_project_tree, open_path  # noqa: F401  draw_project_tree registers the Files tile
 from editor_settings import settings
@@ -282,8 +283,9 @@ def draw_new_field(width):
 
 
 @glfw_window(name=paths[0].name if len(paths) == 1 else 'Code Editor', app_id='melty-code-editor',
-             with_header=draw_header, bg_offset=-3, tint=(0.39, 0.60, 0.86), settings=settings)
-@render_func(use_cache=True, on_cleanup=cleanup_file_editor_comparisons)
+             with_header=draw_header, bg_offset=-3, tint=(0.43, 0.52, 0.63), settings=settings)
+@render_func(use_cache=True, on_cleanup=cleanup_file_editor_comparisons,
+             draw_overlay=draw_file_editor_comparison_overlay)
 def editor(input_value: object, draw_state,
            tile_state: TileManagerState = None, multi_instance_renderers=(),
            file_comparisons: FileEditorComparisons = None,

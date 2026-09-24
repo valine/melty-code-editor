@@ -46,6 +46,7 @@ from pathlib import Path
 from meltygui import imgui
 from meltygui import window_api as glfw
 from meltygui.core.core_render import render_func
+from meltygui.core.rendering.core_decoration import no_save
 from meltygui.core.conversion.dict_conversion import DictConversion
 from meltygui.core.melty import Melty, FileWatch
 from meltygui.code.fileref import writable_file_refusal
@@ -55,6 +56,7 @@ from meltygui_pro.models.editor_project import ProjectSelection
 from meltygui_pro.models.open_files import OpenFiles
 from meltygui_pro.models.projects import project_roots, project_for
 from editor_settings import settings
+from meltygui.model.folder_icon_model import FolderIcons
 
 # Never listed: not something to pick.
 TREE_HIDE = frozenset({"__pycache__"})
@@ -65,6 +67,7 @@ SEARCH_SKIP = frozenset({"__pycache__", "node_modules", ".git", ".venv", "venv"}
 SEARCH_LIMIT = 60000
 
 
+@no_save('_folder_icons', '_icon_watch_owner')
 class ProjectTreeState(DictConversion):
     """The rows' injected state. Persists which folders are open and the
     selection; paths are strings. The underscore fields are one session's memos."""
@@ -76,6 +79,8 @@ class ProjectTreeState(DictConversion):
         self.selected = None        # str path of the selected row
         self._listings = {}         # str dir -> (mtime_ns, show_hidden, rows)
         self._watches = {}          # str dir -> the watch_directory holder
+        self._folder_icons = FolderIcons()
+        self._icon_watch_owner = None
         self._armed = False         # a click inside took the keyboard
         self._search = ""           # the type-to-search query
         self._search_for = None     # the query the selection was landed for
@@ -239,15 +244,25 @@ def sync_watches(draw_state, state, shown):
     `watch_directory`, a holder each), retired when the folder leaves the
     tree: the inotify instance cap is per user."""
     from meltygui.core.files import file_explorer_core as explorer
+    from meltygui.core.files.path_icons import IconInvalidator
+    owner = getattr(state, '_icon_watch_owner', None)
+    if owner is None:
+        owner = state._icon_watch_owner = IconInvalidator(draw_state, state._folder_icons)
+        # Transfer existing subscriptions in place when this definition hotswaps.
+        for key in state._watches:
+            subscribers = explorer._WATCHERS.get(key)
+            if subscribers is not None:
+                subscribers.discard(draw_state)
+                subscribers.add(owner)
     for key in shown - state._watches.keys():
         holder = state._watches[key] = _Watch()
-        explorer.watch_directory(draw_state, holder, key)
+        explorer.watch_directory(owner, holder, key)
     for key in state._watches.keys() - shown:
         del state._watches[key]
         state._listings.pop(key, None)
         holders = explorer._WATCHERS.get(key)
         if holders is not None:
-            holders.discard(draw_state)
+            holders.discard(owner)
             if not holders:
                 del explorer._WATCHERS[key]
                 FileWatch.unwatch_dir(key)
@@ -412,7 +427,15 @@ def follow_rename(open_files, old, new):
 
 
 
+def cleanup_project_files(draw_state):
+    state = draw_state.misc.get('tree_state')
+    if state is not None:
+        state._folder_icons.close()
+        sync_watches(draw_state, state, set())
+
+
 @render_func(tint=(0.32, 0.42, 0.54), selectable=False, disable_scroll=False, show_add_delete=False,
+             on_cleanup=cleanup_project_files,
              is_tree=False, show_bg=False, shadow=False, show_header=False)
 def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeState = None,
                        root=None, file_metadata=None, left_mouse_down=False, left_mouse_double_clicked=False,
@@ -480,6 +503,8 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
 
     roots = [Path(root)] if root and Path(root).is_dir() else []
     if not roots:
+        state._folder_icons.close()
+        sync_watches(draw_state, state, set())
         imgui.text_wrapped("Select a project above.")
         return False, input_value
 
@@ -521,14 +546,13 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
 
     # ── the rows: the matches under their folders, else the open tree ──
     hit_spans, positions, best = {}, [], None
+    shown = {str(path) for path in roots}
     if query:
         rows, hit_spans, positions, best = search_rows(state, roots, show_hidden, query)
         if not positions:                            # no match: the tree, dimmed by nothing
             rows, shown = visible_rows(state, roots, meta, show_hidden)
-            sync_watches(draw_state, state, shown)
     else:
         rows, shown = visible_rows(state, roots, meta, show_hidden)
-        sync_watches(draw_state, state, shown)
     searching = bool(query and positions)
 
     rows_x, rows_y = imgui.get_cursor_screen_pos()
@@ -709,6 +733,15 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
     chip_size = px(18)
     name_field = None
     text_y_pad = (row_h - imgui.get_font_size()) * 0.5
+    icon_folders = set()
+    for index, (path, is_dir, _depth) in enumerate(rows):
+        row_top = rows_y + index * row_h
+        if is_dir and (clip is None or (row_top + row_h >= clip[1] and row_top <= clip[3])):
+            entry = meta.get(str(path)) if meta is not None else None
+            if not (isinstance(entry, dict) and entry.get('icon')):
+                icon_folders.add(path)
+    state._folder_icons.consume(icon_folders)
+    sync_watches(draw_state, state, shown | state._folder_icons.watch_directories())
     for i, (path, is_dir, depth) in enumerate(rows):
         ry0 = rows_y + i * row_h
         ry1 = ry0 + row_h
@@ -719,6 +752,7 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
         icon = row_icon(path, is_dir, entry, folder_icon, file_icon)
         badge = (file_badge_for_path(path) if not is_dir
                  and not (isinstance(entry, dict) and entry.get("icon")) else None)
+        app_icon = state._folder_icons.get(path) if path in icon_folders else None
         spans = hit_spans.get(i)
         name_rgba, glyph_rgba = (folder_rgba if is_dir else text_rgba), text_rgba
         faded = searching and spans is None          # a folder leading to a match
@@ -762,10 +796,22 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
             tuple(tint) if tint is not None else FileMeta.tint, draw_state,
             view_id=f"tree_tint_{path}", x=x,
             y=ry0 + (row_h - chip_size) * 0.5, size=chip_size,
-            empty_tint_icon=True, icon="" if badge else icon, icon_color=icon_col,
+            empty_tint_icon=True, icon="" if badge or app_icon is not None else icon, icon_color=icon_col,
             hovered=row_hovered and x <= mouse_x < x + chip_size,
             setter=lambda value, _path=str(path): set_folder_tint(_path, value))
         imgui.set_cursor_screen_pos(chip_cursor)
+        if app_icon is not None:
+            pixels = app_icon.pixels
+            scale = chip_size / max(pixels.width, pixels.height)
+            width, height = pixels.width * scale, pixels.height * scale
+            image_x, image_y = x + (chip_size - width) * 0.5, ry0 + (row_h - height) * 0.5
+            draw_list.add_image(int(app_icon), (image_x, image_y),
+                                (image_x + width, image_y + height),
+                                col=pack_color(1.0, 1.0, 1.0, glyph_rgba[3]))
+            if tint:
+                # Keep the metadata tint visible without recoloring application artwork.
+                draw_list.add_line(x, ry1 - px(1), x + chip_size, ry1 - px(1),
+                                    icon_col, px(1.5))
         if badge:
             draw_file_badge(draw_list, x, ry0 + (row_h - chip_size) * 0.5,
                             chip_size, icon_col, badge, glyph_rgba[3])
@@ -844,6 +890,7 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
         draw_list.add_text(view_rect[0] + px(8), view_rect[3] - px(12) - imgui.get_font_size(),
                            no_match_col, state._error)
 
+    state._folder_icons.dispatch(lambda: Melty.post_to_render(draw_state.invalidate), check_stale=False)
     return False, input_value
 
 
@@ -852,6 +899,11 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
 
 class ProjectPanelState(ProjectSelection):
     """The Files tile's selected project and row menu state."""
+
+    @property
+    def icon_path(self):
+        return self.selected_project
+
 
     def __init__(self):
         super().__init__()
@@ -896,9 +948,22 @@ def default_project(open_files):
     return str(saved[0] if saved else Path.home())
 
 
+def draw_project_tree_overlay(draw_state, draw_list):
+    """Keep the right-aligned settings button out of the frozen Files image."""
+    state = draw_state.misc.get("panel_state")
+    if state is None or not state.selected_project:
+        return
+    from meltygui_pro.editor.project_selector import draw_project_settings_overlay
+    height = Melty.px(draw_state._kwargs.get("header_height", 30.0))
+    draw_project_settings_overlay(draw_state, draw_list,
+                                  draw_state.abs_left + draw_state.width - height,
+                                  draw_state.abs_top, height)
+
+
 @render_func(multi_instance=True, tint=(0.32, 0.42, 0.54), icon=f"\uf07c", display_name="Files",
              selectable=False, disable_scroll=True, show_add_delete=False, is_tree=False,
-             show_bg=False, shadow=False, show_header=False, use_cache=False)
+             show_bg=False, shadow=False, show_header=False, use_cache=False,
+             draw_overlay=draw_project_tree_overlay)
 def draw_project_tree(input_value: object, draw_state, panel_state: ProjectPanelState = None,
                       header_height=30.0, **kwargs):
     """The Files tile (see the module docstring). `input_value` is the tile's:
@@ -934,7 +999,7 @@ def draw_project_tree(input_value: object, draw_state, panel_state: ProjectPanel
     imgui.set_cursor_screen_pos((left + chip_w + gap, top))
     changed, folder = draw_project_selector(state.selected_project, name="project-selector",
                                             width=max(px(60), width - chip_w - gap),
-                                            trigger_height=header_height)
+                                            trigger_height=header_height, paint_settings=False)
     if changed:
         state.set_project(folder)
         draw_state.invalidate()
