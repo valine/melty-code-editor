@@ -59,6 +59,32 @@ it; the query and the pick counts persist with the session. Edits go
 to melty's file hosts (the studio's deferred-save model: queued in memory,
 written to disk when the window closes); there is no Ctrl+S.
 
+## Task sessions and Local Debug
+
+Tasks owns execution, output and inspection in one `TaskState`. File Editor,
+Console and Locals tiles can select that session through their Links menu
+(`debugger_state` → the Tasks tile's `task_state`). Each view keeps its own
+presentation state. Removing the Tasks tile or changing its renderer keeps the
+session running and preserves explicit links; Stop and app exit stop execution.
+
+File Editor prepares source keys in the background. Click its line-number gutter
+to toggle a persisted breakpoint, then use its **Local Debug** context-menu entry
+(or the Tasks tile's Local Debug button). Console provides Continue / Into /
+Over / Out, and Locals selects captured stack frames. Inline values reuse the
+normal live-value markers and `draw_any` renderers. A captured binding retains
+its object after resume; other threads and GPU work may still change its contents.
+
+Local Debug is an explicit in-editor execution context on Python 3.12+, for module
+tasks using the editor interpreter. It shares the editor's installed imports,
+working directory and environment, and refuses a task that requests a different
+interpreter, cwd or environment. Monitoring covers that module's compiled code
+and nested functions on its execution thread; imported-module and child-thread
+breakpoints are not enabled. Stop is cooperative and waits for native blocking
+calls to return. Direct `print` calls in that source feed the session console.
+Normal Run continues to use the project's subprocess and capture its full output.
+Generic remote frames and automatic detection of unreported object mutations
+remain future work.
+
 ## What draw_code_editor needs that draw_text does not
 
 `draw_text` takes a string. `draw_code_editor` takes an **`OpenFiles`**: the

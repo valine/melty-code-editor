@@ -26,6 +26,7 @@ def project(tmp_path, table):
 def wait(state, seconds=10.0):
     deadline = time.monotonic() + seconds
     while state.running and time.monotonic() < deadline:
+        tasks.Melty._drain_render_tasks()
         time.sleep(0.02)
     return not state.running
 
@@ -67,7 +68,7 @@ def test_environment_prefers_the_project_venv(tmp_path):
 def test_start_streams_output_and_exit_code(tmp_path):
     root = project(tmp_path, 'hi = { cmd = "echo $GREETING; pwd; exit 3", cwd = "sub", env = { GREETING = "hello" } }\n')
     state = tasks.TaskState()
-    tasks.start_task(state, root, 'hi')
+    state.run(root, 'hi')
     assert state.error is None and state.running
     assert wait(state)
     assert state.exit == 3
@@ -78,9 +79,9 @@ def test_start_streams_output_and_exit_code(tmp_path):
 def test_stop_ends_the_process_group(tmp_path):
     root = project(tmp_path, 'wait = "sleep 30; echo never"\n')
     state = tasks.TaskState()
-    tasks.start_task(state, root, 'wait')
+    state.run(root, 'wait')
     assert state.running
-    tasks.stop_task(state)
+    state.stop()
     assert wait(state, 5.0)
     assert state.exit != 0 and state.output == '$ sleep 30; echo never\n'
 
@@ -88,17 +89,17 @@ def test_stop_ends_the_process_group(tmp_path):
 def test_refusals_land_in_error(tmp_path):
     root = project(tmp_path, 'x = { cmd = "true", cwd = "missing" }\n')
     state = tasks.TaskState()
-    tasks.start_task(state, root, 'nope')
+    state.run(root, 'nope')
     assert state.error.startswith('No task') and not state.running
-    tasks.start_task(state, root, 'x')
+    state.run(root, 'x')
     assert state.error.startswith('cwd is not a folder') and not state.running
 
 
 def test_start_again_replaces_the_run(tmp_path):
     root = project(tmp_path, 'wait = "sleep 30"\nfast = "echo done"\n')
     state = tasks.TaskState()
-    tasks.start_task(state, root, 'wait')
-    tasks.start_task(state, root, 'fast')
+    state.run(root, 'wait')
+    state.run(root, 'fast')
     assert wait(state) and state.exit == 0 and 'done' in state.output
 
 
@@ -132,7 +133,7 @@ def test_module_run_uses_pending_text_and_package_imports(tmp_path, monkeypatch)
     monkeypatch.setattr(PendingSave, 'current_file_text', lambda path: pending)
     name = tasks.add_module_task(path, root)
     state = tasks.TaskState()
-    tasks.start_task(state, root, name)
+    state.run(root, name)
     assert state.error is None
     assert wait(state) and state.exit == 0
     assert '__main__ 42' in state.output
@@ -234,24 +235,24 @@ def test_tasks_follow_injected_files_selection():
 
 def test_output_follow_scroll_and_completion():
     from meltygui.state.new_core_model import DrawState
-    state, output = tasks.TaskState(), DrawState()
+    state, output = tasks.TaskViewState(), DrawState()
     state.running = True
     output._max_scroll_y = 100
     output.scroll_offset = (0, 0)
-    tasks.follow_output(state, output, 2)
+    tasks.follow_output(state, output, 2, running=state.running)
     assert output.scroll_offset == (0, 100)
     # New lines grow the range without moving the reader upward.
     output._max_scroll_y = 150
-    tasks.follow_output(state, output, 2)
+    tasks.follow_output(state, output, 2, running=state.running)
     assert output.scroll_offset == (0, 150)
     # Moving upward must win over automatic following, including with new output.
     output.scroll_offset = (0, 80)
     output._max_scroll_y = 200
-    tasks.follow_output(state, output, 2)
+    tasks.follow_output(state, output, 2, running=state.running)
     assert not state._follow
     assert output.scroll_offset == (0, 80)
     state.running = False
-    tasks.follow_output(state, output, 2)  # formerly raised AttributeError: scrolled
+    tasks.follow_output(state, output, 2, running=state.running)  # formerly raised AttributeError: scrolled
     assert output.scroll_offset == (0, 80)
 
 
@@ -259,10 +260,10 @@ def test_output_overlay_tracks_live_tile_bounds(monkeypatch):
     from types import SimpleNamespace as NS
     from meltygui.core.rendering import overlay
 
-    state = tasks.TaskState()
+    state = tasks.TaskViewState()
     pane = state._output_view = object()
     state._toolbar_height = 28
-    parent = NS(misc={'task_state': state}, abs_left=100, abs_top=200,
+    parent = NS(misc={'task_state': tasks.TaskState(), 'task_view_state': state}, abs_left=100, abs_top=200,
                 width=400, height=300, abs_clip_rect=(100, 200, 500, 500),
                 _blit_served_frame=42)
     placed, painted = [], []
@@ -296,10 +297,10 @@ def test_toolbar_overlay_moves_buttons_and_shadows_together(monkeypatch):
     from meltygui.core.cache import tile_marks
     from meltygui_pro.editor import code_editor
 
-    state = tasks.TaskState()
+    state = tasks.TaskViewState()
     state._toolbar_height = 28
     state._toolbar = {'left': 100, 'nav_tints': (None, None), 'has_tasks': True}
-    parent = NS(misc={'task_state': state}, abs_left=10, abs_top=20,
+    parent = NS(misc={'task_state': tasks.TaskState(), 'task_view_state': state}, abs_left=10, abs_top=20,
                 width=600, height=300, abs_clip_rect=(10, 20, 610, 320))
     buttons, shadows, cleared, navigation = [], [], [], []
     monkeypatch.setattr(tasks.Melty, 'px', lambda value: value)
@@ -325,17 +326,17 @@ def test_toolbar_overlay_moves_buttons_and_shadows_together(monkeypatch):
 
 def test_output_follow_range_clamp_and_unmeasured_content():
     from meltygui.state.new_core_model import DrawState
-    state, output = tasks.TaskState(), DrawState()
+    state, output = tasks.TaskViewState(), DrawState()
     state.running = True
-    tasks.follow_output(state, output, 2)
+    tasks.follow_output(state, output, 2, running=state.running)
     assert state._output_scroll_y is None
     output._max_scroll_y = 100
-    tasks.follow_output(state, output, 2)
+    tasks.follow_output(state, output, 2, running=state.running)
     # A larger viewport or trimmed output clamps the offset; keep following.
     output._max_scroll_y = 50
     output.scroll_offset = (0, 50)
-    tasks.follow_output(state, output, 2)
+    tasks.follow_output(state, output, 2, running=state.running)
     assert state._follow
     output._max_scroll_y = 120
-    tasks.follow_output(state, output, 2)
+    tasks.follow_output(state, output, 2, running=state.running)
     assert output.scroll_offset == (0, 120)

@@ -4,7 +4,7 @@ from project_tree import draw_project_tree, project_selection
 from meltygui_pro import draw_code_editor
 from meltygui_pro.models.open_files import OpenFiles
 from editor_settings import settings
-from tasks import draw_tasks, request_module_run
+from tasks import draw_tasks, draw_console, draw_locals, request_module_run
 from file_editor import draw_file_editor
 
 

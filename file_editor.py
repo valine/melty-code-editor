@@ -4,6 +4,7 @@ The old Code Editor remains a separate renderer. Everything specific to this
 tile lives here; GitProxy owns file values, loading and watching.
 """
 import threading
+from tasks import TaskState
 from pathlib import Path
 
 from meltygui import imgui, draw_text, render_func, DrawState
@@ -19,8 +20,10 @@ from meltygui_pro.editor.code_editor import prepare_editor_tabs, _draw_tab_bar_r
 from meltygui_pro.models.open_files import OpenFiles
 
 
-@no_save("version_ready", "_file", "_pane", "_text", "_line_numbers", "_comparison", "_diff_folds", "_tab_overlay")
+@no_save("version_ready", "_file", "_pane", "_text", "_line_numbers", "_comparison", "_diff_folds", "_tab_overlay",
+         "_source_text", "_source_path", "_source_tree", "_source_worker")
 class FileEditorState(DictConversion):
+    _source_text = _source_path = _source_tree = _source_worker = None
     def __init__(self):
         super().__init__()
         self.selected_path = None
@@ -33,6 +36,34 @@ class FileEditorState(DictConversion):
         self._comparison = None
         self._diff_folds = None
         self._tab_overlay = None
+        self._source_text = self._source_path = self._source_tree = self._source_worker = None
+
+    def source_tree(self, text, path):
+        return self._source_tree if self._source_text is text and self._source_path == path else None
+
+    def prepare_source(self, text, path, on_ready):
+        """Prepare the existing scanner tree off the render thread, once per text."""
+        if not isinstance(text, str) or not path or not path.endswith('.py'):
+            return
+        if self._source_text is text and self._source_path == path:
+            return
+        if self._source_worker is not None:
+            return
+        def build():
+            from meltygui.code.core_syntax import parse_to_dict
+            from meltygui.core.melty import Melty
+            try:
+                tree = parse_to_dict(text, file_path=path, frontend='scan')
+            except (SyntaxError, ValueError):
+                tree = None
+            def apply():
+                self._source_worker = None
+                self._source_text, self._source_path, self._source_tree = text, path, tree
+                self.changed()
+                on_ready(frame_delta=1)
+            Melty.post_to_render(apply)
+        self._source_worker = threading.Thread(target=build, name='file-source-index', daemon=True)
+        self._source_worker.start()
 
     def changed(self):
         self.version_ready += 1
@@ -172,7 +203,8 @@ def draw_file_editor_overlay(draw_state, draw_list):
 def draw_file_editor(input_value: OpenFiles, draw_state=None,
                      diff_with: "DrawState[draw_file_editor]" = None, instance=0,
                      layout_frame=None, tab_bar_state: TabBarState = None,
-                     files_view: DrawState[draw_project_tree] = None):
+                     files_view: DrawState[draw_project_tree] = None,
+                     debugger_state: TaskState = None):
     from meltygui.core.rendering.injected_state import owned_state
     state = owned_state(draw_state, "file_editor_state", FileEditorState)
     files = input_value
@@ -227,12 +259,14 @@ def draw_file_editor(input_value: OpenFiles, draw_state=None,
         link = project_source
         root = link.selected_project if link is not None else None
         context_menu["Run"] = lambda path=path, root=root: request_module_run(path, root)
+        context_menu["Local Debug"] = lambda path=path, root=root: request_module_run(path, root, debug=True)
     from meltygui.code.new_converters import _codec_view
     view = _codec_view(file_value.codec if file_value is not None else None, displayed, draw_text)
     edited, replacement, pane = view(
         displayed, name=f"file:{path}:{state.version}",
         file_key=file_value.display_path if file_value is not None else path,
         source_context=file_value, context_menu=context_menu,
+        debugger_state=debugger_state, code_tree=state.source_tree(text, path),
         line_numbers=state._line_numbers[1] if is_text else None,
         width=width, height=max(1, height - tab_height - 30), return_extras=True,
         editable=editable, syntax_highlight=is_text,
@@ -296,6 +330,7 @@ def draw_file_editor(input_value: OpenFiles, draw_state=None,
         state.bind(proxies_for(path)[0].file(path, state.version))
     else:
         state.bind(None)
+    state.prepare_source(text, path, draw_state.invalidate)
     return changed, input_value
 
 
