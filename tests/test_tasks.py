@@ -276,7 +276,11 @@ def test_output_overlay_tracks_live_tile_bounds(monkeypatch):
     assert painted == [pane]
     # Resize/move replay must not depend on the body's last layout.
     parent.abs_left, parent.abs_top = 50, 60
-    parent.width, parent.height = 600, 40
+    parent.width, parent.height = 600, 60
+    parent.abs_clip_rect = (50, 60, 650, 120)
+    tasks.draw_tasks_overlay_background(parent, None)
+    assert placed[-1] == (pane, (50, 84, 600, 8), parent.abs_clip_rect)
+    parent.height = 40
     parent.abs_clip_rect = (50, 60, 650, 100)
     tasks.draw_tasks_overlay_background(parent, None)
     assert placed[-1] == (pane, (50, 84, 600, 0), parent.abs_clip_rect)
@@ -284,7 +288,7 @@ def test_output_overlay_tracks_live_tile_bounds(monkeypatch):
     parent._blit_served_frame = 41
     tasks.draw_tasks_overlay_background(parent, None)
     assert placed[-1][1] == (50, 84, 600, 448)
-    assert painted == [pane, pane]  # normal body draws do not paint twice
+    assert painted == [pane, pane, pane]  # normal body draws do not paint twice
 
 
 def test_toolbar_overlay_moves_buttons_and_shadows_together(monkeypatch):

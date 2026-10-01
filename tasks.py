@@ -525,7 +525,7 @@ def draw_tasks_overlay_background(draw_state, draw_list):
     height = max(0, draw_state.height - state._toolbar_height - top)
     place_overlay_view(state._output_view,
                        (draw_state.abs_left, draw_state.abs_top + top,
-                        draw_state.width, height if height >= Melty.px(20) else 0),
+                        draw_state.width, height),
                        draw_state.abs_clip_rect)
     if replay:
         paint_cached_view(state._output_view)
@@ -607,23 +607,21 @@ def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
             else:
                 stop_task(state)
 
-    # The body may disappear entirely at minimum height; the toolbar stays visible.
+    # Keep the output view in the render/cache lifecycle even at zero height.
     status_h = px(20)
-    output_ds = None
     if toolbar_y >= status_h:
         imgui.set_cursor_screen_pos((body_left, body_top))
         output_root = state.project or root
         imgui.text(f'{Path(output_root).name if output_root else "no project"}  {status_text(state)}')
     output_top = px(OUTPUT_TOP)
     output_h = max(0, toolbar_y - output_top)
-    if output_h >= px(20):
-        imgui.set_cursor_screen_pos((body_left, body_top + output_top))
-        _, _, output_ds = draw_text(state.output, name=f'task-output##{unique}',
-                                    width=draw_state.content_width, height=output_h,
-                                    editable=False, syntax_highlight=False,
-                                    autocomplete=False, wrap=True, show_header=False,
-                                    show_widgets=False, use_cache=True, freeze_resize=True, shadow=False,
-                                    return_extras=True)
+    imgui.set_cursor_screen_pos((body_left, body_top + output_top))
+    _, _, output_ds = draw_text(state.output, name=f'task-output##{unique}',
+                                width=draw_state.content_width, height=output_h,
+                                editable=False, syntax_highlight=False,
+                                autocomplete=False, wrap=True, show_header=False,
+                                show_widgets=False, use_cache=True, freeze_resize=True, shadow=False,
+                                return_extras=True)
     state._output_view = output_ds
     # Follow the tail while running; scrolling up stops following until the next run.
     if output_ds is not None:
