@@ -15,7 +15,7 @@ from meltygui.core.runtime.lifecycle import module_is_live
 from meltygui.core.windowing.glfw_utils import request_render
 from meltygui.editor.diff import diff_opcodes
 from meltygui_pro.models.tab_bar import TabBarState
-from meltygui_pro.editor.code_editor import prepare_editor_tabs, _draw_tab_bar_rows, draw_editor_tab_icon
+from meltygui_pro.editor.code_editor import prepare_editor_tabs, _draw_tab_bar_rows
 from meltygui_pro.models.open_files import OpenFiles
 
 
@@ -146,54 +146,19 @@ def draw_file_editor_overlay_background(draw_state, draw_list):
 
 def draw_file_editor_overlay(draw_state, draw_list):
     """Paint prepared tabs at live bounds; all input stays in the normal body."""
-    from meltygui.core.melty import Melty
-    from meltygui.hdr_color import pack_color
-    from meltygui.view.header_view import flat_button
-
+    from meltygui_pro.editor.code_editor import paint_editor_tabs
     state = draw_state.misc.get("file_editor_state")
     if state is None or state._tab_overlay is None:
         return
     tabs, layout_tabs, button_height, row_height, swatch_width, background = state._tab_overlay
     height = layout_tabs(draw_state.width) if tabs else 0
-    left, top = draw_state.abs_left, draw_state.abs_top + draw_state.height - height
-    if not tabs:
-        return
-    # Retain the body's resolved, tint-aware background when tabs cover frozen text.
-    draw_list.add_rect_filled(left, top, left + draw_state.width, top + height,
-                              pack_color(*background[:3], 1.0))
-    mouse_x, mouse_y = imgui.get_mouse_pos()
-    icon_size, close_size = Melty.px(18), Melty.px(16)
-    for tab in tabs:
-        style = tab.get("paint_style")
-        if style is None:  # The dragged tab is painted by its floating ghost.
-            continue
-        x, y = left + tab["x"], top + tab["row"] * row_height
-        hovered = (draw_state._bounding_hovered and not Melty.on_drag
-                   and x <= mouse_x < x + tab["w"] and y <= mouse_y < y + button_height)
-        draw_list.push_clip_rect(x, y, x + tab["w"], y + button_height, True)
-        try:
-            flat_button(tab["label"], draw_state, view_id=None,
-                        width=tab["w"], height=button_height, pos=(x, y),
-                        hovered=hovered, layout=False, draw_list=draw_list, **style)
-            icon_x, icon_y = x + 2, y + (button_height - 18) * 0.5
-            if hovered and icon_x <= mouse_x < icon_x + icon_size and icon_y <= mouse_y < icon_y + icon_size:
-                draw_list.add_rect_filled(icon_x - 2, icon_y - 2,
-                                          icon_x + icon_size + 2, icon_y + icon_size + 2,
-                                          pack_color(1.0, 1.0, 1.0, 0.10), rounding=4.0)
-            draw_editor_tab_icon(tab, draw_list, icon_x, icon_y,
-                                 icon_size, style["text_color"])
-            if hovered:
-                close_x, close_y = x + tab["w"] - swatch_width, y + (button_height - close_size) * 0.5
-                flat_button("×", draw_state, view_id=None, pos=(close_x, close_y),
-                            width=close_size, height=close_size, color=style["color"],
-                            factor=0.2, text_saturation=0.4, alpha=0.0, layout=False,
-                            hovered=close_x <= mouse_x < close_x + close_size and close_y <= mouse_y < close_y + close_size,
-                            draw_list=draw_list)
-        finally:
-            draw_list.pop_clip_rect()
+    rect = (draw_state.abs_left, draw_state.abs_top + draw_state.height - height,
+            draw_state.width, height)
+    paint_editor_tabs(draw_state, draw_list, tabs, rect, button_height,
+                      row_height, swatch_width, background)
 
 
-@render_func(multi_instance=True, use_cache=True, disable_scroll=True,
+@render_func(multi_instance=True, use_cache=True, disable_scroll=True, selectable=False,
              on_cleanup=cleanup_file_editor, draw_overlay=draw_file_editor_overlay,
              draw_overlay_background=draw_file_editor_overlay_background,
              display_name="File Editor", icon=f"\uf15c", tint=(0.20, 0.30, 0.48))

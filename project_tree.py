@@ -14,7 +14,7 @@ DrawState[draw_project_tree]; draw_tiles supplies their per-parameter link picke
 
 The rows are the file browser's listing (`draw_file_listing`): names straight
 to the draw list, viewport-culled, each wearing its file-meta tint and icon,
-the same selection / hover recipe, a listing per folder memoized on the
+the same selection recipe, a listing per folder memoized on the
 folder's mtime and refreshed by a FileWatch emitter per folder shown.
 
 Type to search, the browser's way (`search_keys` / `search_typed` /
@@ -52,6 +52,7 @@ from meltygui.core.melty import Melty, FileWatch
 from meltygui.code.fileref import writable_file_refusal
 from meltygui.hdr_color import pack_color
 from meltygui.view.file_icon_view import draw_file_badge
+from meltygui.view.file_view import paint_file_rows_overlay
 from meltygui_pro.models.editor_project import ProjectSelection
 from meltygui_pro.models.open_files import OpenFiles
 from meltygui_pro.models.projects import project_roots, project_for
@@ -427,6 +428,21 @@ def follow_rename(open_files, old, new):
 
 
 
+@no_save('layout')
+class FileRowsOverlayState(DictConversion):
+    """Per-view row geometry, rebuilt when the tree body renders."""
+
+    def __init__(self):
+        super().__init__()
+        self.layout = None
+
+
+def draw_file_rows_overlay(draw_state, draw_list):
+    state = draw_state.misc.get('_row_overlay')
+    if state is not None:
+        paint_file_rows_overlay(draw_state, draw_list, state.layout)
+
+
 def cleanup_project_files(draw_state):
     state = draw_state.misc.get('tree_state')
     if state is not None:
@@ -435,17 +451,16 @@ def cleanup_project_files(draw_state):
 
 
 @render_func(tint=(0.32, 0.42, 0.54), selectable=False, disable_scroll=False, show_add_delete=False,
-             on_cleanup=cleanup_project_files,
+             on_cleanup=cleanup_project_files, draw_overlay=draw_file_rows_overlay,
              is_tree=False, show_bg=False, shadow=False, show_header=False)
 def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeState = None,
                        root=None, file_metadata=None, left_mouse_down=False, left_mouse_double_clicked=False,
-                       right_mouse_down=False, menu_target=None,
+                       right_mouse_clicked=False, menu_target=None,
                       row_height=20.0, left_pad=6.0, indent=12.0, glyph_width=24.0,
                       chevron_width=13.0, default_tint=(0.32, 0.42, 0.54, 1.0),
-                      select_boost=0.22, plain_select_boost=0.06, select_shadow=2.0,
-                      select_rounding=3.0, hover_boost=0.06, hover_alpha=0.05,
+                      select_rounding=3.0,
                       text_mix=0.5, icon_mix=0.9, search_tint=(1.0, 0.82, 0.3), search_dim=0.45,
-                      search_flash_frames=36, **kwargs):
+                      search_flash_frames=36, _row_overlay: FileRowsOverlayState = None, **kwargs):
     """The files of the project folder `root` as a collapsible tree (see the
     module docstring): the rows under `draw_project_tree`'s header.
     `input_value` is the tile's: the app's ``OpenFiles``, where a picked file
@@ -462,7 +477,6 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
     from meltygui.files.fast_file_explorer import tinted_text
     from meltygui.models.file_meta import FileMeta
     from meltygui.core.windowing.glfw_utils import request_render
-    from meltygui.core.cache.tile_marks import add_shadow
     from meltygui.core.cache.tile_marks import clear_glows
 
     # [tint=(0.55, 0.72, 0.95)]
@@ -477,13 +491,11 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
     search_wash = pack_color(search_tint[0], search_tint[1], search_tint[2], 0.30)
     search_col = pack_color(search_tint[0], search_tint[1], search_tint[2], 1.0)
     no_match_col = pack_color(0.95, 0.55, 0.5, 1.0)
-    hover_wash = pack_color(1.0, 1.0, 1.0, hover_alpha)
-
     state = tree_state
+    _row_overlay.layout = None
     open_files = input_value if isinstance(input_value, OpenFiles) else None
     show_hidden = settings["FileTree"]["show_hidden"]
-    # The selected row's add_shadow is retained under this draw_state until
-    # its group opens again (the listing's rule).
+    # Retire any marks retained before the row body changed or was hotswapped.
     clear_glows(draw_state)
     px = Melty.px
     row_h, pad, glyph_w = px(row_height), px(left_pad), px(glyph_width)
@@ -496,8 +508,8 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
              if (left_mouse_down and hasattr(left_mouse_down, "x")) else None)
     double_click = ((left_mouse_double_clicked.x, left_mouse_double_clicked.y)
                     if (left_mouse_double_clicked and hasattr(left_mouse_double_clicked, "x")) else None)
-    right_press = ((right_mouse_down.x, right_mouse_down.y)
-                   if (right_mouse_down and hasattr(right_mouse_down, "x")) else None)
+    right_click = ((right_mouse_clicked.x, right_mouse_clicked.y)
+                   if (right_mouse_clicked and hasattr(right_mouse_clicked, "x")) else None)
     meta = file_metadata
     row_bg = row_tint_bg()
 
@@ -654,15 +666,15 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
             selected_index = select_row(at, centre=True, flash=True)
 
     # ── input on rows ──
-    if naming is not None and (click is not None or right_press is not None):
+    if naming is not None and (click is not None or right_click is not None):
         naming = state._naming = None                # a click elsewhere leaves the name as it was
-    hit = row_at(right_press)
+    hit = row_at(right_click)
     if hit is not None:                              # the menu acts on the row under it
         state.selected = str(rows[hit][0])
         selected_index = hit
         draw_state.invalidate()
         request_render()
-    elif right_press is not None and state.selected is not None:
+    elif right_click is not None and state.selected is not None:
         state.selected = None                        # empty space: the project folder
         selected_index = None
         draw_state.invalidate()
@@ -727,6 +739,13 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
     if query and not positions and step:
         request_render()
 
+    _row_overlay.layout = {
+        "left_offset": rows_x - draw_state.abs_left + draw_state.scroll_offset[0],
+        "top_offset": rows_top, "width_reserve": draw_state.width - content_w,
+        "row_height": row_h, "row_count": len(rows), "selected_index": selected_index,
+        "hover_alpha": 0.0, "rounding": px(select_rounding),
+    }
+
     # ── rows: viewport-culled, straight to the draw list ──
     from meltygui.view.collection_view import draw_tuple_fast
     # Keep the icon and its tint hit target inside the original 20px file row.
@@ -768,18 +787,6 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
         else:
             name_col = icon_col = folder_col if is_dir else text_col
         row_hovered = hover_ok and rows_x <= mouse_x <= rows_x + content_w and ry0 <= mouse_y < ry1
-        boost = (select_boost if tint else plain_select_boost) if i == selected_index else 0.0
-        if i == selected_index and select_shadow:
-            add_shadow((rows_x, ry0, content_w, row_h), offset=select_shadow,
-                       corner_radius=px(select_rounding), clip=clip, draw_state=draw_state)
-        if boost:
-            draw_list.add_rect_filled(rows_x, ry0, rows_x + content_w, ry1,
-                                      row_bg(tint or default_tint,
-                                             boost + (hover_boost if row_hovered else 0.0)),
-                                      rounding=px(select_rounding))
-        elif row_hovered:
-            draw_list.add_rect_filled(rows_x, ry0, rows_x + content_w, ry1, hover_wash,
-                                      rounding=px(select_rounding))
         x = rows_x + pad + depth * step_w
         if is_dir:
             # The folder arrow: right = closed, down = open (every folder
@@ -897,6 +904,7 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
 # ── the tile: the selector and the rows ─────────────────────
 
 
+@no_save('_files_view', '_files_insets')
 class ProjectPanelState(ProjectSelection):
     """The Files tile's selected project and row menu state."""
 
@@ -909,6 +917,8 @@ class ProjectPanelState(ProjectSelection):
         super().__init__()
         self.selected_project = None
         self._menu = {}             # the rows' right-click target + the menu's pending request
+        self._files_view = None
+        self._files_insets = None
 
 
 def set_folder_tint(folder, tint):
@@ -948,9 +958,23 @@ def default_project(open_files):
     return str(saved[0] if saved else Path.home())
 
 
+def draw_project_tree_overlay_background(draw_state, draw_list):
+    """Keep the rows' viewport, scrollbar and selection inside the live Files tile."""
+    state = draw_state._kwargs.get("panel_state")
+    if state is None or state._files_view is None or state._files_insets is None:
+        return
+    from meltygui.core.rendering.overlay import place_overlay_view
+    left, top, right, bottom = state._files_insets
+    place_overlay_view(state._files_view,
+                       (draw_state.abs_left + left, draw_state.abs_top + top,
+                        max(0, draw_state.width - left - right),
+                        max(0, draw_state.height - top - bottom)),
+                       draw_state.abs_clip_rect)
+
+
 def draw_project_tree_overlay(draw_state, draw_list):
     """Keep the right-aligned settings button out of the frozen Files image."""
-    state = draw_state.misc.get("panel_state")
+    state = draw_state._kwargs.get("panel_state")
     if state is None or not state.selected_project:
         return
     from meltygui_pro.editor.project_selector import draw_project_settings_overlay
@@ -963,7 +987,8 @@ def draw_project_tree_overlay(draw_state, draw_list):
 @render_func(multi_instance=True, tint=(0.32, 0.42, 0.54), icon=f"\uf07c", display_name="Files",
              selectable=False, disable_scroll=True, show_add_delete=False, is_tree=False,
              show_bg=False, shadow=False, show_header=False, use_cache=False,
-             draw_overlay=draw_project_tree_overlay)
+             draw_overlay=draw_project_tree_overlay,
+             draw_overlay_background=draw_project_tree_overlay_background)
 def draw_project_tree(input_value: object, draw_state, panel_state: ProjectPanelState = None,
                       header_height=30.0, **kwargs):
     """The Files tile (see the module docstring). `input_value` is the tile's:
@@ -1012,9 +1037,15 @@ def draw_project_tree(input_value: object, draw_state, panel_state: ProjectPanel
         draw_state.current_tint = tuple(project_tint[:3])
     imgui.set_cursor_screen_pos((left, top + header_h + gap))
     rows_height = max(0.0, (draw_state.height or 0) - header_h - gap - px(4))
-    opened, _ = draw_project_files(input_value, name="files", root=state.selected_project,
-                                   width=width, height=rows_height,
-                                   context_menu=file_menu(state._menu), menu_target=state._menu)
+    opened, _, state._files_view = draw_project_files(
+        input_value, name="files", root=state.selected_project,
+        width=width, height=rows_height, return_extras=True,
+        context_menu=file_menu(state._menu), menu_target=state._menu)
+    pane = state._files_view
+    state._files_insets = (pane.abs_left - draw_state.abs_left,
+                          pane.abs_top - draw_state.abs_top,
+                          draw_state.abs_left + draw_state.width - pane.abs_left - pane.width,
+                          draw_state.abs_top + draw_state.height - pane.abs_top - pane.height)
     return initialized or changed or tint_changed or opened, input_value
 
 

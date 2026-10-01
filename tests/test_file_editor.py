@@ -295,8 +295,10 @@ def test_files_settings_overlay_tracks_live_right_edge(monkeypatch):
     paint = Mock()
     monkeypatch.setattr(project_selector, 'draw_project_settings_overlay', paint)
     monkeypatch.setattr(Melty, 'px', lambda value: value)
-    ds = SimpleNamespace(misc={'panel_state': SimpleNamespace(selected_project='/tmp/project')},
-                         _kwargs={'header_height': 30}, abs_left=20, abs_top=40, width=400)
+    ds = SimpleNamespace(misc={'panel_state': SimpleNamespace(selected_project=None)},
+                         _kwargs={'header_height': 30,
+                                  'panel_state': SimpleNamespace(selected_project='/tmp/project')},
+                         abs_left=20, abs_top=40, width=400)
     dl = object()
     project_tree.draw_project_tree_overlay(ds, dl)
     assert paint.call_args.args == (ds, dl, 390, 40, 30)
