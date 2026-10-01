@@ -59,7 +59,7 @@ it; the query and the pick counts persist with the session. Edits go
 to melty's file hosts (the studio's deferred-save model: queued in memory,
 written to disk when the window closes); there is no Ctrl+S.
 
-## Task sessions and Local Debug
+## Task sessions and Debug
 
 Tasks owns execution, output and inspection in one `TaskState`. File Editor,
 Console and Locals tiles can select that session through their Links menu
@@ -68,22 +68,36 @@ presentation state. Removing the Tasks tile or changing its renderer keeps the
 session running and preserves explicit links; Stop and app exit stop execution.
 
 File Editor prepares source keys in the background. Click its line-number gutter
-to toggle a persisted breakpoint, then use its **Local Debug** context-menu entry
-(or the Tasks tile's Local Debug button). Console provides Continue / Into /
+to toggle a persisted breakpoint, then use its **Debug** context-menu entry
+(or the Tasks tile's Debug button). Console provides Continue / Into /
 Over / Out, and Locals selects captured stack frames. Inline values reuse the
 normal live-value markers and `draw_any` renderers. A captured binding retains
 its object after resume; other threads and GPU work may still change its contents.
 
-Local Debug is an explicit in-editor execution context on Python 3.12+, for module
-tasks using the editor interpreter. It shares the editor's installed imports,
-working directory and environment, and refuses a task that requests a different
-interpreter, cwd or environment. Monitoring covers that module's compiled code
-and nested functions on its execution thread; imported-module and child-thread
-breakpoints are not enabled. Stop is cooperative and waits for native blocking
-calls to return. Direct `print` calls in that source feed the session console.
-Normal Run continues to use the project's subprocess and capture its full output.
-Generic remote frames and automatic detection of unreported object mutations
-remain future work.
+Debug runs Python module tasks in the project's selected interpreter, environment
+and working directory. The target needs Python 3.12+ (`sys.monitoring`), but does
+not need Melty installed. Breakpoints and stepping cover project modules on the
+execution thread, including imports; other threads keep running. Console captures
+the process's stdout and stderr on a channel separate from debugger commands.
+Shell tasks still use Run. `TaskState.run_local` remains available for explicit
+in-process execution with native Python references.
+
+Captured bindings keep their referenced objects alive. Aliases share one model,
+and object fields expand asynchronously in bounded pages without evaluating
+properties or user `repr`. Refresh updates those observations. A completed run
+keeps its worker alive while any inspection or value view holds references.
+Stop cancels cooperatively; Force stop also makes its retained values unavailable.
+Removing a tile continues to retain the session through `draw_tiles`.
+
+CUDA references use the same driver buffer adapter as Run Visualize. Rendering
+maps the producer's allocation on its own GPU, matched by UUID, and does not need
+torch in the editor. Explicit allocation leases cover retained slices, queued GPU
+work and producer storage resizing. Only the rendered image crosses GPUs/host.
+An unsupported allocation reports an error without copying the tensor. Shared
+buffer sort/mean/normalization must currently be performed in the owning program;
+slice, axis remap and neural-flow views operate on the original allocation.
+Automatic detection of unreported mutations, child-thread debugging and network
+transport remain future work. The external transport is currently local Unix IPC.
 
 ## What draw_code_editor needs that draw_text does not
 

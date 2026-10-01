@@ -111,8 +111,15 @@ def open_path(open_files, path, instance):
         open_files.open_file(path)
     except OSError as error:
         return f'Cannot open {path}: {error}'
+    from meltygui.state.core_undo import NavUndo
+    from meltygui_pro.editor.code_editor import _nav_location
+    # Record the request while this editor still holds the source caret. The
+    # pending jump can take several frames to load and must not record again.
+    NavUndo.record_location(_nav_location(instance), (str(path), None, instance))
     open_files.jump_to_path = str(path)
     open_files.jump_to_instance = instance
+    open_files.jump_to_line = open_files.jump_to_token = None
+    open_files.jump_no_focus = False
     return None
 
 

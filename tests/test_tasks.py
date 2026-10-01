@@ -263,7 +263,7 @@ def test_output_overlay_tracks_live_tile_bounds(monkeypatch):
     state = tasks.TaskViewState()
     pane = state._output_view = object()
     state._toolbar_height = 28
-    parent = NS(misc={'task_state': tasks.TaskState(), 'task_view_state': state}, abs_left=100, abs_top=200,
+    parent = NS(misc={'task_state': tasks.TaskState(), '_task_view_state': state}, abs_left=100, abs_top=200,
                 width=400, height=300, abs_clip_rect=(100, 200, 500, 500),
                 _blit_served_frame=42)
     placed, painted = [], []
@@ -300,7 +300,7 @@ def test_toolbar_overlay_moves_buttons_and_shadows_together(monkeypatch):
     state = tasks.TaskViewState()
     state._toolbar_height = 28
     state._toolbar = {'left': 100, 'nav_tints': (None, None), 'has_tasks': True}
-    parent = NS(misc={'task_state': tasks.TaskState(), 'task_view_state': state}, abs_left=10, abs_top=20,
+    parent = NS(misc={'task_state': tasks.TaskState(), '_task_view_state': state}, abs_left=10, abs_top=20,
                 width=600, height=300, abs_clip_rect=(10, 20, 610, 320))
     buttons, shadows, cleared, navigation = [], [], [], []
     monkeypatch.setattr(tasks.Melty, 'px', lambda value: value)
@@ -312,7 +312,8 @@ def test_toolbar_overlay_moves_buttons_and_shadows_together(monkeypatch):
     for width, height in ((600, 300), (420, 160), (800, 500)):
         parent.width, parent.height = width, height
         tasks.draw_tasks_overlay(parent, object())
-        for button, (rect, shadow) in zip(buttons[-2:], shadows[-2:]):
+        assert len(buttons) == len(shadows)
+        for button, (rect, shadow) in zip(buttons[-3:], shadows[-3:]):
             assert (*button['pos'], button['width'], button['height']) == rect
             assert rect[1] == parent.abs_top + height - 26
             assert button['layout'] is False
@@ -321,7 +322,7 @@ def test_toolbar_overlay_moves_buttons_and_shadows_together(monkeypatch):
             assert shadow['clip'] == parent.abs_clip_rect
         assert navigation[-1]['pos'] == (110, parent.abs_top + height - 26)
     assert cleared == [(parent, 'task_buttons')] * 3
-    assert buttons[0]['pos'][0] > buttons[2]['pos'][0]  # narrow tile reflows
+    assert buttons[0]['pos'][0] > buttons[3]['pos'][0]  # narrow tile reflows
 
 
 def test_output_follow_range_clamp_and_unmeasured_content():

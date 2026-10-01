@@ -33,6 +33,8 @@ output stay separate from the per-project picker selection.
 The Run menu (editor.py) lists the same tasks and runs one in the first Tasks
 tile through `request_run`.
 """
+from meltygui.model.source_snapshot_model import CodeIdentityMap
+
 import atexit
 import codecs
 import json
@@ -81,70 +83,35 @@ class _LocalDebugStopped(BaseException):
 
 
 class CapturedScope:
-    """Shallow bindings at a stop; objects stay alive independently of frames."""
-    # Defaults permit hotswap while an earlier snapshot is still displayed.
-    code_tree = None
-    source_index = None
-    disk_mtime = None
+    """Shallow bindings at a stop; source analysis belongs to the snapshot."""
     def __init__(self, frame, source_version):
-        import ast
-        from meltygui.code.live_view import LocalValueStore
+        from meltygui.model.source_snapshot_model import SourceInspection
         self.identity = (threading.get_ident(), id(frame))
         self.name = frame.f_code.co_qualname
-        self.locals = dict(frame.f_locals)
-        self.path, self.source, index, tree, self.code_tree, self.disk_mtime = source_version
-        self.source_index = index
+        from types import MappingProxyType
+        self.locals = MappingProxyType(dict(frame.f_locals))
+        self.source = source_version
         self.line = frame.f_lineno
-        sites = index.at_line(self.line)
+        sites = source_version.index.at_line(self.line)
         self.execution_key = sites[0].path if sites else None
-        self.live_store = LocalValueStore(self.name)
-        self.live_store.__live_fallback__ = True
-        node = tree
-        if frame.f_code.co_name != '<module>':
-            candidates = [n for n in ast.walk(tree)
-                          if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
-                          and n.name == frame.f_code.co_name
-                          and n.lineno <= self.line <= n.end_lineno]
-            if candidates:
-                node = min(candidates, key=lambda n: n.end_lineno - n.lineno)
-                self.live_store.__def_line__ = node.lineno
-        def visit(current):
-            if current is not node and isinstance(current, (
-                    ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda,
-                    ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)):
-                return
-            name = current.id if isinstance(current, ast.Name) else (
-                current.arg if isinstance(current, ast.arg) else None)
-            if name in self.locals:
-                key = (f'line:{current.lineno}#{name}',)
-                self.live_store.__live_values__[key] = self.locals[name]
-                self.live_store.__live_labels__[key] = name
-            for child in ast.iter_child_nodes(current):
-                visit(child)
-        visit(node)
+        def_line, occurrences = source_version.occurrences[frame.f_code]
+        bindings = [( (self.identity, key, name, occurrence_id), key, name, self.locals[name], occurrence_id)
+                    for key, name, occurrence_id in occurrences if name in self.locals]
+        self.source_inspection = SourceInspection(source_version, bindings,
+            execution_key=self.execution_key, name=self.name, def_line=def_line)
 
     def for_source(self, path, source=None):
-        if path is None or os.path.abspath(path) != self.path:
-            return None
-        # Identity is the source-version contract, never a whole-file compare.
-        # A caller without a matching snapshot can still use the Locals tile.
-        if source is not None and source is not self.source:
-            # Pristine disk snapshots carry provenance even when two loaders
-            # returned different str objects. Pending text still needs identity.
-            if (self.disk_mtime is None
-                    or getattr(source, '_disk_mtime', None) != self.disk_mtime
-                    or getattr(source, '_disk_span', None) != (os.path.realpath(self.path), None, None)):
-                return None
-        return self
+        return self.source_inspection if self.source.matches(path, source) else None
 
 
 class LocalFrameInspection:
     def __init__(self, frame, source_version, codes):
+        from meltygui.model.source_snapshot_model import SourceSnapshot
         self.scopes = {}
         self.current = True
         while frame is not None:
             if frame.f_code in codes:
-                scope = CapturedScope(frame, source_version)
+                scope = CapturedScope(frame, codes[frame.f_code] if isinstance(codes[frame.f_code], SourceSnapshot) else source_version)
                 self.scopes[scope.identity] = scope
             frame = frame.f_back
 
@@ -168,7 +135,8 @@ class TaskViewState(DictConversion):
          'debug_enabled', 'paused', 'inspection', 'selected_scope_id', '_pending_start',
          '_monitoring_tool', '_debug_thread_id', '_debug_codes', '_debug_source',
          '_stop_requested', '_resume_event', '_step_mode', '_step_frame', '_paused_frame',
-         '_breakpoint_lines', 'unresolved_breakpoints', '_disabled_lines')
+         '_breakpoint_lines', 'unresolved_breakpoints', '_disabled_lines', '_breakpoint_metadata',
+         '_sources', '_code_sources', '_line_codes', '_breakpoints_by_path', '_source_callbacks', '_project_root', '_executing', '_external')
 class TaskState(DictConversion):
     _disabled_lines = False
 
@@ -192,7 +160,7 @@ class TaskState(DictConversion):
         self._pending_start = None
         self._monitoring_tool = None
         self._debug_thread_id = None
-        self._debug_codes = {}
+        self._debug_codes = CodeIdentityMap()
         self._debug_source = None
         self._stop_requested = threading.Event()
         self._resume_event = threading.Event()
@@ -202,14 +170,89 @@ class TaskState(DictConversion):
         self._breakpoint_lines = set()
         self.unresolved_breakpoints = []
         self._disabled_lines = False
+        self._breakpoint_metadata = None
+        self._sources = {}
+        self._code_sources = CodeIdentityMap()
+        self._line_codes = {}
+        self._breakpoints_by_path = {}
+        self._source_callbacks = {}
+        self._project_root = None
+        self._executing = False
+        self._external = None
 
     def ensure_runtime(self):
         """Add session fields to pre-feature live states without replacing them."""
-        if 'inspection' not in vars(self):
+        if any(name not in vars(self) for name in ('inspection', '_breakpoint_metadata', '_sources', '_executing', '_external')):
             defaults = TaskState()
             for name, value in vars(defaults).items():
                 if name not in vars(self):
                     setattr(self, name, value)
+            self._executing = bool(self.running and self.debug_enabled and self._monitoring_tool is not None)
+        migrated_codes = not isinstance(self._debug_codes, CodeIdentityMap)
+        if migrated_codes:
+            self._debug_codes = CodeIdentityMap(self._debug_codes)
+            self._code_sources = CodeIdentityMap(self._code_sources)
+            self._disabled_lines = True
+        self._adopt_running_source()
+        if self._debug_source is not None and self._debug_codes and not self._sources:
+            source = self._debug_source
+            self._sources[source.path] = source
+            self._code_sources = CodeIdentityMap((code, source) for code in self._debug_codes)
+            self._project_root = os.path.realpath(os.path.dirname(source.path))
+            self._breakpoints_by_path[source.path] = self._breakpoint_lines
+            self._source_callbacks[source.path] = self._breakpoints_changed
+            execution = self.process
+            def prepare():
+                try:
+                    source.prepare()
+                    self._post(execution, 'adopted', source)
+                except Exception as error:
+                    self._post(execution, 'error', str(error))
+            threading.Thread(target=prepare, name='debug-source-registry', daemon=True).start()
+            if self._monitoring_tool is not None:
+                sys.monitoring.register_callback(self._monitoring_tool, sys.monitoring.events.PY_START, self._on_debug_start)
+                self._update_monitoring()
+
+        if migrated_codes and self._monitoring_tool is not None:
+            self._update_monitoring()
+
+    def _adopt_running_source(self):
+        from meltygui.model.source_snapshot_model import SourceSnapshot, SourceInspection
+        legacy = self._debug_source
+        if not isinstance(legacy, tuple):
+            return
+        snapshot = SourceSnapshot.adopt_running(legacy, self._debug_codes)
+        self._debug_source = snapshot
+        # Existing captured values already have shallow-reference ownership.
+        # Translate the retired overlay addresses once, without walking an AST.
+        if self.inspection is not None:
+            for scope in self.inspection.scopes.values():
+                bindings = []
+                for old_key, value in scope.live_store.__live_values__.items():
+                    line_name = old_key[0]
+                    line, name = line_name[5:].split('#', 1)
+                    line = int(line)
+                    sites = snapshot.index.at_line(line)
+                    if not sites:
+                        continue
+                    occurrence_id = len(snapshot.occurrence_offsets)
+                    snapshot.occurrence_offsets[occurrence_id] = line - sites[0].start_line
+                    key = sites[0].path
+                    bindings.append(((scope.identity, key, name, occurrence_id),
+                                     key, name, value, occurrence_id))
+                scope.source = snapshot
+                scope.source_inspection = SourceInspection(snapshot, bindings,
+                    execution_key=scope.execution_key if self.inspection.current else None,
+                    name=scope.name, def_line=getattr(scope.live_store, '__def_line__', None))
+                for retired in ('live_store', 'path', 'source_index', 'code_tree', 'disk_mtime'):
+                    vars(scope).pop(retired, None)
+        execution = self.process
+        def prepare():
+            try:
+                snapshot.prepare()
+            except Exception as error:
+                self._post(execution, 'error', str(error))
+        threading.Thread(target=prepare, name='debug-source-adoption', daemon=True).start()
 
     @property
     def status(self):
@@ -230,7 +273,10 @@ class TaskState(DictConversion):
 
     def for_source(self, path, source=None):
         scope = self.selected_scope
-        return scope.for_source(path, source) if scope is not None else None
+        inspection = scope.for_source(path, source) if scope is not None else None
+        if inspection is not None:
+            inspection.execution_key = scope.execution_key if self.inspection.current else None
+        return inspection
 
     def replace_inspection(self, inspection):
         follow_top = (self.inspection is None or self.selected_scope_id ==
@@ -261,6 +307,26 @@ class TaskState(DictConversion):
             return
         if kind == 'output':
             self.output = (self.output + value)[-OUTPUT_LIMIT:]
+        elif kind == 'error':
+            self.error = value
+        elif kind == 'adopted':
+            self._accept_source(value)
+        elif kind == 'external_source':
+            if self._debug_source is None:
+                self._debug_source = value
+            self._sources[value.path] = value
+            self._line_codes[value.path] = self._external.line_codes[value.path]
+            if value.path not in self._source_callbacks:
+                callback = lambda path=value.path: self._breakpoints_changed(path)
+                self._source_callbacks[value.path] = callback
+                if self._breakpoint_metadata is not None and hasattr(self._breakpoint_metadata, 'subscribe'):
+                    self._breakpoint_metadata.subscribe(value.path, callback)
+            self._breakpoints_changed(value.path)
+        elif kind in ('prepared', 'source'):
+            self._accept_source(value)
+            if self.unresolved_breakpoints:
+                self.output += f'Unresolved breakpoint keys: {self.unresolved_breakpoints!r}\n'
+            self._resume_event.set()
         elif kind == 'paused':
             self.paused = True
             self.replace_inspection(value)
@@ -268,7 +334,12 @@ class TaskState(DictConversion):
             self.paused = False
             if self.inspection:
                 self.inspection.current = False
+        elif kind == 'external_resumed':
+            if self.inspection is not None and value == self.inspection.stop:
+                self.paused = False
+                self.inspection.current = False
         elif kind == 'exited':
+            self._detach_breakpoints()
             self.running, self.paused = False, False
             self.exit, self.ended = value, time.monotonic()
             if self.inspection:
@@ -279,10 +350,20 @@ class TaskState(DictConversion):
                 self.run(*pending)
         self._changed()
 
-    def run(self, root, name, debug=False, file_metadata=None):
+    def run_module(self, path, root=None, *, debug=False, file_metadata=None, source_snapshot=None):
+        from editor_settings import settings
+        root = str(Path(root or project_for(path) or Path(path).parent).resolve())
+        try:
+            name = add_module_task(path, root, save=settings['Tasks']['save_tasks'])
+            self.run(root, name, debug, file_metadata, source_snapshot)
+        except (OSError, ValueError, TypeError) as error:
+            self.error = str(error)
+            self._changed()
+
+    def run(self, root, name, debug=False, file_metadata=None, source_snapshot=None):
         self.ensure_runtime()
         if self.running:
-            self._pending_start = (root, name, debug, file_metadata)
+            self._pending_start = (root, name, debug, file_metadata, source_snapshot)
             self.stop()
             return
         task = read_tasks(root).get(name)
@@ -298,8 +379,9 @@ class TaskState(DictConversion):
             self._changed()
             return
         if debug:
-            self._start_local_debug(root, task, file_metadata)
+            self._start_external_debug(root, task, file_metadata, source_snapshot)
             return
+        self._external = None
         self.debug_enabled, self.paused = False, False
         self.replace_inspection(None)
         self.output = f'$ {task["cmd"]}\n'
@@ -362,6 +444,10 @@ class TaskState(DictConversion):
     def stop(self):
         self.ensure_runtime()
         process = self.process
+        if self._external is not None:
+            if self.running:
+                self._external.send({'op': 'stop'})
+            return
         if self.debug_enabled:
             if self.running:
                 self._stop_requested.set()
@@ -395,17 +481,90 @@ class TaskState(DictConversion):
     def shutdown(self):
         self._pending_start = None
         self.stop()
+        if self._external is not None:
+            self._external.terminate()
+
+    def force_stop(self):
+        """Explicitly sacrifice remote references when cooperative stop cannot return."""
+        if self._external is not None:
+            self._external.terminate()
+        elif not self.debug_enabled and self.process is not None:
+            self._kill_process(self.process)
 
     def resume(self, mode='continue'):
         if mode not in ('continue', 'step_into', 'step_over', 'step_out'):
             raise ValueError(f'Unknown step mode: {mode}')
         if not self.paused:
             return
+        if self._external is not None:
+            self._external.send({'op': 'resume', 'stop': self.inspection.stop, 'mode': mode})
+            return
         self._step_mode = mode
         self._resume_event.set()
 
-    def _start_local_debug(self, root, task, file_metadata):
-        """Explicit local mode. Project-subprocess object transport is deferred."""
+    def _start_external_debug(self, root, task, file_metadata, source_snapshot=None):
+        from meltygui_pro.models.project_function_runner import project_python
+        from meltygui_pro.models.project_analysis import analysis_project
+        try:
+            if 'module' not in task:
+                raise ValueError('Debug supports Python module tasks. Use Run for shell commands.')
+            path = (Path(root) / task['module']).resolve()
+            python = project_python(root) or sys.executable
+            if source_snapshot is None:
+                from meltygui.code.fileref import Address
+                from meltygui.code.new_codecs import TextFileCodec
+                from meltygui.model.source_snapshot_model import SourceSnapshot
+                # Use the editor's codec path: pending text keeps its identity,
+                # and disk text carries its file/version provenance. A plain
+                # file read loses that contract and hides the paused line.
+                text = TextFileCodec.load(Address(path))
+                if not isinstance(text, str):
+                    raise ValueError(f'Cannot read Python source: {path}')
+                source_snapshot = SourceSnapshot(str(path), text)
+            package, parent = [], path.parent
+            while (parent / '__init__.py').is_file():
+                package.insert(0, parent.name)
+                parent = parent.parent
+            request = dict(path=str(path), text=source_snapshot.text, package='.'.join(package),
+                           paths=list(analysis_project(path=root).source_paths))
+            request.update(root=str(Path(root).resolve()), cwd=str((Path(root) / task['cwd']).resolve()),
+                           mtime=source_snapshot.disk_mtime)
+            request['paths'] = list(dict.fromkeys([str(path.parent), str(root), *request['paths']]))
+            environment = task_environment(root)
+            environment.update(task['env'])
+            self.run_external(python, request, environment, file_metadata=file_metadata,
+                              source_snapshot=source_snapshot)
+        except (OSError, ValueError, TypeError) as error:
+            self.error = str(error)
+            self._changed()
+
+    def run_external(self, python, request, environment=None, *, file_metadata=None, source_snapshot=None):
+        from external_debugger import ExternalExecution
+        if self.running:
+            raise RuntimeError('Stop the current execution before starting Debug')
+        if source_snapshot is not None and not source_snapshot.matches(request['path'], request['text']):
+            raise ValueError('Prepared source does not match the requested execution source version')
+        execution = ExternalExecution(self, python, request,
+            dict(os.environ) if environment is None else environment, source_snapshot, OUTPUT_LIMIT)
+        self._detach_breakpoints()
+        self._external = execution
+        self._sources, self._line_codes, self._breakpoints_by_path = {}, {}, {}
+        self._breakpoint_metadata = file_metadata
+        self._debug_source = source_snapshot
+        self.unresolved_breakpoints = []
+        self.debug_enabled, self.paused, self.running = True, False, True
+        self.error, self.exit = None, None
+        self.output = f'Debug: {request["path"]}\n'
+        self.started, self.ended = time.monotonic(), 0.0
+        self.replace_inspection(None)
+        self.process = execution.process
+        _LIVE.add(self)
+        execution.start()
+        self.thread = execution.reader
+        self._changed()
+
+    def _start_local_debug(self, root, task, file_metadata, source_snapshot=None):
+        """Explicit in-process mode for callers that want native object references."""
         from meltygui_pro.models.project_function_runner import project_python
         try:
             selected = project_python(root) or sys.executable
@@ -421,21 +580,19 @@ class TaskState(DictConversion):
             self.error = 'Local Debug cannot change the editor process environment or working directory.'
         else:
             try:
-                from meltygui.editor.pending_save import PendingSave
-                path = Path(root) / task['module']
-                before = path.stat().st_mtime
-                _, request = module_request(root, task['module'])
-                pristine = (before == path.stat().st_mtime
-                            and PendingSave.pending_gen_for(path) == 0)
-                self.run_local(request['text'], request['path'],
-                               file_metadata=file_metadata, package=request['package'],
-                               disk_mtime=before if pristine else None)
+                from meltygui.model.source_snapshot_model import SourceSnapshot
+                path = (Path(root) / task['module']).resolve()
+                # The editor already owns this exact version. Do not re-read it
+                # through the subprocess request/pending-save composition path.
+                snapshot = source_snapshot or SourceSnapshot(str(path), None)
+                self.run_local(snapshot.text, str(path), file_metadata=file_metadata,
+                               source_snapshot=snapshot, project_root=root)
                 return
             except (OSError, ValueError, SyntaxError, RuntimeError) as error:
                 self.error = str(error)
         self._changed()
 
-    def run_local(self, source, path, *, file_metadata=None, namespace=None, package=None, disk_mtime=None):
+    def run_local(self, source, path, *, file_metadata=None, namespace=None, package=None, disk_mtime=None, source_snapshot=None, project_root=None):
         """Debug source in this interpreter, retaining actual local objects.
 
         This explicit local context shares installed imports, cwd and environment
@@ -445,67 +602,91 @@ class TaskState(DictConversion):
         self.ensure_runtime()
         if self.running:
             raise RuntimeError('Stop the current execution before starting Local Debug')
-        import ast
-        import types
-        from meltygui.code.melty_scan import scan, SourceSiteIndex
-        from meltygui.model.breakpoint_model import file_breakpoints
+        from meltygui.model.source_snapshot_model import SourceSnapshot
         if not hasattr(sys, 'monitoring'):
             raise RuntimeError('Local Debug requires Python 3.12 or newer')
         path = os.path.abspath(path)
-        compiled = compile(source, path, 'exec')
-        metadata = {}
-        tree, _, _ = scan(source, site_metadata=metadata)
-        index = SourceSiteIndex(source, tree, metadata)
-        parsed = ast.parse(source, filename=path)
-        self._debug_source = (path, source, index, parsed, disk_mtime)
-        self._debug_codes = {}
-        def register(code):
-            self._debug_codes[code] = {line for _, _, line in code.co_lines() if line is not None}
-            for constant in code.co_consts:
-                if isinstance(constant, types.CodeType):
-                    register(constant)
-        register(compiled)
-        executable = set().union(*self._debug_codes.values())
+        if source_snapshot is not None:
+            same_path = source_snapshot.path == path
+            same_version = (source_snapshot.matches(path, source) or
+                            (not hasattr(source, '_disk_span') and not hasattr(source, '_disk_mtime')
+                             and disk_mtime is not None and disk_mtime == source_snapshot.disk_mtime))
+            if not same_path or not same_version:
+                raise ValueError('Prepared source does not match the requested execution source version')
+        self._detach_breakpoints()
+        self._external = None
+        self._debug_source = source_snapshot or SourceSnapshot(path, source, disk_mtime)
+        self._debug_codes = CodeIdentityMap()
+        self._sources, self._code_sources, self._line_codes = {}, CodeIdentityMap(), {}
+        self._breakpoints_by_path, self._source_callbacks = {}, {}
+        self._project_root = os.path.realpath(project_root or os.path.dirname(path))
         self._breakpoint_lines = set()
         self.unresolved_breakpoints = []
-        for key, value in file_breakpoints(file_metadata, path).items():
-            if not value.get('enabled', True):
-                continue
-            site = index.sites.get(key)
-            if (site is None or site.start_line not in executable
-                    or index.at_line(site.start_line)[0].path != key):
-                self.unresolved_breakpoints.append(key)
-            else:
-                self._breakpoint_lines.add(site.start_line)
+        self._breakpoint_metadata = file_metadata
         self._stop_requested.clear()
         self._resume_event.clear()
         self._step_mode, self._step_frame = 'continue', None
         self._disabled_lines = False
-        self._install_monitoring()
         self.debug_enabled, self.paused = True, False
         self.error, self.exit = None, None
         self.output = f'Local Debug: {path}\n'
-        if self.unresolved_breakpoints:
-            self.output += f'Unresolved breakpoint keys: {self.unresolved_breakpoints!r}\n'
         self.started, self.ended = time.monotonic(), 0.0
         self.replace_inspection(None)
         execution = threading.Thread(target=self._execute_local,
-            args=(compiled, dict(namespace or {}), package), name='melty-local-debug', daemon=True)
+            args=(dict(namespace or {}), package), name='melty-local-debug', daemon=True)
         self.process = self.thread = execution
         self.running = True
         _LIVE.add(self)
         execution.start()
         self._changed()
 
+    def _detach_breakpoints(self):
+        metadata = getattr(self, '_breakpoint_metadata', None)
+        if metadata is not None and hasattr(metadata, 'unsubscribe'):
+            for path, callback in getattr(self, '_source_callbacks', {}).items():
+                metadata.unsubscribe(path, callback)
+            # A live pre-multifile state used this subscription.
+            if self._debug_source is not None:
+                metadata.unsubscribe(self._debug_source.path, self._breakpoints_changed)
+        self._source_callbacks = {}
+        self._breakpoint_metadata = None
+
+    def _accept_source(self, source):
+        """Render-thread publication of worker-prepared source/code indexes."""
+        path = source.path
+        self._sources[path] = source
+        self._line_codes[path] = source.line_codes
+        added = []
+        for code, lines in source.code_lines.items():
+            if code in self._code_sources:
+                continue
+            added.append(code)
+            self._debug_codes[code] = lines
+            self._code_sources[code] = source
+        if path not in self._source_callbacks:
+            callback = lambda path=path: self._breakpoints_changed(path)
+            self._source_callbacks[path] = callback
+            metadata = self._breakpoint_metadata
+            if metadata is not None and hasattr(metadata, 'subscribe'):
+                metadata.subscribe(path, callback)
+        self._breakpoints_changed(path)
+        self._update_monitoring(added)
+
+    def _breakpoints_changed(self, path=None):
+        from meltygui.model.breakpoint_model import file_breakpoints
+        source = self._sources.get(path) if path is not None else self._debug_source
+        if source is None or source.path not in self._line_codes:
+            return
+        self.set_breakpoints(source.path, source.text, source.index,
+                             file_breakpoints(self._breakpoint_metadata, source.path))
+
     def set_breakpoints(self, path, source, index, breakpoints):
-        """Rebind keyed breakpoints only against this execution's source version."""
-        if not self.debug_enabled or self._debug_source is None:
+        """Resolve only this file's keys; update only affected code objects."""
+        snapshot = self._sources.get(path)
+        if snapshot is None or not snapshot.matches(path, source):
             return
-        if os.path.abspath(path) != self._debug_source[0]:
-            return
-        if source is not self._debug_source[1] and self.for_source(path, source) is None:
-            return
-        executable = set().union(*self._debug_codes.values())
+        index = snapshot.index
+        executable = self._line_codes[path]
         lines, unresolved = set(), []
         for key, value in breakpoints.items():
             if not value.get('enabled', True):
@@ -516,9 +697,63 @@ class TaskState(DictConversion):
                 lines.add(site.start_line)
             else:
                 unresolved.append(key)
-        self._breakpoint_lines, self.unresolved_breakpoints = lines, unresolved
-        self._update_monitoring()
-        self._changed()
+        previous = self._breakpoints_by_path.get(path, set())
+        self._breakpoints_by_path[path] = lines
+        if snapshot is self._debug_source:
+            self._breakpoint_lines = lines
+            self.unresolved_breakpoints = unresolved
+        if self._external is not None:
+            self._external.send({'op': 'breakpoints', 'path': path, 'lines': sorted(lines)})
+            if previous != lines or unresolved:
+                self._changed()
+            return
+        affected = {}
+        for line in previous ^ lines:
+            affected.update((id(code), code) for code in executable.get(line, ()))
+        if affected:
+            self._update_monitoring(affected.values())
+        if previous != lines or unresolved:
+            self._changed()
+
+    def _on_debug_start(self, code, instruction_offset):
+        """Discover project code on this execution thread, without import hooks."""
+        if threading.get_ident() != self._debug_thread_id:
+            return
+        if not self._executing:
+            return
+        path = os.path.realpath(code.co_filename)
+        if path == os.path.realpath(__file__) and code not in self._code_sources:
+            return sys.monitoring.DISABLE
+        root = self._project_root
+        if root is None or not path.endswith('.py') or not path.startswith(root + os.sep):
+            return sys.monitoring.DISABLE
+        if self._stop_requested.is_set():
+            raise _LocalDebugStopped()
+        if code not in self._code_sources:
+            from meltygui.model.source_snapshot_model import SourceSnapshot
+            try:
+                source = self._sources.get(path)
+                if source is None:
+                    # Imported code executes its loaded disk version, not editor
+                    # pending text. Existing Python import semantics remain intact.
+                    from meltygui.code.chain_converters import DiskSpanText
+                    with open(path, encoding='utf-8') as stream:
+                        text = DiskSpanText(stream.read())
+                        text._disk_mtime = os.fstat(stream.fileno()).st_mtime
+                    text._disk_span = (path, None, None)
+                    source = SourceSnapshot(path, text)
+                source.prepare(actual_code=code)
+            except (OSError, UnicodeError, SyntaxError, ValueError) as error:
+                self._post(self.process, 'output', f'Cannot inspect {path}: {error}\n')
+                return sys.monitoring.DISABLE
+            self._resume_event.clear()
+            self._post(self.process, 'source', source)
+            self._resume_event.wait()
+            if self._stop_requested.is_set():
+                raise _LocalDebugStopped()
+            self._resume_event.clear()
+        # Discovery is per code object, not per call. LINE remains local.
+        return sys.monitoring.DISABLE
 
     def _install_monitoring(self):
         monitoring = sys.monitoring
@@ -537,22 +772,24 @@ class TaskState(DictConversion):
             monitoring.register_callback(tool, monitoring.events.LINE, self._on_debug_line)
             monitoring.register_callback(tool, monitoring.events.PY_RETURN, self._on_debug_return)
             monitoring.register_callback(tool, monitoring.events.PY_UNWIND, self._on_debug_return)
-            # Only compiled task code, including nested functions, is monitored.
-            # No whole-interpreter line tracing or code-start callback overhead.
+            monitoring.register_callback(tool, monitoring.events.PY_START, self._on_debug_start)
             self._update_monitoring()
         except BaseException:
             self._remove_monitoring()
             raise
 
-    def _update_monitoring(self):
-        if self._monitoring_tool is None:
+    def _update_monitoring(self, codes=None):
+        if self._monitoring_tool is None or codes is not None and not codes:
             return
         events = sys.monitoring.events
         sys.monitoring.set_events(self._monitoring_tool,
-            events.PY_UNWIND if self._step_mode != 'continue' else 0)
-        for code, lines in self._debug_codes.items():
+            events.PY_START | (events.PY_UNWIND if self._step_mode != 'continue' else 0))
+        for code in tuple(self._debug_codes) if codes is None else codes:
+            lines = self._debug_codes[code]
+            source = self._code_sources.get(code, self._debug_source)
+            breakpoints = self._breakpoints_by_path.get(source.path, set())
             mask = events.PY_RETURN if self._step_mode != 'continue' else 0
-            if (lines.intersection(self._breakpoint_lines) or self._step_mode != 'continue'
+            if (lines.intersection(breakpoints) or self._step_mode != 'continue'
                     or self._stop_requested.is_set()):
                 mask |= events.LINE
             sys.monitoring.set_local_events(self._monitoring_tool, code, mask)
@@ -571,11 +808,11 @@ class TaskState(DictConversion):
         for code in self._debug_codes:
             sys.monitoring.set_local_events(tool, code, 0)
         for event in (sys.monitoring.events.LINE, sys.monitoring.events.PY_RETURN,
-                      sys.monitoring.events.PY_UNWIND):
+                      sys.monitoring.events.PY_UNWIND, sys.monitoring.events.PY_START):
             sys.monitoring.register_callback(tool, event, None)
         sys.monitoring.free_tool_id(tool)
 
-    def _execute_local(self, compiled, namespace, package):
+    def _execute_local(self, namespace, package):
         import builtins
         import traceback
         self._debug_thread_id = threading.get_ident()
@@ -586,23 +823,44 @@ class TaskState(DictConversion):
                 return builtins.print(*args, sep=sep, end=end, file=file, flush=flush)
             self._post(execution, 'output', sep.join(str(arg) for arg in args) + end)
         local_builtins['print'] = task_print
-        namespace.update(__name__='__main__', __file__=compiled.co_filename,
-                         __package__=package, __builtins__=local_builtins)
         result = 0
         try:
-            from meltygui.code.core_syntax import parse_to_dict
-            path, source, index, parsed, disk_mtime = self._debug_source
-            self._debug_source = (path, source, index, parsed,
-                                  parse_to_dict(source, file_path=path, frontend='scan'), disk_mtime)
-            exec(compiled, namespace)
+            if self._debug_source.text is None:
+                from meltygui.editor.pending_save import PendingSave
+                self._debug_source.text = PendingSave.current_file_text(self._debug_source.path)
+                if self._debug_source.text is None:
+                    raise OSError(f'Cannot read {self._debug_source.path}')
+            if package is None:
+                parts = []
+                parent = Path(self._debug_source.path).parent
+                while (parent / '__init__.py').is_file():
+                    parts.insert(0, parent.name)
+                    parent = parent.parent
+                package = '.'.join(parts)
+            namespace.update(__name__='__main__', __file__=self._debug_source.path,
+                             __package__=package, __builtins__=local_builtins)
+            source = self._debug_source.prepare()
+            self._post(execution, 'prepared', source)
+            self._resume_event.wait()
+            if self._stop_requested.is_set():
+                raise _LocalDebugStopped()
+            self._resume_event.clear()
+            self._install_monitoring()
+            compiled = source.compiled
+            self._executing = True
+            try:
+                exec(compiled, namespace)
+            finally:
+                self._executing = False
         except _LocalDebugStopped:
             result = -signal.SIGTERM
         except SystemExit as error:
             result = error.code if isinstance(error.code, int) else (0 if error.code is None else 1)
             if error.code is not None and not isinstance(error.code, int):
                 self._post(execution, 'output', str(error.code) + '\n')
-        except BaseException:
+        except BaseException as error:
             result = 1
+            self._post(execution, 'error', str(error))
             self._post(execution, 'output', traceback.format_exc())
         finally:
             self._remove_monitoring()
@@ -616,7 +874,8 @@ class TaskState(DictConversion):
         if self._stop_requested.is_set():
             raise _LocalDebugStopped()
         frame = None
-        hit = line in self._breakpoint_lines
+        source = self._code_sources.get(code, self._debug_source)
+        hit = line in self._breakpoints_by_path.get(source.path, set())
         if not hit and self._step_mode == 'continue':
             # LINE can only be enabled per code object. Disable each unrelated
             # location after its first visit, so a hot loop does not call Python
@@ -647,9 +906,11 @@ class TaskState(DictConversion):
         # PY_YIELD is deliberately not registered: suspension is not return.
 
     def _pause_local(self, frame):
+        self._adopt_running_source()
+        self._debug_source.prepare()
         self._paused_frame = frame
         self._resume_event.clear()
-        inspection = LocalFrameInspection(frame, self._debug_source, self._debug_codes)
+        inspection = LocalFrameInspection(frame, self._debug_source, self._code_sources)
         self._post(self.process, 'paused', inspection)
         self._resume_event.wait()  # releases the GIL; UI/other threads continue
         if self._stop_requested.is_set():
@@ -904,22 +1165,25 @@ def task_toolbar_layout(left, top, width, height, toolbar_left, toolbar_height):
     width = max(0, width - toolbar_left)
     button_top = top + (toolbar_height - button_h) * 0.5
     navigation_w = 2 * button_w + 6 + gap
-    selector_w = min(px(280), max(0, width - navigation_w - 2 * button_w - 2 * gap))
+    selector_w = min(px(280), max(0, width - navigation_w - 3 * button_w - 3 * gap))
     selector_left = left + navigation_w
     controls_left = selector_left + selector_w + gap
     return ((left, button_top),
             (selector_left, top, selector_w, toolbar_height),
             (controls_left, button_top, button_w, button_h),
-            (controls_left + button_w + gap, button_top, button_w, button_h))
+            (controls_left + button_w + gap, button_top, button_w, button_h),
+            (controls_left + 2 * (button_w + gap), button_top, button_w, button_h))
 
 
 def task_toolbar_buttons(state, view_state):
     """The same labels and styles feed input-only bodies and live painting."""
     stop_color = (0.90, 0.20, 0.18) if state.running else (0.42, 0.42, 0.42)
     return (
-        ('\uf04b', 'run', view_state._toolbar['has_tasks'] and not state.running,
+        (f'\uf04b', 'run', view_state._toolbar['has_tasks'] and not state.running,
          (0.16, 0.75, 0.30), (0.24, 0.90, 0.40)),
-        ('\uf04d', 'stop', state.running, stop_color, stop_color),
+        (f'\uf188', 'debug', view_state._toolbar['has_tasks'] and not state.running,
+         (0.90, 0.55, 0.16), (1.0, 0.70, 0.25)),
+        (f'\uf04d', 'stop', state.running, stop_color, stop_color),
     )
 
 
@@ -931,12 +1195,12 @@ def draw_tasks_overlay(draw_state, draw_list):
     from meltygui_pro.editor.code_editor import _draw_nav_buttons
     clear_shadows(draw_state, 'task_buttons')
     state = draw_state.misc.get('task_state')
-    view_state = draw_state.misc.get('task_view_state')
+    view_state = draw_state.misc.get('_task_view_state')
     if state is None or view_state is None or view_state._toolbar is None:
         clear_shadows(draw_state, 'nav_buttons')
         return
     toolbar = view_state._toolbar
-    nav, selector, run, stop = task_toolbar_layout(
+    nav, selector, run, debug, stop = task_toolbar_layout(
         draw_state.abs_left, draw_state.abs_top, draw_state.width, draw_state.height,
         toolbar['left'], view_state._toolbar_height)
     _draw_nav_buttons(draw_state, *toolbar['nav_tints'], draw_list=draw_list, pos=nav)
@@ -949,12 +1213,12 @@ def draw_tasks_overlay(draw_state, draw_list):
                                toolbar['empty_text'])
         finally:
             draw_list.pop_clip_rect()
-    for rect, (label, name, enabled, color, text_color) in zip((run, stop), task_toolbar_buttons(state, view_state)):
+    for rect, (label, name, enabled, color, text_color) in zip((run, debug, stop), task_toolbar_buttons(state, view_state)):
         x, y, width, height = rect
         flat_button(label, draw_state if enabled else None, view_id=None,
                     width=width, height=height, pos=(x, y), layout=False,
                     draw_list=draw_list, color=color, text_color=text_color,
-                    hovered=None if enabled else False)
+                    hovered=None if enabled else False, tooltip=name.capitalize())
         add_shadow(rect, corner_radius=Melty.px(6), clip=draw_state.abs_clip_rect,
                    draw_state=draw_state, group='task_buttons')
 
@@ -962,12 +1226,12 @@ def draw_tasks_overlay(draw_state, draw_list):
 def draw_tasks_overlay_background(draw_state, draw_list):
     """Keep the cached console placed at live bounds during tile replay."""
     from meltygui.core.rendering.overlay import place_overlay_view, paint_cached_view
-    view_state = draw_state.misc.get('task_view_state')
+    view_state = draw_state.misc.get('_task_view_state')
     if view_state is None:
         return
     replay = getattr(draw_state, '_blit_served_frame', None) == Melty.frame_count
     if view_state._selector_view is not None and view_state._toolbar is not None:
-        _, rect, _, _ = task_toolbar_layout(
+        _, rect, _, _, _ = task_toolbar_layout(
             draw_state.abs_left, draw_state.abs_top, draw_state.width, draw_state.height,
             view_state._toolbar['left'], view_state._toolbar_height)
         place_overlay_view(view_state._selector_view, rect, draw_state.abs_clip_rect)
@@ -991,7 +1255,7 @@ def draw_tasks_overlay_background(draw_state, draw_list):
              draw_overlay_background=draw_tasks_overlay_background,
              draw_overlay=draw_tasks_overlay)
 def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
-               task_view_state: TaskViewState = None,
+               _task_view_state: TaskViewState = None,
                files_view: DrawState[draw_project_tree] = None,
                header_height=28.0, tile_toolbar_rect=None, file_metadata=None, **kwargs):
     """The Tasks tile: output and status above a bottom task/run/stop toolbar. `input_value` is the tile's `OpenFiles`, returned unchanged."""
@@ -999,7 +1263,11 @@ def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
     from meltygui.core.windowing.glfw_utils import request_render
     from meltygui.view.text_view import draw_text
     state = task_state
-    view_state = task_view_state
+    # Adopt the old public injection slot once during live definition updates.
+    retired = draw_state.misc.pop('task_view_state', None)
+    if isinstance(retired, TaskViewState):
+        _task_view_state = draw_state.misc['_task_view_state'] = retired
+    view_state = _task_view_state
     if view_state._execution is not state.process:
         view_state._execution = state.process
         view_state._follow, view_state._output_scroll_y = True, None
@@ -1042,7 +1310,7 @@ def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
         'has_tasks': bool(names),
         'empty_text': NO_TASKS if root else 'Open a project to run tasks',
     }
-    nav, selector, run, stop = task_toolbar_layout(
+    nav, selector, run, debug, stop = task_toolbar_layout(
         body_left, body_top, width, draw_state.height or 0, toolbar_x, header_h)
     imgui.set_cursor_screen_pos(nav)
     _draw_nav_buttons(draw_state, back_tint, forward_tint, paint=False)
@@ -1058,17 +1326,14 @@ def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
         if picked and isinstance(choice, str):
             state.selected_tasks[str(root)] = choice
             draw_state.invalidate()
-    for rect, (label, name, enabled, color, text_color) in zip((run, stop), task_toolbar_buttons(state, view_state)):
+    for rect, (label, name, enabled, color, text_color) in zip((run, debug, stop), task_toolbar_buttons(state, view_state)):
         x, y, button_w, button_h = rect
         imgui.set_cursor_screen_pos((x, y))
         if flat_button(f'{label}##tasks-{name}{unique}', draw_state if enabled else None,
                        f'tasks-{name}::{unique}', width=button_w, height=button_h,
-                       color=color, text_color=text_color, paint=False,
+                       color=color, text_color=text_color, paint=False, tooltip=name.capitalize(),
                        hovered=None if enabled else False) and enabled:
-            if name == 'run':
-                action = 'run'
-            else:
-                action = 'stop'
+            action = name
 
     # Keep the output view in the render/cache lifecycle even at zero height.
     status_h = px(20)
@@ -1076,10 +1341,6 @@ def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
         imgui.set_cursor_screen_pos((body_left, body_top))
         output_root = state.project or root
         imgui.text(f'{Path(output_root).name if output_root else "no project"}  {status_text(state)}')
-    if names and not state.running:
-        imgui.set_cursor_screen_pos((body_left + max(0, width - px(108)), body_top))
-        if flat_button('Local Debug', draw_state, f'local-debug::{unique}', width=px(104), height=px(20)):
-            action = 'debug'
     output_top = px(OUTPUT_TOP)
     output_h = max(0, toolbar_y - output_top)
     imgui.set_cursor_screen_pos((body_left, body_top + output_top))
@@ -1113,21 +1374,35 @@ class ConsoleViewState(DictConversion):
 @render_func(multi_instance=True, tint=(0.24, 0.31, 0.29), show_header=False,
              display_name="Console", icon="\uf120")
 def draw_console(input_value: object, debugger_state: TaskState = None,
-                 console_view_state: ConsoleViewState = None, draw_state=None):
+                 _console_view_state: ConsoleViewState = None, draw_state=None):
     """An independently scrollable view of one injected task session."""
     from meltygui.view.text_view import draw_text
+    retired = draw_state.misc.pop('console_view_state', None)
+    if isinstance(retired, ConsoleViewState):
+        _console_view_state = draw_state.misc['_console_view_state'] = retired
     debugger_state.ensure_runtime()
     command = None
     left, top = imgui.get_cursor_screen_pos()
+    px = Melty.px
     if debugger_state.debug_enabled:
-        for index, (label, mode) in enumerate((('Continue', 'continue'), ('Into', 'step_into'),
-                                             ('Over', 'step_over'), ('Out', 'step_out'))):
-            imgui.set_cursor_screen_pos((left + index * 82, top))
+        # FA5 arrows describe motion through the current frame; hover gives
+        # the full command name. Keep the same compact size as task controls.
+        controls = ((f'\uf04b', 'continue', 'Continue'),
+                    (f'\uf063', 'step_into', 'Step into'),
+                    (f'\uf064', 'step_over', 'Step over'),
+                    (f'\uf062', 'step_out', 'Step out'))
+        for index, (label, mode, tooltip) in enumerate(controls):
+            imgui.set_cursor_screen_pos((left + index * px(34), top))
             if flat_button(label, draw_state if debugger_state.paused else None,
-                           f'debug-{mode}', width=78, height=24,
+                           f'debug-{mode}', width=px(30), height=px(24), tooltip=tooltip,
                            hovered=None if debugger_state.paused else False) and debugger_state.paused:
                 command = mode
-        top += 28
+        top += px(28)
+        if debugger_state._external is not None and debugger_state.running:
+            imgui.set_cursor_screen_pos((left, top))
+            if flat_button('Force stop', draw_state, 'force-stop', width=px(98), height=px(24)):
+                debugger_state.force_stop()
+            top += px(28)
     imgui.set_cursor_screen_pos((left, top))
     imgui.text(status_text(debugger_state))
     _, _, output_ds = draw_text(debugger_state.output, name='session-output',
@@ -1135,7 +1410,7 @@ def draw_console(input_value: object, debugger_state: TaskState = None,
         show_header=False, show_widgets=False, shadow=False, return_extras=True)
     if output_ds is not None:
         # View-local follow history; the shared session never owns this pane.
-        follow_output(console_view_state, output_ds, Melty.px(2), running=debugger_state.running)
+        follow_output(_console_view_state, output_ds, Melty.px(2), running=debugger_state.running)
     if command is not None:
         debugger_state.resume(command)
     return False, input_value
@@ -1159,5 +1434,5 @@ def draw_locals(input_value: object, debugger_state: TaskState = None):
             debugger_state.select_scope(identity)
         scope = debugger_state.selected_scope
         if scope is not None:
-            draw_any(scope.locals, name='locals', show_header=False)
+            draw_any(scope.locals, name='locals', show_header=False, editable=False)
     return False, input_value

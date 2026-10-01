@@ -3,7 +3,6 @@
 The old Code Editor remains a separate renderer. Everything specific to this
 tile lives here; GitProxy owns file values, loading and watching.
 """
-import threading
 from tasks import TaskState
 from pathlib import Path
 
@@ -18,14 +17,16 @@ from meltygui.editor.diff import diff_opcodes
 from meltygui_pro.models.tab_bar import TabBarState
 from meltygui_pro.editor.code_editor import prepare_editor_tabs, _draw_tab_bar_rows
 from meltygui_pro.models.open_files import OpenFiles
+from meltygui_pro.navigation import source_editor, remember_editor, forget_editor
 
 
 @no_save("version_ready", "_file", "_pane", "_text", "_line_numbers", "_comparison", "_diff_folds", "_tab_overlay",
-         "_source_text", "_source_path", "_source_tree", "_source_worker")
+         "_execution_action")
 class FileEditorState(DictConversion):
-    _source_text = _source_path = _source_tree = _source_worker = None
+    _execution_action = None
     def __init__(self):
         super().__init__()
+        self._execution_action = None
         self.selected_path = None
         self.version = "current"
         self.version_ready = 0
@@ -36,34 +37,27 @@ class FileEditorState(DictConversion):
         self._comparison = None
         self._diff_folds = None
         self._tab_overlay = None
-        self._source_text = self._source_path = self._source_tree = self._source_worker = None
+
+    def request_debug(self, action, invalidate):
+        # Popup callbacks can outlive the draw that created them. The view owns
+        # the request until its next render dispatches it after drawing.
+        self._execution_action = action
+        self.changed()
+        invalidate(frame_delta=1)
 
     def source_tree(self, text, path):
-        return self._source_tree if self._source_text is text and self._source_path == path else None
+        snapshot = self._file.source_snapshot() if self._file is not None else None
+        if snapshot is not None and snapshot.matches(path, text) and snapshot.index is not None:
+            return snapshot.code_tree
+        return None
 
     def prepare_source(self, text, path, on_ready):
-        """Prepare the existing scanner tree off the render thread, once per text."""
-        if not isinstance(text, str) or not path or not path.endswith('.py'):
+        """The source version owns preparation; views only request its index."""
+        if self._file is None:
             return
-        if self._source_text is text and self._source_path == path:
-            return
-        if self._source_worker is not None:
-            return
-        def build():
-            from meltygui.code.core_syntax import parse_to_dict
-            from meltygui.core.melty import Melty
-            try:
-                tree = parse_to_dict(text, file_path=path, frontend='scan')
-            except (SyntaxError, ValueError):
-                tree = None
-            def apply():
-                self._source_worker = None
-                self._source_text, self._source_path, self._source_tree = text, path, tree
-                self.changed()
-                on_ready(frame_delta=1)
-            Melty.post_to_render(apply)
-        self._source_worker = threading.Thread(target=build, name='file-source-index', daemon=True)
-        self._source_worker.start()
+        snapshot = self._file.source_snapshot()
+        if snapshot is not None and snapshot.matches(path, text):
+            snapshot.request_index(on_ready)
 
     def changed(self):
         self.version_ready += 1
@@ -151,8 +145,63 @@ def cleanup_file_editor(draw_state):
     forget_consumer(draw_state)
     state = draw_state.misc.get("file_editor_state")
     if state is not None:
+        forget_editor((draw_state._kwargs or {}).get("instance", 0), state._pane)
         state._tab_overlay = None
         state.close()
+
+
+def navigation_address(path, version):
+    """Current buffers already use pending coordinates, including unsaved edits.
+
+    Other versions need a version-aware resolver before they can participate in
+    live symbol navigation without publishing historic text as the current file.
+    """
+    if path is None or version != "current":
+        return None
+    from meltygui.code.fileref import Address
+    address = Address(path)
+    address.pending_coords = True
+    return address
+
+
+def consume_navigation(files, state, instance, pane, text):
+    """Land an incoming source jump after the destination buffer has rendered."""
+    target = files.jump_to_instance or files.active_instance
+    if target != instance or files.jump_to_path != state.selected_path or state._file is None:
+        return
+    # Loading/error placeholders are not the destination. Keep the request until
+    # the matching file/version publishes its value and the view lays it out.
+    if text is None:
+        return
+    if files.jump_to_line is not None and isinstance(text, str):
+        line_px = getattr(pane, "_diff_line_px", None)
+        if not line_px:
+            pane.invalidate()
+            request_render()
+            return
+        from meltygui.editor.text_editor import _line_starts, fold_project_jump
+        from meltygui.core.melty import Melty
+        from meltygui.state.core_undo import NavUndo
+        starts = _line_starts(text)
+        line = max(0, min(files.jump_to_line - 1, len(starts) - 1))
+        position = starts[line]
+        if files.jump_to_token:
+            end = starts[line + 1] if line + 1 < len(starts) else len(text)
+            found = text.find(files.jump_to_token, position, end)
+            if found >= 0:
+                position = found
+        position, line = fold_project_jump(pane, text, position, line)
+        NavUndo.quiet_caret()
+        pane.text_cursor_pos = pane.text_selection_start = pane.text_selection_end = position
+        pane.scroll_offset = (pane.scroll_offset[0], max(0, line * line_px - pane.height * 0.4))
+        if not getattr(files, "jump_no_focus", False):
+            Melty.text_focused_ds = pane
+            Melty._text_focus_grant_frame = Melty.frame_count
+        pane.invalidate()
+        request_render()
+    files.jump_to_path = files.jump_to_line = files.jump_to_token = None
+    files.jump_to_instance = None
+    files.jump_no_focus = False
 
 
 def draw_file_editor_overlay_background(draw_state, draw_list):
@@ -200,11 +249,12 @@ def draw_file_editor_overlay(draw_state, draw_list):
              on_cleanup=cleanup_file_editor, draw_overlay=draw_file_editor_overlay,
              draw_overlay_background=draw_file_editor_overlay_background,
              display_name="File Editor", icon=f"\uf15c", tint=(0.20, 0.30, 0.48))
+@source_editor
 def draw_file_editor(input_value: OpenFiles, draw_state=None,
                      diff_with: "DrawState[draw_file_editor]" = None, instance=0,
                      layout_frame=None, tab_bar_state: TabBarState = None,
                      files_view: DrawState[draw_project_tree] = None,
-                     debugger_state: TaskState = None):
+                     debugger_state: TaskState = None, file_metadata=None):
     from meltygui.core.rendering.injected_state import owned_state
     state = owned_state(draw_state, "file_editor_state", FileEditorState)
     files = input_value
@@ -255,16 +305,18 @@ def draw_file_editor(input_value: OpenFiles, draw_state=None,
         state._line_numbers = text, range(1, len(_line_starts(text)) + 1)
     context_menu = {}
     if editable and is_text and Path(path).suffix.lower() == ".py":
-        from tasks import request_module_run
         link = project_source
         root = link.selected_project if link is not None else None
-        context_menu["Run"] = lambda path=path, root=root: request_module_run(path, root)
-        context_menu["Local Debug"] = lambda path=path, root=root: request_module_run(path, root, debug=True)
+        if debugger_state is not None:
+            action = (debugger_state, path, root, file_metadata, file_value.source_snapshot())
+            context_menu["Run"] = lambda action=action: state.request_debug((*action, False), draw_state.invalidate)
+            context_menu["Debug"] = lambda action=action: state.request_debug((*action, True), draw_state.invalidate)
     from meltygui.code.new_converters import _codec_view
     view = _codec_view(file_value.codec if file_value is not None else None, displayed, draw_text)
     edited, replacement, pane = view(
         displayed, name=f"file:{path}:{state.version}",
         file_key=file_value.display_path if file_value is not None else path,
+        jump_to=navigation_address(path, state.version) if file_value is not None else None,
         source_context=file_value, context_menu=context_menu,
         debugger_state=debugger_state, code_tree=state.source_tree(text, path),
         line_numbers=state._line_numbers[1] if is_text else None,
@@ -281,25 +333,12 @@ def draw_file_editor(input_value: OpenFiles, draw_state=None,
         text = replacement
         changed = True
     state._pane, state._text = pane, text if isinstance(text, str) else None
+    remember_editor(instance, path, pane, text)
     if draw_state._bounding_hovered:
         files.active_instance = instance
     if files.active_instance == instance:
         files.active_path = path
-    if path is not None and files.jump_to_path == path and (
-            files.jump_to_instance or files.active_instance) == instance and file_value is not None:
-        if files.jump_to_line is not None and is_text:
-            from meltygui.editor.text_editor import _line_starts
-            starts = _line_starts(text)
-            line = max(0, min(files.jump_to_line - 1, len(starts) - 1))
-            position = starts[line]
-            if files.jump_to_token:
-                end = starts[line + 1] if line + 1 < len(starts) else len(text)
-                found = text.find(files.jump_to_token, position, end)
-                if found >= 0:
-                    position = found
-            pane.text_cursor_pos = pane.text_selection_start = pane.text_selection_end = position
-            pane.scroll_offset = (pane.scroll_offset[0], max(0, line * pane._diff_line_px - pane.height * 0.4))
-        files.jump_to_path = files.jump_to_line = files.jump_to_token = None
+    consume_navigation(files, state, instance, pane, text)
     def select_tab(selected_path):
         nonlocal changed
         state.selected_path = selected_path
@@ -331,6 +370,11 @@ def draw_file_editor(input_value: OpenFiles, draw_state=None,
     else:
         state.bind(None)
     state.prepare_source(text, path, draw_state.invalidate)
+    action, state._execution_action = state._execution_action, None
+    if action is not None:
+        session, action_path, action_root, metadata, snapshot, *mode = action
+        session.run_module(action_path, action_root, debug=mode[0] if mode else True,
+                           file_metadata=metadata, source_snapshot=snapshot)
     return changed, input_value
 
 

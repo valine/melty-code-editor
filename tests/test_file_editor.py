@@ -118,6 +118,141 @@ def test_version_switch_never_serves_old_file_or_revision():
     assert version_value(state)[1:] == ("", None)
 
 
+def test_current_navigation_address_resolves_same_and_other_file(tmp_path):
+    from file_editor import navigation_address
+    from meltygui.editor.roster_tints import ctrl_b_lookup
+
+    target = tmp_path / "target.py"
+    target.write_text("def destination():\n    return 42\n")
+    path = tmp_path / "main.py"
+    text = "from target import destination\ndef local():\n    return destination()\nlocal()\n"
+    path.write_text("# The editor's imports and functions are not saved yet.\n")
+    address = navigation_address(str(path), "current")
+    assert address.path == path and address.pending_coords
+    project = str(tmp_path)
+    local = ctrl_b_lookup(text, text.rindex("local"), address.path, project=project)
+    remote = ctrl_b_lookup(text, text.rindex("destination"), address.path, project=project)
+    assert [(ref.path, ref.line) for ref in local[4]] == [(path, 2)]
+    assert [(ref.path, ref.line) for ref in remote[4]] == [(target, 1)]
+    # Historic buffers must not replace the live roster until lookup accepts
+    # their own source world.
+    assert navigation_address(str(path), "HEAD") is None
+
+
+def test_navigation_waits_for_loaded_buffer_and_reveals_folded_target(monkeypatch):
+    from file_editor import consume_navigation
+    from meltygui.editor.text_editor import _fold_build
+    from meltygui.core.melty import Melty
+    from meltygui.state.core_undo import NavUndo
+
+    text = "def before():\n    pass\n    pass\ndef destination():\n    pass\n    pass\n"
+    ranges = ((0, 2), (3, 5))
+    collapsed = set(ranges)
+    events = []
+    pane = SimpleNamespace(
+        _diff_line_px=20, height=40, scroll_offset=(3, 0),
+        text_cursor_pos=0, _fold_collapsed=collapsed,
+        _fold_cache=(text, (ranges, frozenset(collapsed)), _fold_build(text, ranges, collapsed)),
+        invalidate=lambda: events.append("invalidate"))
+    monkeypatch.setattr(Melty, "text_focused_ds", None)
+    monkeypatch.setattr(Melty, "_text_focus_grant_frame", None, raising=False)
+    monkeypatch.setattr(NavUndo, "quiet_caret", lambda: events.append("quiet"))
+    files = OpenFiles()
+    files.active_instance = "other"
+    files.jump_to_instance, files.jump_to_path = "owner", "/main.py"
+    files.jump_to_line, files.jump_to_token = 4, "destination"
+    state = FileEditorState()
+    state.selected_path, state._file = "/main.py", object()
+    consume_navigation(files, state, "other", pane, text)
+    consume_navigation(files, state, "owner", pane, None)
+    assert files.jump_to_line == 4 and pane.text_cursor_pos == 0
+    consume_navigation(files, state, "owner", pane, text)
+    display = pane._fold_cache[2][0]
+    assert pane.text_cursor_pos == display.index("destination")
+    assert pane.text_selection_start == pane.text_selection_end == pane.text_cursor_pos
+    assert pane._fold_collapsed == {(0, 2)}
+    assert pane.scroll_offset == (3, 4)
+    assert Melty.text_focused_ds is pane
+    assert files.jump_to_path is None and files.jump_to_line is None
+    assert "quiet" in events and "invalidate" in events
+
+
+def test_navigation_no_focus_and_first_layout(monkeypatch):
+    from file_editor import consume_navigation
+    from meltygui.core.melty import Melty
+    from meltygui.state.core_undo import NavUndo
+
+    previous_focus = object()
+    monkeypatch.setattr(Melty, "text_focused_ds", previous_focus)
+    monkeypatch.setattr(NavUndo, "quiet_caret", lambda: None)
+    pane = SimpleNamespace(_diff_line_px=None, height=100, scroll_offset=(0, 0),
+                           text_cursor_pos=0, invalidate=lambda: None)
+    files = OpenFiles()
+    files.jump_to_path, files.jump_to_line, files.jump_no_focus = "/main.py", 2, True
+    state = FileEditorState()
+    state.selected_path, state._file = "/main.py", object()
+    consume_navigation(files, state, 0, pane, "first\nsecond\n")
+    assert files.jump_to_line == 2
+    pane._diff_line_px = 20
+    consume_navigation(files, state, 0, pane, "first\nsecond\n")
+    assert pane.text_cursor_pos == 6 and Melty.text_focused_ds is previous_focus
+    assert files.jump_no_focus is False
+
+
+def test_file_editor_navigation_routes_and_records_origin(monkeypatch):
+    from file_editor import draw_file_editor
+    from meltygui.core.melty import Melty
+    from meltygui.state.core_undo import NavUndo
+    from meltygui_pro.editor import code_editor
+    from meltygui_pro.navigation import enclosing_window, remember_editor, forget_editor, apply_location
+
+    monkeypatch.setattr(code_editor, "_active_editors", {})
+    owner = SimpleNamespace(_view_func=draw_file_editor.__wrapped__, instance="file-tile",
+                            _tile_id=23, closed=False, name="file-editor")
+    pane = SimpleNamespace(_parent=owner, text_cursor_pos=6)
+    remember_editor(owner.instance, "/original.py", pane, "first\nsecond\n")
+    assert enclosing_window(pane) is owner
+    monkeypatch.setattr(Melty, "find_window", lambda name: None)
+    assert code_editor.editor_window_draw_state(owner.instance) is owner
+    assert code_editor._nav_location(owner.instance) == ("/original.py", 2, owner.instance)
+    files = OpenFiles()
+    files.active_instance = "other-tile"
+    opened, recorded, invalidated, raised = [], [], [], []
+    monkeypatch.setattr(OpenFiles, "open_file", lambda self, path: opened.append(path))
+    monkeypatch.setattr(Melty, "vis", SimpleNamespace(root=SimpleNamespace(open_files=files)))
+    monkeypatch.setattr(Melty, "cache", SimpleNamespace(invalidate_up=lambda *a, **k: invalidated.append(a)))
+    monkeypatch.setattr(Melty, "move_window_to_front", lambda win: raised.append(win))
+    monkeypatch.setattr(NavUndo, "record_location", lambda *locs: recorded.append(locs))
+    code_editor.open_in_editor("/target.py", line_number=7, token="destination", editor_window=owner)
+    assert files.jump_to_instance == owner.instance
+    assert (files.jump_to_path, files.jump_to_line, files.jump_to_token) == ("/target.py", 7, "destination")
+    assert recorded[-1] == (("/original.py", 2, owner.instance), ("/target.py", 7, owner.instance))
+    assert invalidated[-1] == (23,)
+    apply_location(("/original.py", 2, owner.instance))
+    assert opened[-1] == "/original.py" and raised[-1] is owner
+    replacement = SimpleNamespace(_parent=owner)
+    remember_editor(owner.instance, "/target.py", replacement, "target")
+    forget_editor(owner.instance, pane)
+    assert code_editor._active_editors[owner.instance][1] is replacement
+    forget_editor(owner.instance, replacement)
+    assert owner.instance not in code_editor._active_editors
+
+
+def test_navigation_replay_targets_primary_even_when_another_tile_is_active(monkeypatch):
+    from meltygui.core.melty import Melty
+    from meltygui.core.runtime import extensions
+    from meltygui_pro.navigation import apply_location
+
+    owner = SimpleNamespace(closed=True)
+    opened = []
+    monkeypatch.setattr(extensions, "source_window", lambda instance: owner if instance == 0 else None)
+    monkeypatch.setattr(extensions, "open_source", lambda *a, **kw: opened.append((a, kw)))
+    monkeypatch.setattr(Melty, "move_window_to_front", lambda win: None)
+    apply_location(("/main.py", 3, 0))
+    assert opened == [(("/main.py",), {"line_number": 3, "editor_window": owner})]
+    assert not owner.closed
+
+
 def test_comparisons_deduplicate_reciprocal_links_and_release_subscriptions():
     a, b = FileEditorState(), FileEditorState()
     a.selected_path = b.selected_path = "/a.py"
