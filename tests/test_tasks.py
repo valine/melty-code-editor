@@ -255,6 +255,70 @@ def test_output_follow_scroll_and_completion():
     assert output.scroll_offset == (0, 80)
 
 
+def test_output_overlay_tracks_live_tile_bounds(monkeypatch):
+    from types import SimpleNamespace as NS
+    from meltygui.core.rendering import overlay
+
+    state = tasks.TaskState()
+    pane = state._output_view = object()
+    state._toolbar_height = 28
+    parent = NS(misc={'task_state': state}, abs_left=100, abs_top=200,
+                width=400, height=300, abs_clip_rect=(100, 200, 500, 500),
+                _blit_served_frame=42)
+    placed, painted = [], []
+    monkeypatch.setattr(tasks.Melty, 'px', lambda value: value)
+    monkeypatch.setattr(tasks.Melty, 'frame_count', 42)
+    monkeypatch.setattr(overlay, 'place_overlay_view', lambda *args: placed.append(args))
+    monkeypatch.setattr(overlay, 'paint_cached_view', painted.append)
+
+    tasks.draw_tasks_overlay_background(parent, None)
+    assert placed[-1] == (pane, (100, 224, 400, 248), parent.abs_clip_rect)
+    assert painted == [pane]
+    # Resize/move replay must not depend on the body's last layout.
+    parent.abs_left, parent.abs_top = 50, 60
+    parent.width, parent.height = 600, 40
+    parent.abs_clip_rect = (50, 60, 650, 100)
+    tasks.draw_tasks_overlay_background(parent, None)
+    assert placed[-1] == (pane, (50, 84, 600, 0), parent.abs_clip_rect)
+    parent.height = 500
+    parent._blit_served_frame = 41
+    tasks.draw_tasks_overlay_background(parent, None)
+    assert placed[-1][1] == (50, 84, 600, 448)
+    assert painted == [pane, pane]  # normal body draws do not paint twice
+
+
+def test_toolbar_overlay_moves_buttons_and_shadows_together(monkeypatch):
+    from types import SimpleNamespace as NS
+    from meltygui.core.cache import tile_marks
+    from meltygui_pro.editor import code_editor
+
+    state = tasks.TaskState()
+    state._toolbar_height = 28
+    state._toolbar = {'left': 100, 'nav_tints': (None, None), 'has_tasks': True}
+    parent = NS(misc={'task_state': state}, abs_left=10, abs_top=20,
+                width=600, height=300, abs_clip_rect=(10, 20, 610, 320))
+    buttons, shadows, cleared, navigation = [], [], [], []
+    monkeypatch.setattr(tasks.Melty, 'px', lambda value: value)
+    monkeypatch.setattr(tasks, 'flat_button', lambda *args, **kw: buttons.append(kw))
+    monkeypatch.setattr(tile_marks, 'clear_shadows', lambda *args: cleared.append(args))
+    monkeypatch.setattr(tile_marks, 'add_shadow', lambda rect, **kw: shadows.append((rect, kw)))
+    monkeypatch.setattr(code_editor, '_draw_nav_buttons', lambda *args, **kw: navigation.append(kw))
+
+    for width, height in ((600, 300), (420, 160), (800, 500)):
+        parent.width, parent.height = width, height
+        tasks.draw_tasks_overlay(parent, object())
+        for button, (rect, shadow) in zip(buttons[-2:], shadows[-2:]):
+            assert (*button['pos'], button['width'], button['height']) == rect
+            assert rect[1] == parent.abs_top + height - 26
+            assert button['layout'] is False
+            assert shadow['draw_state'] is parent
+            assert shadow['group'] == 'task_buttons'
+            assert shadow['clip'] == parent.abs_clip_rect
+        assert navigation[-1]['pos'] == (110, parent.abs_top + height - 26)
+    assert cleared == [(parent, 'task_buttons')] * 3
+    assert buttons[0]['pos'][0] > buttons[2]['pos'][0]  # narrow tile reflows
+
+
 def test_output_follow_range_clamp_and_unmeasured_content():
     from meltygui.state.new_core_model import DrawState
     state, output = tasks.TaskState(), DrawState()

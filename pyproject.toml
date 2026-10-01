@@ -8,3 +8,15 @@ cwd = "."
 module = "editor.py"
 
 [tool.melty.tasks."Run editor.py".env]
+[tool.melty.tasks."Run app_model.py"]
+cmd = "python -m app_model"
+cwd = "."
+module = "app_model.py"
+
+[tool.melty.tasks."Run app_model.py".env]
+[tool.melty.tasks."Run file_editor.py"]
+cmd = "python -m file_editor"
+cwd = "."
+module = "file_editor.py"
+
+[tool.melty.tasks."Run file_editor.py".env]

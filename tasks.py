@@ -62,6 +62,7 @@ from meltygui import DrawState
 OUTPUT_LIMIT = 200_000       # chars of output kept, the console's limit
 KILL_AFTER = 3.0             # seconds between SIGTERM and SIGKILL
 NO_TASKS = 'No tasks — right-click a Python module to Run'
+OUTPUT_TOP = 24.0           # status line (20) and gap (4), logical pixels
 
 
 class ProjectTasks(DictConversion):
@@ -75,10 +76,15 @@ class ProjectTasks(DictConversion):
 project_tasks = ProjectTasks()
 
 
-@no_save('process', 'thread', 'output', 'running', 'exit', 'started', 'ended', 'error', '_follow', '_output_scroll_y')
+@no_save('process', 'thread', 'output', 'running', 'exit', 'started', 'ended', 'error',
+         '_follow', '_output_scroll_y', '_output_view', '_toolbar_height', '_toolbar', '_selector_view')
 class TaskState(DictConversion):
-    # Existing live instances also start without a previous output position.
+    # Defaults for existing live instances when these transient fields are added.
     _output_scroll_y = None
+    _output_view = None
+    _toolbar_height = 0
+    _toolbar = None
+    _selector_view = None
 
     def __init__(self):
         super().__init__()
@@ -95,6 +101,10 @@ class TaskState(DictConversion):
         self.error = None         # why the last start was refused
         self._follow = True       # the output pane follows the tail
         self._output_scroll_y = None  # frame history, meaningful only for this run
+        self._output_view = None
+        self._toolbar_height = 0
+        self._toolbar = None
+        self._selector_view = None
 
 
 # ── the tasks ───────────────────────────────────────────────────────────────
@@ -432,9 +442,100 @@ def status_text(state):
     return ''
 
 
+def task_toolbar_layout(left, top, width, height, toolbar_left, toolbar_height):
+    """Live rectangles shared by toolbar input, paint and child placement."""
+    px = Melty.px
+    gap, button_w, button_h = px(4), px(30), px(24)
+    left += min(toolbar_left, width)
+    top += max(0, height - toolbar_height)
+    width = max(0, width - toolbar_left)
+    button_top = top + (toolbar_height - button_h) * 0.5
+    navigation_w = 2 * button_w + 6 + gap
+    selector_w = min(px(280), max(0, width - navigation_w - 2 * button_w - 2 * gap))
+    selector_left = left + navigation_w
+    controls_left = selector_left + selector_w + gap
+    return ((left, button_top),
+            (selector_left, top, selector_w, toolbar_height),
+            (controls_left, button_top, button_w, button_h),
+            (controls_left + button_w + gap, button_top, button_w, button_h))
+
+
+def task_toolbar_buttons(state):
+    """The same labels and styles feed input-only bodies and live painting."""
+    stop_color = (0.90, 0.20, 0.18) if state.running else (0.42, 0.42, 0.42)
+    return (
+        ('\uf04b', 'run', state._toolbar['has_tasks'] and not state.running,
+         (0.16, 0.75, 0.30), (0.24, 0.90, 0.40)),
+        ('\uf04d', 'stop', state.running, stop_color, stop_color),
+    )
+
+
+def draw_tasks_overlay(draw_state, draw_list):
+    """Paint toolbar chrome and retain its shadows at the current tile bounds."""
+    from meltygui.core.cache.tile_marks import add_shadow, clear_shadows
+    from meltygui.hdr_color import pack_color
+    from meltygui.core.runtime.toggles import Tint
+    from meltygui_pro.editor.code_editor import _draw_nav_buttons
+    clear_shadows(draw_state, 'task_buttons')
+    state = draw_state.misc.get('task_state')
+    if state is None or state._toolbar is None:
+        clear_shadows(draw_state, 'nav_buttons')
+        return
+    toolbar = state._toolbar
+    nav, selector, run, stop = task_toolbar_layout(
+        draw_state.abs_left, draw_state.abs_top, draw_state.width, draw_state.height,
+        toolbar['left'], state._toolbar_height)
+    _draw_nav_buttons(draw_state, *toolbar['nav_tints'], draw_list=draw_list, pos=nav)
+    if not toolbar['has_tasks']:
+        x, y, width, height = selector
+        draw_list.push_clip_rect(x, y, x + width, y + height, True)
+        try:
+            draw_list.add_text(x, y + (height - imgui.get_text_line_height()) * 0.5,
+                               pack_color(*Tint.dd_text(draw_state.current_tint), 1.0),
+                               toolbar['empty_text'])
+        finally:
+            draw_list.pop_clip_rect()
+    for rect, (label, name, enabled, color, text_color) in zip((run, stop), task_toolbar_buttons(state)):
+        x, y, width, height = rect
+        flat_button(label, draw_state if enabled else None, view_id=None,
+                    width=width, height=height, pos=(x, y), layout=False,
+                    draw_list=draw_list, color=color, text_color=text_color,
+                    hovered=None if enabled else False)
+        add_shadow(rect, corner_radius=Melty.px(6), clip=draw_state.abs_clip_rect,
+                   draw_state=draw_state, group='task_buttons')
+
+
+def draw_tasks_overlay_background(draw_state, draw_list):
+    """Keep the cached console placed at live bounds during tile replay."""
+    from meltygui.core.rendering.overlay import place_overlay_view, paint_cached_view
+    state = draw_state.misc.get('task_state')
+    if state is None:
+        return
+    replay = getattr(draw_state, '_blit_served_frame', None) == Melty.frame_count
+    if state._selector_view is not None and state._toolbar is not None:
+        _, rect, _, _ = task_toolbar_layout(
+            draw_state.abs_left, draw_state.abs_top, draw_state.width, draw_state.height,
+            state._toolbar['left'], state._toolbar_height)
+        place_overlay_view(state._selector_view, rect, draw_state.abs_clip_rect)
+        if replay:
+            paint_cached_view(state._selector_view)
+    if state._output_view is None:
+        return
+    top = Melty.px(OUTPUT_TOP)
+    height = max(0, draw_state.height - state._toolbar_height - top)
+    place_overlay_view(state._output_view,
+                       (draw_state.abs_left, draw_state.abs_top + top,
+                        draw_state.width, height if height >= Melty.px(20) else 0),
+                       draw_state.abs_clip_rect)
+    if replay:
+        paint_cached_view(state._output_view)
+
+
 @render_func(multi_instance=True, tint=(0.36, 0.47, 0.42), icon='', display_name='Tasks',
              selectable=False, disable_scroll=True, show_add_delete=False, is_tree=False,
-             show_bg=False, shadow=False, show_header=False, use_cache=False, tile_toolbar=True)
+             show_bg=False, shadow=False, show_header=False, use_cache=False, tile_toolbar=True,
+             draw_overlay_background=draw_tasks_overlay_background,
+             draw_overlay=draw_tasks_overlay)
 def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
                files_view: DrawState[draw_project_tree] = None,
                header_height=28.0, tile_toolbar_rect=None, **kwargs):
@@ -443,6 +544,7 @@ def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
     from meltygui.core.windowing.glfw_utils import request_render
     from meltygui.view.text_view import draw_text
     state = task_state
+    draw_state.misc['task_state'] = state
     _TILES[kwargs.get('instance')] = draw_state
     open_files = input_value if isinstance(input_value, OpenFiles) else None
     if _pending is not None:
@@ -462,56 +564,48 @@ def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
     choice = selected_task(state, root, tasks)
 
     px = Melty.px
-    left, top = imgui.get_cursor_screen_pos()
+    body_left, body_top = imgui.get_cursor_screen_pos()
     width = draw_state.content_width or (draw_state.width or 240)
-    gap, header_h, unique = px(4), px(header_height), kwargs.get('instance')
-    button_w = px(30)
-    # Change this cap to adjust the task selector on wide tiles.
-    selector_max_w = px(280)
-    body_left, body_top = left, top
-    if tile_toolbar_rect is None:
-        toolbar_x, toolbar_y, toolbar_w, header_h = 0, max(0, (draw_state.height or 0) - header_h), width, header_h
-    else:
-        toolbar_x, toolbar_y, toolbar_w, header_h = tile_toolbar_rect
-    left, top = body_left + toolbar_x, body_top + toolbar_y
-    width = toolbar_w
+    header_h, unique = px(header_height), kwargs.get('instance')
+    toolbar_x = 0 if tile_toolbar_rect is None else tile_toolbar_rect[0]
+    if tile_toolbar_rect is not None:
+        header_h = tile_toolbar_rect[3]
+    state._toolbar_height = header_h
+    toolbar_y = max(0, (draw_state.height or 0) - header_h)
     from meltygui_pro.editor.code_editor import _draw_nav_buttons, _nav_button_tints
     back_tint, forward_tint, _ = _nav_button_tints()
-    imgui.set_cursor_screen_pos((left, top + (header_h - px(24)) * 0.5))
-    _draw_nav_buttons(draw_state, back_tint, forward_tint)
-    navigation_w = 2 * button_w + 6 + gap
-    left += navigation_w
-    width = max(0, width - navigation_w)
-    selector_w = min(selector_max_w, max(0, width - 2 * button_w - 2 * gap))
-    imgui.set_cursor_screen_pos((left, top))
+    state._toolbar = {
+        'left': toolbar_x, 'nav_tints': (back_tint, forward_tint),
+        'has_tasks': bool(names),
+        'empty_text': NO_TASKS if root else 'Open a project to run tasks',
+    }
+    nav, selector, run, stop = task_toolbar_layout(
+        body_left, body_top, width, draw_state.height or 0, toolbar_x, header_h)
+    imgui.set_cursor_screen_pos(nav)
+    _draw_nav_buttons(draw_state, back_tint, forward_tint, paint=False)
+    left, top, selector_w, _ = selector
+    state._selector_view = None
     if names and selector_w > 0:
-        picked, choice = draw_dropdown(choice, collection=names, name='task', show_header=False,
-                                       width=selector_w,
-                                       trigger_height=header_h / Melty.ui_scale, shadow=False)
+        imgui.set_cursor_screen_pos((left, top))
+        picked, choice, state._selector_view = draw_dropdown(
+            choice, collection=names, name='task', show_header=False,
+            width=selector_w, height=header_h,
+            trigger_height=header_h / Melty.ui_scale, shadow=False,
+            return_extras=True)
         if picked and isinstance(choice, str):
             state.selected_tasks[str(root)] = choice
             draw_state.invalidate()
-    else:
-        imgui.set_cursor_screen_pos((left, top + (header_h - imgui.get_text_line_height()) * 0.5))
-        Melty.push_clip((left, top, left + selector_w, top + header_h))
-        imgui.text(NO_TASKS if root else 'Open a project to run tasks')
-        Melty.pop_clip()
-    controls_left = left + selector_w + gap
-    button_top = top + (header_h - px(24)) * 0.5
-    imgui.set_cursor_screen_pos((controls_left, button_top))
-    run_enabled = bool(names) and not state.running
-    if flat_button(f'\uf04b##tasks-run{unique}', draw_state if run_enabled else None,
-                   f'tasks-run::{unique}', width=button_w, height=px(24),
-                   color=(0.16, 0.75, 0.30), text_color=(0.24, 0.90, 0.40),
-                   hovered=None if run_enabled else False) and run_enabled:
-        start_task(state, root, choice)
-    imgui.set_cursor_screen_pos((controls_left + button_w + gap, button_top))
-    stop_color = (0.90, 0.20, 0.18) if state.running else (0.42, 0.42, 0.42)
-    if flat_button(f'\uf04d##tasks-stop{unique}', draw_state if state.running else None,
-                   f'tasks-stop::{unique}', width=button_w, height=px(24),
-                   color=stop_color, text_color=stop_color,
-                   hovered=None if state.running else False) and state.running:
-        stop_task(state)
+    for rect, (label, name, enabled, color, text_color) in zip((run, stop), task_toolbar_buttons(state)):
+        x, y, button_w, button_h = rect
+        imgui.set_cursor_screen_pos((x, y))
+        if flat_button(f'{label}##tasks-{name}{unique}', draw_state if enabled else None,
+                       f'tasks-{name}::{unique}', width=button_w, height=button_h,
+                       color=color, text_color=text_color, paint=False,
+                       hovered=None if enabled else False) and enabled:
+            if name == 'run':
+                start_task(state, root, choice)
+            else:
+                stop_task(state)
 
     # The body may disappear entirely at minimum height; the toolbar stays visible.
     status_h = px(20)
@@ -520,15 +614,17 @@ def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
         imgui.set_cursor_screen_pos((body_left, body_top))
         output_root = state.project or root
         imgui.text(f'{Path(output_root).name if output_root else "no project"}  {status_text(state)}')
-    output_h = max(0, toolbar_y - status_h - gap)
+    output_top = px(OUTPUT_TOP)
+    output_h = max(0, toolbar_y - output_top)
     if output_h >= px(20):
-        imgui.set_cursor_screen_pos((body_left, body_top + status_h + gap))
+        imgui.set_cursor_screen_pos((body_left, body_top + output_top))
         _, _, output_ds = draw_text(state.output, name=f'task-output##{unique}',
                                     width=draw_state.content_width, height=output_h,
                                     editable=False, syntax_highlight=False,
                                     autocomplete=False, wrap=True, show_header=False,
-                                    show_widgets=False, use_cache=True, freeze_resize=True,
+                                    show_widgets=False, use_cache=True, freeze_resize=True, shadow=False,
                                     return_extras=True)
+    state._output_view = output_ds
     # Follow the tail while running; scrolling up stops following until the next run.
     if output_ds is not None:
         follow_output(state, output_ds, px(2))

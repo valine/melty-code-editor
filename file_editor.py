@@ -130,9 +130,14 @@ def draw_file_editor_overlay_background(draw_state, draw_list):
     state = draw_state.misc.get("file_editor_state")
     if state is None or state._tab_overlay is None:
         return
-    tabs, layout_tabs, *_ = state._tab_overlay
+    tabs, layout_tabs, *_, background = state._tab_overlay
     height = layout_tabs(draw_state.width) if tabs else 0
     left = draw_state.abs_left
+    if height > 0 and draw_state.width > 0:
+        from meltygui_pro.editor.code_editor import paint_editor_tab_background
+        bottom = draw_state.abs_top + draw_state.height
+        paint_editor_tab_background(draw_state,
+                                    (left, bottom - height, draw_state.width, height), background)
     if state._pane is not None:
         from meltygui.core.rendering.overlay import place_overlay_view
         place_overlay_view(state._pane,
@@ -149,6 +154,8 @@ def draw_file_editor_overlay(draw_state, draw_list):
     from meltygui_pro.editor.code_editor import paint_editor_tabs
     state = draw_state.misc.get("file_editor_state")
     if state is None or state._tab_overlay is None:
+        from meltygui.core.cache.tile_marks import clear_shadows
+        clear_shadows(draw_state, 'editor_tabs')
         return
     tabs, layout_tabs, button_height, row_height, swatch_width, background = state._tab_overlay
     height = layout_tabs(draw_state.width) if tabs else 0
