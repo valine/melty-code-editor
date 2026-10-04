@@ -81,6 +81,9 @@ tasks.project_tasks = meltygui.persisted('project_tasks', tasks.ProjectTasks,
                                        app_id='melty-code-editor')
 app_model = meltygui.persisted('tile_layout', EditorAppModel, app_id='melty-code-editor')
 app_model.bind_open_files(open_files)
+if sys.platform == 'darwin' and getattr(sys, 'frozen', False):
+    from macos import bind_open_files
+    bind_open_files(open_files)
 for path in paths:
     open_files.open_file(path)
 if paths:
@@ -283,7 +286,7 @@ def draw_new_field(width):
 
 
 @glfw_window(name=paths[0].name if len(paths) == 1 else 'Code Editor', app_id='melty-code-editor',
-             with_header=draw_header, bg_offset=-3, tint=(1.71, 1.79, 1.87), settings=settings)
+             with_header=draw_header, bg_offset=-3, tint=(1.08, 1.13, 1.20), settings=settings)
 @render_func(use_cache=True, on_cleanup=cleanup_file_editor_comparisons,
              draw_overlay=draw_file_editor_comparison_overlay)
 def editor(input_value: object, draw_state,

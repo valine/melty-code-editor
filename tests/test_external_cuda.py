@@ -6,6 +6,8 @@ import sys
 import numpy as np
 import pytest
 
+pytest.importorskip('meltygui_pycuda.driver', reason='CUDA tests require the optional CUDA driver binding')
+
 from meltygui.core.graphics.cuda_context_core import using_device
 from meltygui.model.cuda_buffer_model import CudaBuffer, empty_image_buffer, parameter_buffer
 from meltygui.model.tensor_model import slice_volume_view

@@ -273,5 +273,7 @@ class ExternalExecution:
         if self.process.poll() is None:
             try:
                 os.killpg(self.process.pid, signal.SIGKILL)
-            except ProcessLookupError:
+            except (ProcessLookupError, PermissionError):
+                # An early interpreter exit can precede setsid; macOS may
+                # return EPERM for that missing group. Target our child only.
                 self.process.kill()

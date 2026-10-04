@@ -55,7 +55,7 @@ def test_replacement_run_cannot_adopt_old_values_or_output(tmp_path):
         source = 'value = [9]\nvalue.append(10)\n'
         path.write_text(source)
         from test_local_debugger import metadata
-        state.run_external('/usr/bin/python3.13', dict(root=str(tmp_path), cwd=str(tmp_path),
+        state.run_external(sys.executable, dict(root=str(tmp_path), cwd=str(tmp_path),
             paths=[str(tmp_path)], path=str(path), text=source), file_metadata=metadata(source, path, 2))
         pump_until(lambda: state.paused)
         new_value = state.selected_scope.locals['value']

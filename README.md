@@ -136,13 +136,21 @@ The app uses two sibling checkouts, installed **editable** into its own Python
 - `../meltygui-pro`: proprietary code editor, projects, Git, environments and
   dependency management.
 
-The native ImGui wheel must be available in `../meltygui/dist/release`; see
+Native ImGui comes from PyPI. On Apple Silicon macOS it builds from source
+using Xcode Command Line Tools when no wheel matches. A local
+`../meltygui/dist/release` directory is optional; pass it with `--find-links`
+only when using unpublished support wheels. See
 [MeltyGUI setup](../meltygui/docs/DEVELOPMENT.md). Run these commands from this
 app's directory:
 
     uv venv .venv --python 3.12
     uv pip install --python .venv/bin/python -r requirements.txt
     ./melty-code-editor ~/some/file.py ~/some/notes.txt
+
+macOS uses OpenGL 4.1 and native Retina backing resolution for fonts, overlays
+and cached tiles. Python tasks and debugging work with the selected project
+interpreter (Python 3.12+ for debugging). CUDA visualization needs an NVIDIA
+system and is unavailable on macOS.
 
     MELTY_BENCH=1 .venv/bin/python editor.py FILE     # smoke test: exit 0 after the first frame
     MELTY_CODE_DEBUG=1 ./melty-code-editor FILE        # melty's perf trace → /tmp/lsd_symbol_perf.log
@@ -156,6 +164,35 @@ In IntelliJ / PyCharm set the project interpreter to `.venv/bin/python`.
 `melty-code-editor.desktop` registers it in the app menu (copy to
 `~/.local/share/applications/`). First frame is ~0.4 s, the same as the
 text editor (it was 1.6 s while the app model loaded).
+
+### macOS app launcher
+
+After setting up the venv, build and install the native launcher:
+
+    uv pip install --python .venv/bin/python --group macos
+    .venv/bin/python macos.py --install --desktop
+
+This installs `~/Applications/Melty Code Editor.app` and a Desktop shortcut.
+Double-click either, or drag the app into the Dock. Finder's **Open With** and
+files dropped on the app open in the existing editor. Command-Q follows the
+normal save-on-exit flow. The bundle uses the existing icon and declares native
+Retina support. It registers as an alternative editor without changing your
+default file associations. Logs go to
+`~/Library/Logs/Melty Code Editor/launch.log` (the previous launch is kept as
+`previous.log`).
+
+The launcher uses py2app alias mode: the app's `.venv` and both editable sibling
+libraries stay in place. Source edits need no rebuild. Rebuild after moving a
+checkout, replacing the venv/Python, or changing the app's name, icon, version or
+bundle identifier. This is a local development launcher; a distributable app
+would need a separate bundled-runtime build, signing and notarization.
+
+App metadata lives in `[tool.melty.app]` in `pyproject.toml`; `macos.py` owns
+packaging and the editor's Finder file events. Build without flags to leave a
+bundle in `dist/macos`; `--install` moves it into `~/Applications`. For other
+Melty apps, use the same per-app metadata and move shared packaging/event
+plumbing into MeltyGUI when a second app needs it. Document handling stays with
+the app that owns the open-file model.
 
 ## Startup profiling
 

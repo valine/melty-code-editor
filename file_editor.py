@@ -568,6 +568,8 @@ def prepare_comparison_overlay(draw_state, paint):
     Cached root movement translates these commands; resize and scrolling run
     the body after child placement and prepare fresh geometry.
     """
+    if not paint:
+        return None
     from types import SimpleNamespace
     from meltygui_pro.editor.code_editor import _draw_compare_ribbons
     commands = []

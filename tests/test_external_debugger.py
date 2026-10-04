@@ -1,5 +1,7 @@
 import gc
 import os
+import shutil
+import subprocess
 import sys
 import time
 import weakref
@@ -11,7 +13,7 @@ from meltygui.model.source_snapshot_model import SourceSnapshot
 from test_local_debugger import metadata, pump_until
 
 
-def launch(tmp_path, source, line=None, python='/usr/bin/python3.13', env=None, name='main.py'):
+def launch(tmp_path, source, line=None, python=sys.executable, env=None, name='main.py'):
     path = tmp_path / name
     path.write_text(source)
     snapshot = SourceSnapshot(str(path), source, path.stat().st_mtime)
@@ -24,15 +26,19 @@ def launch(tmp_path, source, line=None, python='/usr/bin/python3.13', env=None, 
 
 
 def test_external_interpreter_and_real_stdout_stderr(tmp_path):
+    import venv
+    environment = tmp_path / '.venv'
+    venv.EnvBuilder(with_pip=False).create(environment)
+    python = str(environment / ('Scripts/python.exe' if os.name == 'nt' else 'bin/python'))
     state, path, _ = launch(tmp_path,
         'import os, sys\nprint(sys.version_info[:2], os.getcwd(), os.environ["MY_SETTING"])\n'
-        'os.write(2, b"native-stderr\\n")\n', env={'MY_SETTING': 'child-only'})
+        'os.write(2, b"native-stderr\\n")\n', python=python, env={'MY_SETTING': 'child-only'})
     try:
         pump_until(lambda: not state.running)
         pump_until(lambda: 'native-stderr' in state.output)
         assert state.error is None, state.error
-        assert '(3, 13)' in state.output and str(tmp_path) in state.output and 'child-only' in state.output
-        assert state._external.capabilities['executable'] == '/usr/bin/python3.13'
+        assert str(sys.version_info[:2]) in state.output and str(tmp_path) in state.output and 'child-only' in state.output
+        assert state._external.capabilities['executable'] == python
         assert 'MY_SETTING' not in os.environ
     finally:
         state.shutdown()
@@ -175,7 +181,14 @@ def test_old_stop_cannot_resume_new_pause(tmp_path):
 
 
 def test_unsupported_python_reports_capability_error(tmp_path):
-    state, _, _ = launch(tmp_path, 'x = 1\n', python='/usr/bin/python3.11')
+    python = os.environ.get('MELTY_TEST_OLD_PYTHON') or shutil.which('python3.11') or shutil.which('python3')
+    if python is None:
+        pytest.skip('Python older than 3.12 is not installed')
+    version = subprocess.check_output([python, '-I', '-c',
+        'import sys; print(sys.version_info >= (3, 12))'], text=True, close_fds=False).strip()
+    if version == 'True':
+        pytest.skip('Set MELTY_TEST_OLD_PYTHON to a Python older than 3.12')
+    state, _, _ = launch(tmp_path, 'x = 1\n', python=python)
     try:
         pump_until(lambda: not state.running)
         assert 'Python 3.12' in state.error
@@ -187,7 +200,7 @@ def test_rejects_mismatched_source_before_launch(tmp_path):
     path = str(tmp_path / 'main.py')
     state = tasks.TaskState()
     with pytest.raises(ValueError, match='source version'):
-        state.run_external('/usr/bin/python3.13', dict(path=path, text='x = 2\n'),
+        state.run_external(sys.executable, dict(path=path, text='x = 2\n'),
                            source_snapshot=SourceSnapshot(path, 'x = 1\n'))
     assert state.process is None
 
@@ -201,7 +214,7 @@ def test_task_honors_selected_interpreter_cwd_environment_and_pending_source(tmp
     cwd = tmp_path / 'working'
     cwd.mkdir()
     source = 'import os,sys\nprint("pending source", sys.version_info[:2], os.getcwd(), os.environ["TASK_TEST"])\n'
-    monkeypatch.setattr(runner, 'project_python', lambda path: '/usr/bin/python3.13')
+    monkeypatch.setattr(runner, 'project_python', lambda path: sys.executable)
     monkeypatch.setattr(analysis, 'analysis_project', lambda **kw: SimpleNamespace(source_paths=[str(tmp_path)]))
     monkeypatch.setattr(tasks, 'task_environment', lambda root: dict(os.environ))
     monkeypatch.setattr(tasks, 'read_tasks', lambda root: {'example': dict(module='main.py', cmd='main.py',
@@ -211,7 +224,7 @@ def test_task_honors_selected_interpreter_cwd_environment_and_pending_source(tmp
         state.run(str(tmp_path), 'example', debug=True, source_snapshot=SourceSnapshot(str(path), source))
         pump_until(lambda: not state.running and 'pending source' in state.output)
         assert state.error is None, state.error
-        assert '(3, 13)' in state.output and str(cwd) in state.output and 'selected' in state.output
+        assert str(sys.version_info[:2]) in state.output and str(cwd) in state.output and 'selected' in state.output
         assert 'old disk source' not in state.output
     finally:
         state.shutdown()
@@ -234,7 +247,7 @@ def test_task_debug_highlight_matches_editor_source_version(tmp_path, monkeypatc
         PendingSave.mark_load(address, original, codec=TextFileCodec)
         PendingSave.queue_save(address, TextFileCodec, data='value = 2\nprint(value)\n', wake=False)
     editor_text = TextFileCodec.load(address)
-    monkeypatch.setattr(runner, 'project_python', lambda path: '/usr/bin/python3.13')
+    monkeypatch.setattr(runner, 'project_python', lambda path: sys.executable)
     monkeypatch.setattr(analysis, 'analysis_project', lambda **kw: SimpleNamespace(source_paths=[str(tmp_path)]))
     monkeypatch.setattr(tasks, 'task_environment', lambda root: dict(os.environ))
     monkeypatch.setattr(tasks, 'read_tasks', lambda root: {'example': dict(module='main.py', cmd='main.py',

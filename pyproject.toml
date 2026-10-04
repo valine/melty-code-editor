@@ -1,3 +1,13 @@
+[dependency-groups]
+macos = ["py2app>=0.28.10,<0.29", "pyobjc-framework-Cocoa>=12,<13"]
+
+[tool.melty.app]
+name = "Melty Code Editor"
+bundle_id = "org.meltygui.code-editor"
+version = "0.1.0"
+entry = "editor.py"
+icon = "icon/melty-code-editor.png"
+
 [tool.melty.tasks]
 test = "python -m pytest tests -q"
 smoke = "MELTY_BENCH=1 python editor.py editor.py"

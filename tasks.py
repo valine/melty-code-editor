@@ -403,15 +403,15 @@ class TaskState(DictConversion):
                 # Session/cwd setup executes in the child; Popen remains on
                 # its posix_spawn path even with the editor's live threads.
                 options = {}
+                setup = 'import os,sys; '
                 if sys.platform == 'win32':
-                    command = [sys.executable, '-c',
-                        'import os,sys; os.chdir(sys.argv[1]); os.execvpe(sys.argv[2],sys.argv[2:],os.environ)',
-                        str(cwd.resolve()), *command]
                     options['creationflags'] = subprocess.CREATE_NEW_PROCESS_GROUP
                 else:
-                    command = [shutil.which('setsid'), shell, '-c',
-                               'cd -- "$1" || exit; shift; exec "$@"',
-                               'melty-task', str(cwd.resolve()), *command]
+                    # macOS has setsid(2), but no Linux `setsid` executable.
+                    setup += 'os.setsid(); '
+                command = [sys.executable, '-I', '-c', setup +
+                    'os.chdir(sys.argv[1]); os.execvpe(sys.argv[2],sys.argv[2:],os.environ)',
+                    str(cwd.resolve()), *command]
                 process = subprocess.Popen(command, env=env, stdin=stdin,
                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=False, **options)
         except (OSError, ValueError, TypeError) as error:

@@ -1,5 +1,4 @@
 # Development installs from the sibling checkouts (not yet published).
---find-links ../meltygui/dist/release
 # `claude`: the Claude Code chat tile's backend (claude-agent-sdk).
 -e ../meltygui[tensor,claude]
 -e ../meltygui-pro
