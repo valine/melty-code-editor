@@ -291,6 +291,14 @@ def test_output_overlay_tracks_live_tile_bounds(monkeypatch):
     assert placed[-1][1] == (50, 84, 600, 448)
     assert painted == [pane, pane, pane]  # normal body draws do not paint twice
 
+    # Waiting stdin reserves its own row; replay keeps the editable field and
+    # output separate at the new tile bounds.
+    parent.misc['task_state'].waiting_for_input = True
+    field = state._input_view = object()
+    tasks.draw_tasks_overlay_background(parent, None)
+    assert placed[-2] == (field, (50, 500, 492, 28), parent.abs_clip_rect)
+    assert placed[-1] == (pane, (50, 84, 600, 416), parent.abs_clip_rect)
+
 
 def test_toolbar_overlay_moves_buttons_and_shadows_together(monkeypatch):
     from types import SimpleNamespace as NS

@@ -191,7 +191,8 @@ def default_project_location():
         root = project_for(selected)
         if root:
             return pathlib.Path(root).parent
-    return pathlib.Path.home()
+    from meltygui.core.runtime.paths import default_file_directory
+    return default_file_directory()
 
 
 def project_created(root):

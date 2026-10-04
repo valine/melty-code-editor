@@ -32,21 +32,25 @@ back to the selected tab or saved project when unlinked. Run identity and
 output stay separate from the per-project picker selection.
 The Run menu (editor.py) lists the same tasks and runs one in the first Tasks
 tile through `request_run`.
+
+On iOS both Run and Debug execute Python modules in the embedded interpreter.
+Project imports and text console I/O are scoped to the execution thread, while
+the module cache, app cwd and environment are shared. Shell tasks are refused.
 """
 from meltygui.model.source_snapshot_model import CodeIdentityMap
 
 import atexit
 import codecs
+import importlib.machinery
 import json
 import os
 import shlex
 import signal
-import subprocess
 import sys
 import threading
 import time
 import tempfile
-from contextlib import ExitStack
+from contextlib import ExitStack, contextmanager
 from pathlib import Path
 
 from meltygui import imgui
@@ -80,6 +84,152 @@ project_tasks = globals().get("project_tasks", ProjectTasks())
 
 class _LocalDebugStopped(BaseException):
     """Cooperative cancellation of the session's local execution thread."""
+
+
+_LOCAL_CONTEXT = globals().get('_LOCAL_CONTEXT', threading.local())
+_LOCAL_CONTEXT_LOCK = globals().get('_LOCAL_CONTEXT_LOCK', threading.RLock())
+_LOCAL_CONTEXT_USERS = globals().get('_LOCAL_CONTEXT_USERS', 0)
+_LOCAL_PROJECT = globals().get('_LOCAL_PROJECT')
+_LOCAL_STREAMS = globals().get('_LOCAL_STREAMS', {})
+
+
+class _LocalProjectFinder:
+    """Normal imports on the task thread, without changing the app's sys.path.
+
+    Modules keep their canonical sys.modules identity, including circular
+    imports and live edits. This is a shared interpreter, not a separate venv.
+    Threads started by user code do not inherit this task's import/output scope.
+    """
+    def find_spec(self, fullname, path=None, target=None):
+        roots = getattr(_LOCAL_CONTEXT, 'paths', ())
+        if roots and path is None:
+            return importlib.machinery.PathFinder.find_spec(fullname, roots, target)
+        return None
+
+
+_LOCAL_FINDER = globals().get('_LOCAL_FINDER', _LocalProjectFinder())
+
+
+class _LocalStream:
+    """Route Python text I/O on the execution thread; leave other threads alone."""
+    def __init__(self, original, name):
+        self.original, self.name = original, name
+
+    def __getattr__(self, name):
+        return getattr(self.original, name)
+
+    def write(self, text):
+        if not isinstance(text, str):
+            raise TypeError('write() argument must be str')
+        context = getattr(_LOCAL_CONTEXT, 'execution', None)
+        if context is None or self.name == 'stdin':
+            return self.original.write(text)
+        state, execution = context
+        if text:
+            state._post(execution, 'output', text)
+        return len(text)
+
+    def flush(self):
+        if getattr(_LOCAL_CONTEXT, 'execution', None) is None:
+            return self.original.flush()
+
+    def writelines(self, lines):
+        for line in lines:
+            self.write(line)
+
+    def isatty(self):
+        return False if getattr(_LOCAL_CONTEXT, 'execution', None) else self.original.isatty()
+
+    def readline(self, size=-1):
+        context = getattr(_LOCAL_CONTEXT, 'execution', None)
+        if context is None or self.name != 'stdin':
+            return self.original.readline(size)
+        return context[0]._read_local_input(size)
+
+    def read(self, size=-1):
+        if getattr(_LOCAL_CONTEXT, 'execution', None) is None or self.name != 'stdin':
+            return self.original.read(size)
+        result = ''
+        while size < 0 or len(result) < size:
+            line = self.readline(-1 if size < 0 else size - len(result))
+            if not line:
+                break
+            result += line
+        return result
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        line = self.readline()
+        if not line:
+            raise StopIteration
+        return line
+
+
+def _check_project_imports(paths):
+    """Refuse conflicting cached names instead of running another project's code."""
+    names = set()
+    for root in paths:
+        for entry in Path(root).iterdir():
+            if entry.suffix == '.py' and entry.stem.isidentifier():
+                names.add(entry.stem)
+            elif entry.is_dir() and entry.name.isidentifier():
+                names.add(entry.name)
+    for name in names.intersection(sys.modules):
+        module = sys.modules[name]
+        if module is None:
+            continue
+        spec = importlib.machinery.PathFinder.find_spec(name, paths)
+        if spec is None:
+            continue
+        if spec.origin is not None:
+            loaded = getattr(module, '__file__', None)
+            matches = loaded is not None and os.path.realpath(loaded) == os.path.realpath(spec.origin)
+        else:
+            matches = tuple(getattr(module, '__path__', ())) == tuple(spec.submodule_search_locations or ())
+        if not matches:
+            raise ImportError(f'Local execution shares imported modules: {name!r} is already loaded '
+                              'from another location. Use a unique package name or restart the app.')
+
+
+@contextmanager
+def _local_execution_context(state, execution, paths):
+    """Own temporary I/O routing and the finder across concurrent local tasks."""
+    global _LOCAL_CONTEXT_USERS, _LOCAL_PROJECT
+    with _LOCAL_CONTEXT_LOCK:
+        if _LOCAL_CONTEXT_USERS and _LOCAL_PROJECT != state._project_root:
+            raise RuntimeError('Local execution shares one project import context. '
+                               'Stop the other project before running this one.')
+        _check_project_imports(paths)
+        if not _LOCAL_CONTEXT_USERS:
+            _LOCAL_PROJECT = state._project_root
+            for name in ('stdin', 'stdout', 'stderr'):
+                original = getattr(sys, name)
+                wrapper = _LocalStream(original, name)
+                _LOCAL_STREAMS[name] = wrapper
+                setattr(sys, name, wrapper)
+            # Respect other import hooks, builtins and frozen modules.
+            index = next((i for i, finder in enumerate(sys.meta_path)
+                          if finder is importlib.machinery.PathFinder), len(sys.meta_path))
+            sys.meta_path.insert(index, _LOCAL_FINDER)
+        _LOCAL_CONTEXT_USERS += 1
+    _LOCAL_CONTEXT.execution = (state, execution)
+    _LOCAL_CONTEXT.paths = paths
+    try:
+        yield
+    finally:
+        del _LOCAL_CONTEXT.execution, _LOCAL_CONTEXT.paths
+        with _LOCAL_CONTEXT_LOCK:
+            _LOCAL_CONTEXT_USERS -= 1
+            if not _LOCAL_CONTEXT_USERS:
+                _LOCAL_PROJECT = None
+                if _LOCAL_FINDER in sys.meta_path:
+                    sys.meta_path.remove(_LOCAL_FINDER)
+                for name, wrapper in _LOCAL_STREAMS.items():
+                    if getattr(sys, name) is wrapper:
+                        setattr(sys, name, wrapper.original)
+                _LOCAL_STREAMS.clear()
 
 
 class CapturedScope:
@@ -117,11 +267,12 @@ class LocalFrameInspection:
 
 
 @no_save('_follow', '_output_scroll_y', '_output_view', '_toolbar_height',
-         '_toolbar', '_selector_view', '_execution')
+         '_toolbar', '_selector_view', '_execution', '_input_view')
 class TaskViewState(DictConversion):
     """Presentation owned by one Tasks view, independent of its shared session."""
     def __init__(self):
         super().__init__()
+        self.input_text = ''
         self._follow = True
         self._output_scroll_y = None
         self._output_view = None
@@ -129,6 +280,7 @@ class TaskViewState(DictConversion):
         self._toolbar = None
         self._selector_view = None
         self._execution = None
+        self._input_view = None
 
 
 @no_save('process', 'thread', 'output', 'running', 'exit', 'started', 'ended', 'error',
@@ -136,7 +288,8 @@ class TaskViewState(DictConversion):
          '_monitoring_tool', '_debug_thread_id', '_debug_codes', '_debug_source',
          '_stop_requested', '_resume_event', '_step_mode', '_step_frame', '_paused_frame',
          '_breakpoint_lines', 'unresolved_breakpoints', '_disabled_lines', '_breakpoint_metadata',
-         '_sources', '_code_sources', '_line_codes', '_breakpoints_by_path', '_source_callbacks', '_project_root', '_executing', '_external')
+         '_sources', '_code_sources', '_line_codes', '_breakpoints_by_path', '_source_callbacks', '_project_root', '_executing', '_external',
+         '_local_execution', 'waiting_for_input', '_input_condition', '_input_lines', '_input_eof')
 class TaskState(DictConversion):
     _disabled_lines = False
 
@@ -179,15 +332,25 @@ class TaskState(DictConversion):
         self._project_root = None
         self._executing = False
         self._external = None
+        self._local_execution = False
+        self.waiting_for_input = False
+        self._input_condition = threading.Condition()
+        self._input_lines = []
+        self._input_eof = False
 
     def ensure_runtime(self):
         """Add session fields to pre-feature live states without replacing them."""
-        if any(name not in vars(self) for name in ('inspection', '_breakpoint_metadata', '_sources', '_executing', '_external')):
+        if any(name not in vars(self) for name in ('inspection', '_breakpoint_metadata', '_sources', '_executing', '_external', '_local_execution')):
+            local_execution = isinstance(self.process, threading.Thread)
             defaults = TaskState()
             for name, value in vars(defaults).items():
                 if name not in vars(self):
                     setattr(self, name, value)
-            self._executing = bool(self.running and self.debug_enabled and self._monitoring_tool is not None)
+            self._local_execution = local_execution
+            self._executing = bool(self.running and local_execution and self._monitoring_tool is not None)
+            if self._monitoring_tool is not None and local_execution:
+                sys.monitoring.register_callback(self._monitoring_tool, sys.monitoring.events.INSTRUCTION,
+                                                 self._on_local_instruction)
         migrated_codes = not isinstance(self._debug_codes, CodeIdentityMap)
         if migrated_codes:
             self._debug_codes = CodeIdentityMap(self._debug_codes)
@@ -330,6 +493,11 @@ class TaskState(DictConversion):
         elif kind == 'paused':
             self.paused = True
             self.replace_inspection(value)
+        elif kind == 'inspection':
+            self.replace_inspection(value)
+            self.inspection.current = False
+        elif kind == 'input':
+            self.waiting_for_input = value
         elif kind == 'resumed':
             self.paused = False
             if self.inspection:
@@ -341,6 +509,7 @@ class TaskState(DictConversion):
         elif kind == 'exited':
             self._detach_breakpoints()
             self.running, self.paused = False, False
+            self.waiting_for_input = False
             self.exit, self.ended = value, time.monotonic()
             if self.inspection:
                 self.inspection.current = False
@@ -378,10 +547,14 @@ class TaskState(DictConversion):
             self.error = f'cwd is not a folder: {cwd}'
             self._changed()
             return
+        if sys.platform == 'ios':
+            self._start_ios_module(root, task, debug, file_metadata, source_snapshot)
+            return
         if debug:
             self._start_external_debug(root, task, file_metadata, source_snapshot)
             return
         self._external = None
+        self._local_execution = False
         self.debug_enabled, self.paused = False, False
         self.replace_inspection(None)
         self.output = f'$ {task["cmd"]}\n'
@@ -389,6 +562,7 @@ class TaskState(DictConversion):
         self.started, self.ended = time.monotonic(), 0.0
         try:
             import shutil
+            import subprocess
             env = task_environment(root)
             env.update(task['env'])
             with ExitStack() as stack:
@@ -448,11 +622,13 @@ class TaskState(DictConversion):
             if self.running:
                 self._external.send({'op': 'stop'})
             return
-        if self.debug_enabled:
+        if self._local_execution:
             if self.running:
                 self._stop_requested.set()
                 self._update_monitoring()
                 self._resume_event.set()
+                with self._input_condition:
+                    self._input_condition.notify_all()
             return
         if process is None or process.poll() is not None:
             return
@@ -488,7 +664,7 @@ class TaskState(DictConversion):
         """Explicitly sacrifice remote references when cooperative stop cannot return."""
         if self._external is not None:
             self._external.terminate()
-        elif not self.debug_enabled and self.process is not None:
+        elif not self._local_execution and self.process is not None:
             self._kill_process(self.process)
 
     def resume(self, mode='continue'):
@@ -539,6 +715,8 @@ class TaskState(DictConversion):
             self._changed()
 
     def run_external(self, python, request, environment=None, *, file_metadata=None, source_snapshot=None):
+        if sys.platform == 'ios':
+            raise RuntimeError('iOS runs Python in the embedded interpreter; subprocess debugging is unavailable.')
         from external_debugger import ExternalExecution
         if self.running:
             raise RuntimeError('Stop the current execution before starting Debug')
@@ -548,6 +726,7 @@ class TaskState(DictConversion):
             dict(os.environ) if environment is None else environment, source_snapshot, OUTPUT_LIMIT)
         self._detach_breakpoints()
         self._external = execution
+        self._local_execution = False
         self._sources, self._line_codes, self._breakpoints_by_path = {}, {}, {}
         self._breakpoint_metadata = file_metadata
         self._debug_source = source_snapshot
@@ -565,6 +744,9 @@ class TaskState(DictConversion):
 
     def _start_local_debug(self, root, task, file_metadata, source_snapshot=None):
         """Explicit in-process mode for callers that want native object references."""
+        if sys.platform == 'ios':
+            self._start_ios_module(root, task, True, file_metadata, source_snapshot)
+            return
         from meltygui_pro.models.project_function_runner import project_python
         try:
             selected = project_python(root) or sys.executable
@@ -592,19 +774,51 @@ class TaskState(DictConversion):
                 self.error = str(error)
         self._changed()
 
-    def run_local(self, source, path, *, file_metadata=None, namespace=None, package=None, disk_mtime=None, source_snapshot=None, project_root=None):
-        """Debug source in this interpreter, retaining actual local objects.
+    def _start_ios_module(self, root, task, debug, file_metadata, source_snapshot=None):
+        """iOS has one embedded interpreter, with no shell or project processes."""
+        try:
+            if 'module' not in task:
+                raise ValueError('iOS supports Python module tasks; shell commands and subprocesses are unavailable.')
+            path = (Path(root) / task['module']).resolve()
+            if task['env']:
+                raise ValueError('Local execution cannot change the app process environment.')
+            package_root = path.parent
+            while (package_root / '__init__.py').is_file():
+                package_root = package_root.parent
+            # Generated module entries use the package parent as their desktop
+            # cwd. Here it is an import root; arbitrary cwd overrides are refused.
+            cwd = (Path(root) / task['cwd']).resolve()
+            if cwd not in (Path(root).resolve(), package_root):
+                raise ValueError('Local execution cannot change the app working directory. '
+                                 'Use paths relative to __file__ for project resources.')
+            from meltygui.model.source_snapshot_model import SourceSnapshot
+            snapshot = source_snapshot or SourceSnapshot(str(path), None)
+            self.run_local(snapshot.text, str(path), debug=debug,
+                           file_metadata=file_metadata, source_snapshot=snapshot, project_root=root)
+            global _last
+            if self.task is not None:
+                _last = (str(root), self.task)
+        except (OSError, ValueError, SyntaxError, RuntimeError) as error:
+            self.error = str(error)
+            self._changed()
+
+    def run_local(self, source, path, *, debug=True, file_metadata=None, namespace=None,
+                  package=None, disk_mtime=None, source_snapshot=None, project_root=None):
+        """Run source in this interpreter, retaining actual local objects.
 
         This explicit local context shares installed imports, cwd and environment
-        with the editor. It does not impersonate a project subprocess. Stop is
-        cooperative at Python monitoring events; native blocking calls must return.
+        with the editor. It does not impersonate a project subprocess. Project
+        imports use normal canonical modules and stay cached across runs; live
+        edits patch those same objects. Stop is cooperative at Python monitoring
+        events; native blocking calls must return. Child threads are user-owned
+        and do not inherit task I/O or imports. Direct native/fd output is not captured.
         """
         self.ensure_runtime()
         if self.running:
-            raise RuntimeError('Stop the current execution before starting Local Debug')
+            raise RuntimeError('Stop the current execution before starting local execution')
         from meltygui.model.source_snapshot_model import SourceSnapshot
         if not hasattr(sys, 'monitoring'):
-            raise RuntimeError('Local Debug requires Python 3.12 or newer')
+            raise RuntimeError('Local execution requires Python 3.12 or newer')
         path = os.path.abspath(path)
         if source_snapshot is not None:
             same_path = source_snapshot.path == path
@@ -615,6 +829,7 @@ class TaskState(DictConversion):
                 raise ValueError('Prepared source does not match the requested execution source version')
         self._detach_breakpoints()
         self._external = None
+        self._local_execution = True
         self._debug_source = source_snapshot or SourceSnapshot(path, source, disk_mtime)
         self._debug_codes = CodeIdentityMap()
         self._sources, self._code_sources, self._line_codes = {}, CodeIdentityMap(), {}
@@ -622,23 +837,63 @@ class TaskState(DictConversion):
         self._project_root = os.path.realpath(project_root or os.path.dirname(path))
         self._breakpoint_lines = set()
         self.unresolved_breakpoints = []
-        self._breakpoint_metadata = file_metadata
+        self._breakpoint_metadata = file_metadata if debug else None
         self._stop_requested.clear()
         self._resume_event.clear()
+        self.waiting_for_input = False
+        self._input_lines, self._input_eof = [], False
         self._step_mode, self._step_frame = 'continue', None
         self._disabled_lines = False
-        self.debug_enabled, self.paused = True, False
+        self.debug_enabled, self.paused = debug, False
         self.error, self.exit = None, None
-        self.output = f'Local Debug: {path}\n'
+        self.output = f'Local {"Debug" if debug else "Run"}: {path}\n'
+        if sys.platform == 'ios':
+            self.output += f'Shared app working directory: {os.getcwd()}\n'
         self.started, self.ended = time.monotonic(), 0.0
         self.replace_inspection(None)
         execution = threading.Thread(target=self._execute_local,
-            args=(dict(namespace or {}), package), name='melty-local-debug', daemon=True)
+            args=(dict(namespace or {}), package), name='melty-local-python', daemon=True)
         self.process = self.thread = execution
         self.running = True
         _LIVE.add(self)
         execution.start()
         self._changed()
+
+    def submit_input(self, text):
+        """Send a line to the current local task's input()/sys.stdin."""
+        if not self.running or not self._local_execution:
+            raise RuntimeError('No local Python task is running')
+        if not isinstance(text, str):
+            raise TypeError('Console input must be text')
+        with self._input_condition:
+            if self._input_eof:
+                raise ValueError('Console input is closed for this run')
+            self._input_lines.append(text if text.endswith('\n') else text + '\n')
+            self._input_condition.notify_all()
+
+    def close_input(self):
+        with self._input_condition:
+            self._input_eof = True
+            self._input_condition.notify_all()
+
+    def _read_local_input(self, size=-1):
+        if size == 0:
+            return ''
+        with self._input_condition:
+            if not self._input_lines and not self._input_eof:
+                self._post(self.process, 'input', True)
+            self._input_condition.wait_for(lambda: self._input_lines or self._input_eof
+                                           or self._stop_requested.is_set())
+            self._post(self.process, 'input', False)
+            if self._stop_requested.is_set():
+                self._cancel_local()
+            if not self._input_lines:
+                return ''
+            text = self._input_lines.pop(0)
+            if size >= 0 and len(text) > size:
+                self._input_lines.insert(0, text[size:])
+                text = text[:size]
+            return text
 
     def _detach_breakpoints(self):
         metadata = getattr(self, '_breakpoint_metadata', None)
@@ -673,6 +928,8 @@ class TaskState(DictConversion):
         self._update_monitoring(added)
 
     def _breakpoints_changed(self, path=None):
+        if not self.debug_enabled:
+            return
         from meltygui.model.breakpoint_model import file_breakpoints
         source = self._sources.get(path) if path is not None else self._debug_source
         if source is None or source.path not in self._line_codes:
@@ -682,6 +939,8 @@ class TaskState(DictConversion):
 
     def set_breakpoints(self, path, source, index, breakpoints):
         """Resolve only this file's keys; update only affected code objects."""
+        if not self.debug_enabled:
+            return
         snapshot = self._sources.get(path)
         if snapshot is None or not snapshot.matches(path, source):
             return
@@ -728,7 +987,7 @@ class TaskState(DictConversion):
         if root is None or not path.endswith('.py') or not path.startswith(root + os.sep):
             return sys.monitoring.DISABLE
         if self._stop_requested.is_set():
-            raise _LocalDebugStopped()
+            self._cancel_local()
         if code not in self._code_sources:
             from meltygui.model.source_snapshot_model import SourceSnapshot
             try:
@@ -750,7 +1009,7 @@ class TaskState(DictConversion):
             self._post(self.process, 'source', source)
             self._resume_event.wait()
             if self._stop_requested.is_set():
-                raise _LocalDebugStopped()
+                self._cancel_local()
             self._resume_event.clear()
         # Discovery is per code object, not per call. LINE remains local.
         return sys.monitoring.DISABLE
@@ -773,6 +1032,7 @@ class TaskState(DictConversion):
             monitoring.register_callback(tool, monitoring.events.PY_RETURN, self._on_debug_return)
             monitoring.register_callback(tool, monitoring.events.PY_UNWIND, self._on_debug_return)
             monitoring.register_callback(tool, monitoring.events.PY_START, self._on_debug_start)
+            monitoring.register_callback(tool, monitoring.events.INSTRUCTION, self._on_local_instruction)
             self._update_monitoring()
         except BaseException:
             self._remove_monitoring()
@@ -789,9 +1049,14 @@ class TaskState(DictConversion):
             source = self._code_sources.get(code, self._debug_source)
             breakpoints = self._breakpoints_by_path.get(source.path, set())
             mask = events.PY_RETURN if self._step_mode != 'continue' else 0
+            if not self.debug_enabled and code is self._debug_source.compiled:
+                # Keep ordinary Run's resulting live values available to Locals.
+                mask |= events.PY_RETURN
             if (lines.intersection(breakpoints) or self._step_mode != 'continue'
                     or self._stop_requested.is_set()):
                 mask |= events.LINE
+            if self._stop_requested.is_set():
+                mask |= events.INSTRUCTION
             sys.monitoring.set_local_events(self._monitoring_tool, code, mask)
         if self._disabled_lines:
             # CPython's API reactivates disabled locations across tools. It
@@ -808,9 +1073,26 @@ class TaskState(DictConversion):
         for code in self._debug_codes:
             sys.monitoring.set_local_events(tool, code, 0)
         for event in (sys.monitoring.events.LINE, sys.monitoring.events.PY_RETURN,
-                      sys.monitoring.events.PY_UNWIND, sys.monitoring.events.PY_START):
+                      sys.monitoring.events.PY_UNWIND, sys.monitoring.events.PY_START,
+                      sys.monitoring.events.INSTRUCTION):
             sys.monitoring.register_callback(tool, event, None)
         sys.monitoring.free_tool_id(tool)
+
+    def _on_local_instruction(self, code, instruction_offset):
+        # LINE alone cannot stop a tight single-line loop. INSTRUCTION runs
+        # before the opcode, preserving finally handlers (JUMP exceptions can
+        # skip them on Python 3.12). Enable only while stopping tracked project
+        # code, after library/native cleanup has returned.
+        if (threading.get_ident() == self._debug_thread_id and self._executing
+                and self._stop_requested.is_set()):
+            self._cancel_local()
+
+    def _cancel_local(self):
+        # Inject once, allowing user finally/context-manager cleanup to run.
+        # A task that deliberately catches BaseException can ignore Stop; this
+        # remains cooperative cancellation, not a force-kill of app code.
+        self._executing = False
+        raise _LocalDebugStopped()
 
     def _execute_local(self, namespace, package):
         import builtins
@@ -818,11 +1100,6 @@ class TaskState(DictConversion):
         self._debug_thread_id = threading.get_ident()
         execution = threading.current_thread()
         local_builtins = dict(vars(builtins))
-        def task_print(*args, sep=' ', end='\n', file=None, flush=False):
-            if file is not None:
-                return builtins.print(*args, sep=sep, end=end, file=file, flush=flush)
-            self._post(execution, 'output', sep.join(str(arg) for arg in args) + end)
-        local_builtins['print'] = task_print
         result = 0
         try:
             if self._debug_source.text is None:
@@ -830,13 +1107,16 @@ class TaskState(DictConversion):
                 self._debug_source.text = PendingSave.current_file_text(self._debug_source.path)
                 if self._debug_source.text is None:
                     raise OSError(f'Cannot read {self._debug_source.path}')
+            parts = []
+            parent = Path(self._debug_source.path).parent
+            while (parent / '__init__.py').is_file():
+                parts.insert(0, parent.name)
+                parent = parent.parent
             if package is None:
-                parts = []
-                parent = Path(self._debug_source.path).parent
-                while (parent / '__init__.py').is_file():
-                    parts.insert(0, parent.name)
-                    parent = parent.parent
                 package = '.'.join(parts)
+            paths = tuple(dict.fromkeys(str(path) for path in (
+                Path(self._debug_source.path).parent, parent, Path(self._project_root),
+                Path(self._project_root) / 'src') if path.is_dir()))
             namespace.update(__name__='__main__', __file__=self._debug_source.path,
                              __package__=package, __builtins__=local_builtins)
             source = self._debug_source.prepare()
@@ -845,13 +1125,13 @@ class TaskState(DictConversion):
             if self._stop_requested.is_set():
                 raise _LocalDebugStopped()
             self._resume_event.clear()
-            self._install_monitoring()
-            compiled = source.compiled
-            self._executing = True
-            try:
-                exec(compiled, namespace)
-            finally:
-                self._executing = False
+            with _local_execution_context(self, execution, paths):
+                self._install_monitoring()
+                self._executing = True
+                try:
+                    exec(source.compiled, namespace)
+                finally:
+                    self._executing = False
         except _LocalDebugStopped:
             result = -signal.SIGTERM
         except SystemExit as error:
@@ -869,10 +1149,10 @@ class TaskState(DictConversion):
             self._post(execution, 'exited', result)
 
     def _on_debug_line(self, code, line):
-        if threading.get_ident() != self._debug_thread_id:
+        if threading.get_ident() != self._debug_thread_id or not self._executing:
             return
         if self._stop_requested.is_set():
-            raise _LocalDebugStopped()
+            self._cancel_local()
         frame = None
         source = self._code_sources.get(code, self._debug_source)
         hit = line in self._breakpoints_by_path.get(source.path, set())
@@ -896,11 +1176,14 @@ class TaskState(DictConversion):
         self._pause_local(frame)
 
     def _on_debug_return(self, code, instruction_offset, value):
-        if threading.get_ident() != self._debug_thread_id:
+        if threading.get_ident() != self._debug_thread_id or not self._executing:
             return
         if self._stop_requested.is_set():
-            raise _LocalDebugStopped()
+            self._cancel_local()
         frame = sys._getframe(1)
+        if not self.debug_enabled and code is self._debug_source.compiled:
+            self._post(self.process, 'inspection', LocalFrameInspection(
+                frame, self._debug_source, self._code_sources))
         if frame is self._step_frame:
             self._step_frame = frame.f_back
         # PY_YIELD is deliberately not registered: suspension is not return.
@@ -914,7 +1197,7 @@ class TaskState(DictConversion):
         self._post(self.process, 'paused', inspection)
         self._resume_event.wait()  # releases the GIL; UI/other threads continue
         if self._stop_requested.is_set():
-            raise _LocalDebugStopped()
+            self._cancel_local()
         self._step_frame = frame.f_back if self._step_mode == 'step_out' else frame
         self._update_monitoring()
         self._paused_frame = None
@@ -1149,11 +1432,45 @@ def status_text(state):
         return state.error
     if state.paused:
         return 'paused'
+    if state.waiting_for_input:
+        return 'waiting for input'
     if state.running:
         return 'running'
     if state.exit is not None:
         return f'exit {state.exit} · {state.ended - state.started:.1f} s'
     return ''
+
+
+def task_input_layout(left, top, width):
+    button_width, gap, height = Melty.px(50), Melty.px(4), Melty.px(28)
+    field_width = max(0, width - 2 * (button_width + gap))
+    return ((left, top, field_width, height),
+            (left + field_width + gap, top, button_width, height),
+            (left + field_width + button_width + 2 * gap, top, button_width, height))
+
+
+def draw_task_input(state, view_state, draw_state, width, unique, paint=True):
+    """Task-owned stdin, shared by the Tasks tile and detached Console view."""
+    from meltygui.view.text_view import draw_text
+    left, top = imgui.get_cursor_screen_pos()
+    field, send, eof = task_input_layout(left, top, width)
+    _, view_state.input_text, input_ds = draw_text(getattr(view_state, 'input_text', ''),
+        name=f'console-input##{unique}', single_line=True, width=field[2], height=field[3],
+        syntax_highlight=False, autocomplete=False, wrap=False, show_header=False,
+        show_widgets=False, disable_scroll=True, return_extras=True)
+    if not paint:
+        view_state._input_view = input_ds
+    imgui.set_cursor_screen_pos(send[:2])
+    if flat_button('Send', draw_state, f'console-send::{unique}',
+                   width=send[2], height=send[3], paint=paint):
+        text, view_state.input_text = view_state.input_text, ''
+        state.submit_input(text)
+        state.output = (state.output + text + '\n')[-OUTPUT_LIMIT:]
+        state._changed()
+    imgui.set_cursor_screen_pos(eof[:2])
+    if flat_button('EOF', draw_state, f'console-eof::{unique}',
+                   width=eof[2], height=eof[3], paint=paint):
+        state.close_input()
 
 
 def task_toolbar_layout(left, top, width, height, toolbar_left, toolbar_height):
@@ -1221,6 +1538,13 @@ def draw_tasks_overlay(draw_state, draw_list):
                     hovered=None if enabled else False, tooltip=name.capitalize())
         add_shadow(rect, corner_radius=Melty.px(6), clip=draw_state.abs_clip_rect,
                    draw_state=draw_state, group='task_buttons')
+    if state.waiting_for_input:
+        top = draw_state.abs_top + max(Melty.px(OUTPUT_TOP),
+            draw_state.height - view_state._toolbar_height - Melty.px(32))
+        _, send, eof = task_input_layout(draw_state.abs_left, top, draw_state.width)
+        for label, rect in (('Send', send), ('EOF', eof)):
+            flat_button(label, draw_state, view_id=None, width=rect[2], height=rect[3],
+                        pos=rect[:2], layout=False, draw_list=draw_list)
 
 
 def draw_tasks_overlay_background(draw_state, draw_list):
@@ -1240,7 +1564,15 @@ def draw_tasks_overlay_background(draw_state, draw_list):
     if view_state._output_view is None:
         return
     top = Melty.px(OUTPUT_TOP)
-    height = max(0, draw_state.height - view_state._toolbar_height - top)
+    state = draw_state.misc.get('task_state')
+    input_h = Melty.px(32) if state is not None and state.waiting_for_input else 0
+    height = max(0, draw_state.height - view_state._toolbar_height - top - input_h)
+    if input_h and getattr(view_state, '_input_view', None) is not None:
+        rect, _, _ = task_input_layout(draw_state.abs_left, draw_state.abs_top + top + height,
+                                       draw_state.width)
+        place_overlay_view(view_state._input_view, rect, draw_state.abs_clip_rect)
+        if replay:
+            paint_cached_view(view_state._input_view)
     place_overlay_view(view_state._output_view,
                        (draw_state.abs_left, draw_state.abs_top + top,
                         draw_state.width, height),
@@ -1342,7 +1674,12 @@ def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
         output_root = state.project or root
         imgui.text(f'{Path(output_root).name if output_root else "no project"}  {status_text(state)}')
     output_top = px(OUTPUT_TOP)
-    output_h = max(0, toolbar_y - output_top)
+    input_h = px(32) if state.waiting_for_input else 0
+    output_h = max(0, toolbar_y - output_top - input_h)
+    view_state._input_view = None
+    if input_h:
+        imgui.set_cursor_screen_pos((body_left, body_top + output_top + output_h))
+        draw_task_input(state, view_state, draw_state, width, unique, paint=False)
     imgui.set_cursor_screen_pos((body_left, body_top + output_top))
     _, _, output_ds = draw_text(state.output, name=f'task-output##{unique}',
                                 width=draw_state.content_width, height=output_h,
@@ -1367,6 +1704,7 @@ def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
 class ConsoleViewState(DictConversion):
     def __init__(self):
         super().__init__()
+        self.input_text = ''
         self._follow = True
         self._output_scroll_y = None
 
@@ -1405,6 +1743,10 @@ def draw_console(input_value: object, debugger_state: TaskState = None,
             top += px(28)
     imgui.set_cursor_screen_pos((left, top))
     imgui.text(status_text(debugger_state))
+    if debugger_state.waiting_for_input:
+        draw_task_input(debugger_state, _console_view_state, draw_state,
+                        draw_state.content_width or draw_state.width or px(240), 'session')
+        imgui.set_cursor_screen_pos((left, top + px(52)))
     _, _, output_ds = draw_text(debugger_state.output, name='session-output',
         editable=False, syntax_highlight=False, autocomplete=False, wrap=True,
         show_header=False, show_widgets=False, shadow=False, return_extras=True)
