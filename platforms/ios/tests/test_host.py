@@ -158,6 +158,7 @@ class PackagingTests(unittest.TestCase):
         info = plistlib.loads((ROOT / "Host/Info.plist").read_bytes())
         self.assertIs(info["UIFileSharingEnabled"], True)
         self.assertIs(info["LSSupportsOpeningDocumentsInPlace"], True)
+        self.assertIs(info["CADisableMinimumFrameDurationOnPhone"], True)
         self.assertIs(info["UIApplicationSceneManifest"]["UIApplicationSupportsMultipleScenes"], False)
 
     def test_generator_rejects_wrong_cpython_minor(self):
@@ -176,7 +177,9 @@ class BootstrapTests(unittest.TestCase):
         self.bootstrap = load("isolated_bootstrap", ROOT / "Python/melty_ios_bootstrap.py")
         self.output = []
         self.native = types.SimpleNamespace(write_log=self.output.append, request_frame=mock.Mock(),
-                                            set_keyboard_visible=mock.Mock())
+                                            set_keyboard_visible=mock.Mock(), set_safe_zone=mock.Mock(),
+                                            get_clipboard_text=mock.Mock(return_value="cached paste \N{SNOWMAN}"),
+                                            set_clipboard_text=mock.Mock())
         self.config = {name: str(self.root / name) for name in ("documents", "workspace", "application_support", "cache")}
         self.config.update(app_id="melty-code-editor", renderer_available=True, entry_module="test_ios_application")
         self.app = types.SimpleNamespace(frame=mock.Mock(return_value=False), suspend=mock.Mock(),
@@ -186,8 +189,22 @@ class BootstrapTests(unittest.TestCase):
     @contextlib.contextmanager
     def environment(self):
         with mock.patch.dict(sys.modules, {"_melty_ios": self.native, "test_ios_application": self.entry}), \
+             mock.patch.dict(os.environ), \
              contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
             yield
+
+    def test_native_library_and_certificate_paths_follow_the_installed_container(self):
+        installed = self.root / "new-container/Melty.app"
+        certificate = installed / "app_packages/certifi/cacert.pem"
+        certificate.parent.mkdir(parents=True)
+        certificate.write_text("bundled certificates")
+        with self.environment(), mock.patch.object(self.bootstrap, "__file__", str(installed / "host/bootstrap.py")):
+            os.environ.pop("SSL_CERT_FILE", None)
+            self.bootstrap.initialize(self.config)
+            self.assertEqual(os.environ["SPATIALINDEX_C_LIBRARY"],
+                             str(installed / "Frameworks/spatialindex_c.framework/spatialindex_c"))
+            self.assertEqual(os.environ["DYLD_FRAMEWORK_PATH"], str(installed / "Frameworks"))
+            self.assertEqual(os.environ["SSL_CERT_FILE"], str(certificate))
 
     def test_renderer_absence_is_reported_before_importing_desktop_editor(self):
         self.config["renderer_available"] = False
@@ -205,10 +222,13 @@ class BootstrapTests(unittest.TestCase):
             events = [{"kind": "touch_begin", "touch_id": 1, "timestamp": 5.25}]
             self.assertFalse(self.bootstrap.frame({"presentation_time": 5.3}, events))
             self.app.frame.assert_called_once_with({"presentation_time": 5.3}, events)
+            self.bootstrap.presented()  # Older app adapters may omit this hook.
             self.bootstrap._host.request_frame()
             self.native.request_frame.assert_called_once()
             self.bootstrap._host.set_keyboard_visible(True)
             self.native.set_keyboard_visible.assert_called_once_with(True)
+            self.bootstrap._host.set_safe_zone(64)
+            self.native.set_safe_zone.assert_called_once_with(64.0)
             self.bootstrap.suspend()
             self.bootstrap.close()
         self.app.suspend.assert_called_once()
@@ -216,6 +236,36 @@ class BootstrapTests(unittest.TestCase):
         self.app.close.assert_called_once()
         self.assertIsNone(self.bootstrap._app)
         self.assertIn("embedded CPython", "".join(self.output))
+
+    def test_post_submission_hook_runs_only_when_host_notifies(self):
+        self.app.presented = mock.Mock()
+        with self.environment():
+            self.bootstrap.initialize(self.config)
+            self.bootstrap.frame({}, [])
+            self.app.presented.assert_not_called()
+            self.bootstrap.presented()
+            self.app.presented.assert_called_once_with()
+            self.app.presented.side_effect = RuntimeError("after-frame failure")
+            with self.assertRaisesRegex(RuntimeError, "after-frame failure"):
+                self.bootstrap.presented()
+            self.bootstrap.close()
+            self.bootstrap.presented()  # No work after the application closes.
+        self.assertEqual(self.app.presented.call_count, 2)
+
+    def test_clipboard_forwards_unicode_text_without_changing_it(self):
+        with self.environment():
+            self.bootstrap.initialize(self.config)
+            host = self.bootstrap._host
+            self.assertEqual(host.get_clipboard_text(), "cached paste \N{SNOWMAN}")
+            copied = "Python source \N{GRINNING FACE}\nembedded\0null"
+            host.set_clipboard_text(copied)
+            self.native.set_clipboard_text.assert_called_once_with(copied)
+            self.native.get_clipboard_text.assert_called_once_with()
+
+    def test_rejects_non_callable_optional_submission_hook(self):
+        self.app.presented = True
+        with self.environment(), self.assertRaisesRegex(TypeError, "presented must be callable"):
+            self.bootstrap.initialize(self.config)
 
     def test_callback_errors_propagate_for_native_traceback_reporting(self):
         self.app.frame.side_effect = ValueError("bad user frame")

@@ -16,12 +16,13 @@ ROOT = Path(__file__).resolve().parent
 
 def generate(*, python_framework, python_lib, app_dir, packages_dir=None,
              output=ROOT / "build", team="", bundle_id="local.melty.codeeditor",
-             entry_module="melty_ios_app", renderer_sources=(), embed_frameworks=()):
+             entry_module="melty_ios_app", renderer_sources=(), embed_frameworks=(), toolkit_dir=ROOT.parents[2]/"meltygui"):
     python_framework = Path(python_framework).resolve()
     python_lib = Path(python_lib).resolve()
     app_dir = Path(app_dir).resolve()
     packages_dir = Path(packages_dir).resolve() if packages_dir else None
     output = Path(output).resolve()
+    toolkit_dir = Path(toolkit_dir).resolve()
     if python_framework.name != "Python.framework":
         raise ValueError("Pass the ARM64 iOS device slice's Python.framework")
     header = (python_framework / "Headers/patchlevel.h").read_text()
@@ -67,7 +68,7 @@ def generate(*, python_framework, python_lib, app_dir, packages_dir=None,
     header_refs = [file(path, "sourcecode.c.h") for path in sorted((ROOT / "Host").glob("*.h*"))]
     linked_refs = [file(path, "wrapper.framework") for path in frameworks]
     system_refs = [file(f"System/Library/Frameworks/{name}.framework", "wrapper.framework", "SDKROOT")
-                   for name in ("UIKit", "Foundation", "Metal", "QuartzCore")]
+                   for name in ("UIKit", "Foundation", "CoreGraphics", "Metal", "QuartzCore")]
     product = add("product", "PBXFileReference", explicitFileType="wrapper.application",
                   path="Melty.app", sourceTree="BUILT_PRODUCTS_DIR")
     products = add("products", "PBXGroup", children=[product], name="Products", sourceTree="<group>")
@@ -85,9 +86,17 @@ def generate(*, python_framework, python_lib, app_dir, packages_dir=None,
     python = str(Path(__import__("sys").executable).resolve())
     # Shell quote every generated path; project input paths may contain spaces.
     import shlex
-    script = f"set -eu\n{shlex.quote(python)} {shlex.quote(str(ROOT / 'prepare_bundle.py'))} --config {shlex.quote(str(config_path))}\n"
+    shaders_dir = output / "shaders"
+    script = (f"set -eu\n{shlex.quote(python)} {shlex.quote(str(ROOT / 'compile_shaders.py'))} "
+              f"--toolkit {shlex.quote(str(toolkit_dir))} --output {shlex.quote(str(shaders_dir))}\n"
+              f"{shlex.quote(python)} {shlex.quote(str(ROOT / 'prepare_bundle.py'))} --config {shlex.quote(str(config_path))}\n")
+    # Xcode must invalidate the enclosing app's CodeSign task when this phase
+    # replaces resources/native modules during an otherwise incremental build.
     stage_phase = add("stage", "PBXShellScriptBuildPhase", buildActionMask=2147483647, files=[],
-                      inputPaths=[], outputPaths=[], alwaysOutOfDate=1,
+                      inputPaths=[], outputPaths=[
+                          "$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/" + name
+                          for name in ("HostSettings.plist", "app", "app_packages", "host", "python")
+                      ], alwaysOutOfDate=1,
                       name="Package embedded Python", shellPath="/bin/sh", shellScript=script,
                       runOnlyForDeploymentPostprocessing=0)
     configurations = []
@@ -99,12 +108,13 @@ def generate(*, python_framework, python_lib, app_dir, packages_dir=None,
             "TARGETED_DEVICE_FAMILY": "1,2", "SUPPORTS_MACCATALYST": "NO",
             "SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD": "NO", "ONLY_ACTIVE_ARCH": "YES",
             "CLANG_ENABLE_OBJC_ARC": "YES", "CLANG_CXX_LANGUAGE_STANDARD": "c++17",
+            "ALWAYS_SEARCH_USER_PATHS": "NO",
             "CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER": "NO",
             "ENABLE_USER_SCRIPT_SANDBOXING": "NO", "CODE_SIGN_STYLE": "Automatic",
             "PRODUCT_NAME": "Melty", "PRODUCT_BUNDLE_IDENTIFIER": bundle_id,
             "INFOPLIST_FILE": str(ROOT / "Host/Info.plist"), "GENERATE_INFOPLIST_FILE": "NO",
             "FRAMEWORK_SEARCH_PATHS": ["$(inherited)"] + sorted({str(path.parent) for path in frameworks}),
-            "HEADER_SEARCH_PATHS": ["$(inherited)", str(ROOT / "Host")],
+            "HEADER_SEARCH_PATHS": ["$(inherited)", str(ROOT / "Host"), str(python_framework / "Headers")],
             "LD_RUNPATH_SEARCH_PATHS": ["$(inherited)", "@executable_path/Frameworks"],
             "GCC_OPTIMIZATION_LEVEL": "0" if name == "Debug" else "s",
             "GCC_PREPROCESSOR_DEFINITIONS": ["$(inherited)", "DEBUG=1"] if name == "Debug" else ["$(inherited)"],
@@ -136,6 +146,7 @@ def generate(*, python_framework, python_lib, app_dir, packages_dir=None,
         "python_lib": str(python_lib), "app_dir": str(app_dir),
         "packages_dir": str(packages_dir) if packages_dir else None,
         "bootstrap_dir": str(ROOT / "Python"), "bundle_id": bundle_id, "entry_module": entry_module,
+        "shaders_dir": str(shaders_dir),
     }, indent=2) + "\n")
     return project_dir
 
@@ -150,6 +161,7 @@ def main():
     parser.add_argument("--team", default="")
     parser.add_argument("--bundle-id", default="local.melty.codeeditor")
     parser.add_argument("--entry-module", default="melty_ios_app")
+    parser.add_argument("--toolkit-dir", type=Path, default=ROOT.parents[2]/"meltygui")
     parser.add_argument("--renderer-source", dest="renderer_sources", action="append", default=[], type=Path)
     parser.add_argument("--embed-framework", dest="embed_frameworks", action="append", default=[], type=Path)
     args = parser.parse_args()

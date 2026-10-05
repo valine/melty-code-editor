@@ -48,10 +48,12 @@ vertex MeshOut mesh_vertex(uint i [[vertex_id]], const device ImVertex *v [[buff
     return {float4(p.x/u.display.x*2-1, 1-p.y/u.display.y*2, 0, 1),
             float2(a.uv),decode_color(a.color,u.hdr.x,u.hdr.y)};
 }
+/* MELTY_TEXT_POLICY */
+
 fragment float4 mesh_fragment(MeshOut in [[stage_in]], constant MeshUniforms &u [[buffer(1)]],
                               texture2d<float> tex [[texture(0)]], texture2d<float> context [[texture(1)]],
                               texture2d<float> occlusion [[texture(2)]]) {
-    if (u.text.w >= 0 && occlusion.read(uint2(in.position.xy)).r > u.text.w) discard_fragment();
+    if (u.text.w >= 0 && occlusion.read(uint2(in.position.xy)).r > u.text.w+1.0/65535.0) discard_fragment();
     float4 color=float4(in.color.rgb/max(in.color.a,1e-6),in.color.a);
     // The font atlas's UVs are already top-down, while cached tiles/images
     // retain Melty's bottom-up contract. u.hdr.w selects that distinction.
@@ -61,15 +63,7 @@ fragment float4 mesh_fragment(MeshOut in [[stage_in]], constant MeshUniforms &u 
         float peak=max(max(color.r,color.g),color.b);
         if(peak>u.hdr.z) color.rgb*=u.hdr.z/peak;
         if(u.text.x>0) {
-            float behind=max(0.0,dot(context.read(uint2(in.position.xy)).rgb,float3(0.2126,0.7152,0.0722)));
-            float proposed=max(0.0,dot(color.rgb,float3(0.2126,0.7152,0.0722)));
-            float ratio=(max(behind,proposed)+0.05)/(min(behind,proposed)+0.05);
-            if(ratio<u.text.y) {
-                float dark=(behind+0.05)/u.text.y-0.05, light=(behind+0.05)*u.text.y-0.05;
-                float toDark=dark>=0 && proposed>0 ? clamp((proposed-dark)/proposed,0.0,1.0) : 2;
-                float toLight=light<=1 && proposed<1 ? clamp((light-proposed)/(1-proposed),0.0,1.0) : 2;
-                color.rgb=toDark<=toLight ? mix(color.rgb,float3(0),toDark) : mix(color.rgb,float3(1),toLight);
-            }
+            color.rgb=melty_text_policy(color.rgb,context,in.position.xy,u.text.y);
         }
         alpha=pow(alpha,1/max(u.text.z,0.001));
     }
@@ -84,3 +78,20 @@ fragment float4 present_fragment(QuadOut in [[stage_in]], texture2d<float> tex [
     return float4(linear_srgb(c.rgb/max(a,1e-6))*a,a);
 }
 fragment float4 solid_fragment(QuadOut in [[stage_in]], constant float4 *u [[buffer(1)]]) { return u[0]; }
+
+struct ShapeOut { float4 position [[position]]; float rank; };
+vertex ShapeOut shadow_shape_vertex(uint i [[vertex_id]], const device packed_float3 *v [[buffer(0)]],
+                                    constant float4 &u [[buffer(1)]]) {
+    float3 a=float3(v[i]); return {float4(a.xy/u.xy*2-1,0,1),a.z};
+}
+fragment float4 shadow_shape_fragment(ShapeOut in [[stage_in]], constant float4 &u [[buffer(1)]],
+                                      texture2d<float> window_mask [[texture(0)]]) {
+    float rank=window_mask.sample(nearest_gl,in.position.xy/u.xy).r;
+    if (rank>u.z+0.00048) discard_fragment();
+    return float4(in.rank,0,0,1);
+}
+
+// EDR CAMetalLayer uses extended linear sRGB, matching Melty's fp16 scene.
+fragment float4 present_linear_fragment(QuadOut in [[stage_in]], texture2d<float> tex [[texture(0)]]) {
+    return sample_gl(tex,in.uv);
+}

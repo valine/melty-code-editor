@@ -25,6 +25,17 @@ class Host:
     def set_keyboard_visible(self, visible):
         self._native.set_keyboard_visible(bool(visible))
 
+    def set_safe_zone(self, inset):
+        """Update the native top inset; subsequent frames report its real bounds."""
+        self._native.set_safe_zone(float(inset))
+
+    def get_clipboard_text(self):
+        """Return UIKit's cached text without blocking the render thread."""
+        return self._native.get_clipboard_text()
+
+    def set_clipboard_text(self, text):
+        self._native.set_clipboard_text(text)
+
 
 class _Log(io.TextIOBase):
     def __init__(self, native):
@@ -50,7 +61,8 @@ def initialize(config):
     """Create the application once on the native render thread.
 
     The packaged entry module must export create_app(config, host), returning
-    an object with frame(info, events), suspend(), resume(), and close().
+    an object with frame(info, events), suspend(), resume(), and close(). An
+    optional presented() callback runs after a frame is submitted to Metal.
     """
     global _app, _host
     if _app is not None:
@@ -64,6 +76,15 @@ def initialize(config):
     for key in ("documents", "workspace", "application_support", "cache"):
         Path(config[key]).mkdir(parents=True, exist_ok=True)
     os.chdir(config["workspace"])
+    # ctypes wrappers need the signed libraries' actual container paths. The
+    # app may move to a new container on every installation.
+    bundle = Path(__file__).resolve().parents[1]
+    frameworks = bundle / "Frameworks"
+    os.environ["SPATIALINDEX_C_LIBRARY"] = str(frameworks / "spatialindex_c.framework/spatialindex_c")
+    os.environ["DYLD_FRAMEWORK_PATH"] = str(frameworks)
+    certificates = bundle / "app_packages/certifi/cacert.pem"
+    if certificates.is_file():
+        os.environ.setdefault("SSL_CERT_FILE", str(certificates))
     if not config["renderer_available"]:
         raise RuntimeError(
             "The iOS host and embedded Python started, but MeltyMetalRenderer "
@@ -75,6 +96,8 @@ def initialize(config):
     for name in ("frame", "suspend", "resume", "close"):
         if not callable(getattr(app, name, None)):
             raise TypeError(f"The iOS application must implement {name}()")
+    if getattr(app, "presented", None) is not None and not callable(app.presented):
+        raise TypeError("The iOS application's optional presented must be callable")
     _app = app
     print(f"{APP_ID}: embedded CPython {sys.version.split()[0]} initialized")
 
@@ -89,6 +112,13 @@ def frame(info, events):
 def suspend():
     if _app is not None:
         _app.suspend()
+
+
+def presented():
+    """A frame was submitted; GPU completion is owned by the native host."""
+    callback = getattr(_app, "presented", None)
+    if callback is not None:
+        callback()
 
 
 def resume():

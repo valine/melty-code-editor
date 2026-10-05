@@ -3,12 +3,15 @@
 #import <UIKit/UIKit.h>
 #include <Python/Python.h>
 #include <atomic>
+#include <cmath>
+#include <mutex>
 
 #if PY_MAJOR_VERSION != 3 || PY_MINOR_VERSION != 13
 #error "The iOS host requires CPython 3.13"
 #endif
 
 static __weak MeltyHost *gHost;
+PyMODINIT_FUNC PyInit__melty_metal(void);
 
 static PyObject *requestFrame(PyObject *, PyObject *) {
     [gHost requestFrame];
@@ -29,10 +32,42 @@ static PyObject *setKeyboardVisible(PyObject *, PyObject *args) {
     Py_RETURN_NONE;
 }
 
+static PyObject *setSafeZone(PyObject *, PyObject *args) {
+    double inset;
+    if (!PyArg_ParseTuple(args, "d", &inset)) return nullptr;
+    if (!std::isfinite(inset) || inset < 0) {
+        PyErr_SetString(PyExc_ValueError, "safe zone must be a finite nonnegative number");
+        return nullptr;
+    }
+    [gHost setSafeZone:inset];
+    Py_RETURN_NONE;
+}
+
+static PyObject *getClipboardText(PyObject *, PyObject *) {
+    NSData *text = [[gHost clipboardText] dataUsingEncoding:NSUTF8StringEncoding];
+    return PyUnicode_DecodeUTF8(text.length ? static_cast<const char *>(text.bytes) : "",
+                               (Py_ssize_t)text.length, "strict");
+}
+
+static PyObject *setClipboardText(PyObject *, PyObject *args) {
+    PyObject *value;
+    if (!PyArg_ParseTuple(args, "U", &value)) return nullptr;
+    Py_ssize_t size;
+    const char *utf8 = PyUnicode_AsUTF8AndSize(value, &size);
+    if (!utf8) return nullptr;
+    NSString *text = [[NSString alloc] initWithBytes:utf8 length:(NSUInteger)size
+                                          encoding:NSUTF8StringEncoding];
+    [gHost setClipboardText:text];
+    Py_RETURN_NONE;
+}
+
 static PyMethodDef nativeMethods[] = {
     {"request_frame", requestFrame, METH_NOARGS, "Wake display pacing."},
     {"write_log", writeLog, METH_VARARGS, "Write to the on-device host log."},
     {"set_keyboard_visible", setKeyboardVisible, METH_VARARGS, "Show or hide text input."},
+    {"set_safe_zone", setSafeZone, METH_VARARGS, "Inset the native content below the screen top, in UIKit points."},
+    {"get_clipboard_text", getClipboardText, METH_NOARGS, "Read the latest UIKit clipboard snapshot."},
+    {"set_clipboard_text", setClipboardText, METH_VARARGS, "Copy text through UIKit asynchronously."},
     {nullptr, nullptr, 0, nullptr},
 };
 static PyModuleDef nativeModule = {
@@ -74,10 +109,12 @@ static const char *kindName(melty::InputKind kind) {
 }
 
 @interface MeltyHost () <CAMetalDisplayLinkDelegate>
+- (BOOL)rotateLog;
 @end
 
 @implementation MeltyHost {
     CAMetalLayer *_layer;
+    CALayer *_viewport;
     CAMetalDisplayLink *_displayLink;
     id<MTLDevice> _device;
     id<MTLCommandQueue> _commands;
@@ -93,24 +130,46 @@ static const char *kindName(melty::InputKind kind) {
     std::atomic<double> _height;
     BOOL _failed;
     BOOL _initialized;
+    BOOL _frameDiagnostics;
+    NSInteger _maximumFramesPerSecond;
+    uint64_t _displayCallbacks, _gpuWaits;
+    std::atomic<double> _gpuDuration;
+    double _nativeDuration, _gpuWaitDuration;
     PyObject *_bootstrap;
     void (^_status)(NSString *);
     void (^_keyboard)(BOOL);
+    void (^_safeZone)(CGFloat);
     NSString *_logPath;
+    std::mutex _clipboardMutex;
+    NSString *_clipboardText;
+    NSInteger _clipboardChangeCount;
+    NSUInteger _clipboardWritesPending;
+    id _clipboardObserver;
 }
 
 - (instancetype)initWithLayer:(CAMetalLayer *)layer
+                     viewport:(CALayer *)viewport
                        status:(void (^)(NSString *))status
-                     keyboard:(void (^)(BOOL))keyboard {
+                     keyboard:(void (^)(BOOL))keyboard
+                     safeZone:(void (^)(CGFloat))safeZone {
     if ((self = [super init])) {
         _layer = layer;
+        _viewport = viewport;
         _status = [status copy];
         _keyboard = [keyboard copy];
+        _safeZone = [safeZone copy];
         _device = MTLCreateSystemDefaultDevice();
         _layer.device = _device;
-        _layer.pixelFormat = MTLPixelFormatBGRA8Unorm;
+        _layer.pixelFormat = MTLPixelFormatRGBA16Float;
+        CGColorSpaceRef colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceExtendedLinearSRGB);
+        _layer.colorspace = colorSpace;
+        CGColorSpaceRelease(colorSpace);
+        _layer.wantsExtendedDynamicRangeContent = YES;
         _layer.framebufferOnly = YES;
-        _layer.maximumDrawableCount = 2;
+        // Leave a drawable available while scanout/presentation owns the
+        // others. The GPU semaphore still limits actual rendering to one
+        // frame in flight, and the display link requests one-frame latency.
+        _layer.maximumDrawableCount = 3;
         _commands = [_device newCommandQueue];
         _gpuAvailable = dispatch_semaphore_create(1);
         _scale = 1;
@@ -119,6 +178,10 @@ static const char *kindName(melty::InputKind kind) {
         _active = false;
         _dirty = true;
         _wakeScheduled = false;
+        _clipboardText = @"";
+        _clipboardChangeCount = -1;
+        _maximumFramesPerSecond = UIScreen.mainScreen.maximumFramesPerSecond;
+        _gpuDuration = 0;
     }
     return self;
 }
@@ -127,6 +190,13 @@ static const char *kindName(melty::InputKind kind) {
     NSAssert([NSThread isMainThread], @"Start the host on UIKit's main thread");
     if (_thread) return;
     gHost = self;
+    __weak MeltyHost *weakSelf = self;
+    _clipboardObserver = [NSNotificationCenter.defaultCenter
+        addObserverForName:UIPasteboardChangedNotification object:UIPasteboard.generalPasteboard
+        queue:NSOperationQueue.mainQueue usingBlock:^(NSNotification *) {
+            MeltyHost *host = weakSelf;
+            if (host && host->_active.load()) [host refreshClipboard];
+        }];
     _thread = [[NSThread alloc] initWithTarget:self selector:@selector(run) object:nil];
     _thread.name = @"Melty render/Python";
     _thread.qualityOfService = NSQualityOfServiceUserInteractive;
@@ -152,10 +222,16 @@ static const char *kindName(melty::InputKind kind) {
         return nil;
     }
     _logPath = [[logDirectory URLByAppendingPathComponent:@"ios-host.log"] path];
-    // Diagnostics stay private; user programs use the editor task output UI.
-    [@"" writeToFile:_logPath atomically:YES encoding:NSUTF8StringEncoding error:nil];
+    // Keep the previous session, including failures before Python starts.
+    [self rotateLog];
+    if (![fm fileExistsAtPath:_logPath]) [fm createFileAtPath:_logPath contents:nil attributes:nil];
+    [self writeLog:[NSString stringWithFormat:@"\n=== Melty session %@ | iOS %@ | build %@ ===\n",
+        [[NSISO8601DateFormatter new] stringFromDate:NSDate.date],
+        UIDevice.currentDevice.systemVersion,
+        [NSBundle.mainBundle objectForInfoDictionaryKey:@"CFBundleVersion"] ?: @"unknown"]];
     NSDictionary *settings = [NSDictionary dictionaryWithContentsOfURL:
         [NSBundle.mainBundle URLForResource:@"HostSettings" withExtension:@"plist"]];
+    _frameDiagnostics = [settings[@"frame_diagnostics"] boolValue];
     return @{
         @"app_id": @"melty-code-editor",
         @"documents": documents.path,
@@ -168,8 +244,9 @@ static const char *kindName(melty::InputKind kind) {
 }
 
 - (BOOL)initializePython:(NSDictionary *)configuration {
-    if (PyImport_AppendInittab("_melty_ios", PyInit__melty_ios) == -1) {
-        [self fail:@"Unable to register the native Python host module"];
+    if (PyImport_AppendInittab("_melty_ios", PyInit__melty_ios) == -1 ||
+        PyImport_AppendInittab("_melty_metal", PyInit__melty_metal) == -1) {
+        [self fail:@"Unable to register the native Python host/Metal modules"];
         return NO;
     }
     PyPreConfig preconfig;
@@ -286,6 +363,50 @@ static const char *kindName(melty::InputKind kind) {
     dispatch_async(dispatch_get_main_queue(), ^{ self->_keyboard(visible); });
 }
 
+- (void)setSafeZone:(CGFloat)inset {
+    dispatch_async(dispatch_get_main_queue(), ^{ self->_safeZone(inset); });
+}
+
+- (void)refreshClipboard {
+    NSAssert([NSThread isMainThread], @"Read the pasteboard on UIKit's main thread");
+    {
+        std::lock_guard<std::mutex> lock(_clipboardMutex);
+        if (_clipboardWritesPending) return;
+    }
+    UIPasteboard *pasteboard = UIPasteboard.generalPasteboard;
+    if (_clipboardChangeCount == pasteboard.changeCount) return;
+    NSString *text = pasteboard.string ?: @"";
+    {
+        std::lock_guard<std::mutex> lock(_clipboardMutex);
+        if (_clipboardWritesPending) return;
+        _clipboardText = [text copy];
+    }
+    _clipboardChangeCount = pasteboard.changeCount;
+    [self requestFrame];
+}
+
+- (NSString *)clipboardText {
+    // Never wait synchronously for UIKit while Python holds the GIL. The
+    // snapshot refreshes on activation and pasteboard-change notifications.
+    std::lock_guard<std::mutex> lock(_clipboardMutex);
+    return [_clipboardText copy];
+}
+
+- (void)setClipboardText:(NSString *)text {
+    NSString *snapshot = [text copy];
+    {
+        std::lock_guard<std::mutex> lock(_clipboardMutex);
+        _clipboardText = snapshot;  // Reads immediately after a copy see it.
+        ++_clipboardWritesPending;
+    }
+    dispatch_async(dispatch_get_main_queue(), ^{
+        UIPasteboard.generalPasteboard.string = snapshot;
+        self->_clipboardChangeCount = UIPasteboard.generalPasteboard.changeCount;
+        std::lock_guard<std::mutex> lock(self->_clipboardMutex);
+        --self->_clipboardWritesPending;
+    });
+}
+
 - (void)enqueue:(melty::InputEvent)event {
     _input.push(std::move(event));
     [self requestFrame];
@@ -295,13 +416,21 @@ static const char *kindName(melty::InputKind kind) {
     _width = size.width;
     _height = size.height;
     _scale = scale;
-    _layer.drawableSize = CGSizeMake(size.width * scale, size.height * scale);
+    CGSize canvas = _layer.bounds.size;
+    CGSize pixels = CGSizeMake(round(canvas.width * scale), round(canvas.height * scale));
+    if (pixels.width > 0 && pixels.height > 0 && !CGSizeEqualToSize(_layer.drawableSize, pixels)) {
+        [CATransaction begin];
+        [CATransaction setDisableActions:YES];
+        _layer.drawableSize = pixels;
+        [CATransaction commit];
+    }
     [self requestFrame];
 }
 
 - (void)setActive:(BOOL)active {
     NSAssert([NSThread isMainThread], @"Scene lifecycle belongs to UIKit");
     _active = active;
+    if (active) [self refreshClipboard];
     if (!active) _input.push({melty::InputKind::CancelAll, 0, CACurrentMediaTime()});
     // This is a finite request to finish saving, not background execution of
     // arbitrary user code. The OS may still suspend/terminate after expiration.
@@ -359,6 +488,8 @@ static const char *kindName(melty::InputKind kind) {
 }
 
 - (void)metalDisplayLink:(CAMetalDisplayLink *)link needsUpdate:(CAMetalDisplayLinkUpdate *)update {
+    const double started = _frameDiagnostics ? CACurrentMediaTime() : 0;
+    if (_frameDiagnostics) ++_displayCallbacks;
     if (_failed || !_active.load() || !_initialized) {
         link.paused = YES;
         return;
@@ -367,8 +498,27 @@ static const char *kindName(melty::InputKind kind) {
         link.paused = YES;
         return;
     }
-    // Never queue another frame behind an unfinished GPU frame.
-    if (dispatch_semaphore_wait(_gpuAvailable, DISPATCH_TIME_NOW)) return;
+    const double scale = _scale.load();
+    const CGSize target = CGSizeMake(_width.load(), _height.load());
+    // The model jumps to the destination at the start of UIKit's animation.
+    // Only the presentation tree describes the currently unobscured viewport.
+    // Read the layer snapshot on this render thread; UIKit mutations stay on
+    // the main thread. Keep rendering until the clip reaches its destination.
+    CALayer *visibleViewport = _viewport.presentationLayer;
+    const CGSize visible = visibleViewport ? visibleViewport.bounds.size : target;
+    const double width = round(visible.width * scale) / scale;
+    const double height = round(visible.height * scale) / scale;
+    const BOOL resizing = fabs(width - target.width) * scale >= 0.5
+                       || fabs(height - target.height) * scale >= 0.5;
+    if (width <= 0 || height <= 0) {
+        // A display callback can precede UIKit's first layout. Keep the dirty
+        // flag and queued input intact; resizeTo: will wake this link again.
+        link.paused = YES;
+        return;
+    }
+    // Prepare this frame while the previous frame is on the GPU. Python only
+    // records operations; uploads and draws execute later on the same queue.
+    // Waiting here serialized CPU + GPU time and skipped alternate 120 Hz ticks.
     _dirty = false;
     const auto events = _input.drain();
     PyGILState_STATE state = PyGILState_Ensure();
@@ -385,7 +535,26 @@ static const char *kindName(melty::InputKind kind) {
     }
     PyObject *info = Py_BuildValue("{s:d,s:d,s:d,s:d,s:d,s:d}",
         "deadline", update.targetTimestamp, "presentation_time", update.targetPresentationTimestamp,
-        "now", CACurrentMediaTime(), "width", _width.load(), "height", _height.load(), "scale", _scale.load());
+        "now", CACurrentMediaTime(), "width", width, "height", height, "scale", scale);
+    if (info && _frameDiagnostics) {
+        CALayer *presentation = _layer.presentationLayer ?: _layer;
+        CGSize canvas = _layer.bounds.size, presented = presentation.bounds.size;
+        PyObject *diagnostics = Py_BuildValue("{s:K,s:K,s:d,s:d,s:d,s:l,s:O,s:l,s:(dddddd),s:(dddd)}",
+            "display_callbacks", (unsigned long long)_displayCallbacks,
+            "gpu_waits", (unsigned long long)_gpuWaits,
+            "gpu_seconds", _gpuDuration.load(), "native_seconds", _nativeDuration,
+            "gpu_wait_seconds", _gpuWaitDuration,
+            "maximum_fps", (long)_maximumFramesPerSecond,
+            "low_power", NSProcessInfo.processInfo.lowPowerModeEnabled ? Py_True : Py_False,
+            "thermal_state", (long)NSProcessInfo.processInfo.thermalState,
+            "surface_geometry", (double)canvas.width, (double)canvas.height,
+            (double)presented.width, (double)presented.height,
+            (double)update.drawable.texture.width, (double)update.drawable.texture.height,
+            "viewport_geometry", (double)target.width, (double)target.height,
+            (double)visible.width, (double)visible.height);
+        if (!diagnostics || PyDict_SetItemString(info, "diagnostics", diagnostics) < 0) Py_CLEAR(info);
+        Py_XDECREF(diagnostics);
+    }
     PyObject *result = inputs && info ? PyObject_CallMethod(_bootstrap, "frame", "OO", info, inputs) : nullptr;
     int again = result ? PyObject_IsTrue(result) : -1;
     if (again < 0) [self fail:pythonError()];
@@ -393,7 +562,18 @@ static const char *kindName(melty::InputKind kind) {
     Py_XDECREF(info);
     Py_XDECREF(inputs);
     PyGILState_Release(state);
-    if (_failed || !_active.load()) {
+    if (_failed || !_active.load()) return;
+    // Keep only one GPU frame in flight, but let CPU preparation overlap it.
+    // Never drop a prepared frame: its cache and uploads must be submitted.
+    // The render thread waits without the GIL; UIKit keeps delivering input.
+    _gpuWaitDuration = 0;
+    if (dispatch_semaphore_wait(_gpuAvailable, DISPATCH_TIME_NOW)) {
+        const double waitStarted = _frameDiagnostics ? CACurrentMediaTime() : 0;
+        if (_frameDiagnostics) ++_gpuWaits;
+        dispatch_semaphore_wait(_gpuAvailable, DISPATCH_TIME_FOREVER);
+        if (_frameDiagnostics) _gpuWaitDuration = CACurrentMediaTime() - waitStarted;
+    }
+    if (!_active.load()) {
         dispatch_semaphore_signal(_gpuAvailable);
         return;
     }
@@ -406,6 +586,8 @@ static const char *kindName(melty::InputKind kind) {
     }
     dispatch_semaphore_t available = _gpuAvailable;
     [commands addCompletedHandler:^(id<MTLCommandBuffer> completed) {
+        if (self->_frameDiagnostics)
+            self->_gpuDuration = completed.GPUEndTime - completed.GPUStartTime;
         dispatch_semaphore_signal(available);
         if (completed.status == MTLCommandBufferStatusError) {
             NSString *message = completed.error.localizedDescription ?: @"Metal command buffer failed";
@@ -415,8 +597,40 @@ static const char *kindName(melty::InputKind kind) {
     [commands commit];
     // CAMetalDisplayLink requires present(), not presentAtTime:.
     [update.drawable present];
-    if (again) _dirty = true;
+    // Resource release/after-frame work belongs after encoding and submission,
+    // while the persistent render thread still owns Python application state.
+    // This callback does not mean that the GPU has completed presentation.
+    state = PyGILState_Ensure();
+    result = PyObject_CallMethod(_bootstrap, "presented", nullptr);
+    if (!result) [self fail:pythonError()];
+    Py_XDECREF(result);
+    PyGILState_Release(state);
+    if (_failed) return;
+    if (again || resizing) _dirty = true;
     link.paused = !_dirty.load();
+    if (_frameDiagnostics) _nativeDuration = CACurrentMediaTime() - started;
+}
+
+- (BOOL)rotateLog {
+    // Called at launch and at 4 MiB, under the writer lock once Python runs.
+    // Keep four archives; never truncate the active log if a rename fails.
+    NSFileManager *fm = NSFileManager.defaultManager;
+    for (NSInteger index = 4; index >= 1; --index) {
+        NSString *source = index == 1 ? _logPath
+            : [_logPath stringByAppendingFormat:@".%ld", (long)index - 1];
+        if (![fm fileExistsAtPath:source]) continue;
+        NSString *destination = [_logPath stringByAppendingFormat:@".%ld", (long)index];
+        NSError *error = nil;
+        if ([fm fileExistsAtPath:destination] && ![fm removeItemAtPath:destination error:&error]) {
+            NSLog(@"Could not rotate Python log: %@", error);
+            return NO;
+        }
+        if (![fm moveItemAtPath:source toPath:destination error:&error]) {
+            NSLog(@"Could not rotate Python log: %@", error);
+            return NO;
+        }
+    }
+    return YES;
 }
 
 - (void)writeLog:(NSString *)text {
@@ -427,8 +641,12 @@ static const char *kindName(melty::InputKind kind) {
         @try {
             [file seekToEndOfFile];
             if (file.offsetInFile > 4 * 1024 * 1024) {
-                [file truncateFileAtOffset:0];
-                [file seekToFileOffset:0];
+                [file closeFile];
+                if ([self rotateLog]) {
+                    [NSFileManager.defaultManager createFileAtPath:_logPath contents:nil attributes:nil];
+                }
+                file = [NSFileHandle fileHandleForWritingAtPath:_logPath];
+                [file seekToEndOfFile];
             }
             [file writeData:[text dataUsingEncoding:NSUTF8StringEncoding]];
             [file closeFile];
@@ -436,5 +654,9 @@ static const char *kindName(melty::InputKind kind) {
             NSLog(@"Could not write Python log: %@", exception.reason);
         }
     }
+}
+
+- (void)dealloc {
+    if (_clipboardObserver) [NSNotificationCenter.defaultCenter removeObserver:_clipboardObserver];
 }
 @end

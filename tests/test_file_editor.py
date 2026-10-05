@@ -286,6 +286,22 @@ def test_diff_results_keep_texts_alive_and_do_not_recompute_identical_inputs(mon
     assert group._results == {}
 
 
+def test_comparison_dispatch_runs_worker_and_reuses_finished_result(monkeypatch):
+    import file_editor
+    monkeypatch.setattr(file_editor, 'request_render', lambda: None)
+    group = FileEditorComparisons()
+    a, b = 'first\nsecond', 'first\nchanged'
+    request = {('a', 'b'): ((id(a), id(b)), a, b)}
+    group.dispatch(request)
+    worker = group._thread
+    worker.join(timeout=2)
+    assert not worker.is_alive()
+    assert group._results[('a', 'b')][1] == [('replace', 1, 2, 1, 2)]
+    group.dispatch(request)
+    assert group._thread is worker
+    group.close()
+
+
 def test_full_line_ribbons_use_existing_renderer_and_reverse_swapped_panes(monkeypatch):
     from meltygui_pro.editor import code_editor
     calls = []

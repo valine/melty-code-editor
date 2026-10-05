@@ -113,6 +113,12 @@ def prepare(config, bundle, *, identity=None, signing_allowed=True):
         if packages.exists():
             shutil.rmtree(packages)
         packages.mkdir()
+    if config.get("shaders_dir"):
+        for name in ("Melty.metallib", "metal-programs.json"):
+            source = Path(config["shaders_dir"]) / name
+            if not source.is_file():
+                raise ValueError(f"Compile the Metal shaders before packaging: missing {source}")
+            shutil.copy2(source, bundle / name)
     (bundle / "HostSettings.plist").write_bytes(plistlib.dumps({"entry_module": config["entry_module"]}))
 
     def sign(framework):

@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import ast
 import json
+import hashlib
 from pathlib import Path
 import re
 import subprocess
@@ -45,6 +46,9 @@ def port(name, source):
     source=re.sub(r"\btexelFetch\s*\(","read_gl(",source)
     source=re.sub(r"\btextureSize\s*\(","size_gl(",source)
     source=source.replace("discard;","discard_fragment();")
+    if name in ("shadow_composite","brightness_contrast"):
+        for sampler in ("u_texture", "shadow_map", "glow_map"):
+            source=re.sub(rf"\bsample_gl\(\s*{sampler}\s*,",f"sample_linear_gl({sampler},",source)
     for before,after in TYPES.items(): source=re.sub(rf"\b{before}\b",after,source)
     fields,values,arguments,metadata=[],[],[],[]
     slot=texture=0
@@ -81,10 +85,40 @@ fragment float4 {name}_fragment(QuadOut in [[stage_in]], constant QuadUniforms &
     return msl,metadata
 
 
+def text_policy(toolkit):
+    tree=ast.parse((Path(toolkit)/"meltygui/core/styling/style.py").read_text())
+    function=next(node for node in tree.body if isinstance(node,ast.FunctionDef) and node.name=="adjust_text_color")
+    returned=next(node for node in function.body if isinstance(node,ast.Return))
+    original=ast.literal_eval(returned.value)
+    source=re.sub(r"//[^\n]*|/\*.*?\*/", "", original, flags=re.S)
+    declarations=re.findall(r"\buniform\s+(\w+)\s+(\w+)\s*;",source)
+    if declarations != [("sampler2D","StyleContext"),("int","DynamicStyles"),("float","TextContrast")]:
+        raise ValueError("Text policy uniform contract changed; update its Metal port")
+    source=re.sub(r"\buniform\s+\w+\s+\w+\s*;", "", source)
+    for before,after in TYPES.items(): source=re.sub(rf"\b{before}\b",after,source)
+    source=re.sub(r"\btexelFetch\s*\(","read_gl(",source)
+    msl="""
+struct MeltyTextPolicy {
+    texture2d<float> StyleContext;
+    int DynamicStyles;
+    float TextContrast;
+    float4 gl_FragCoord;
+"""+source+"""
+};
+float3 melty_text_policy(float3 suggestion,texture2d<float> context,float2 point,float contrast) {
+    MeltyTextPolicy p{context,1,contrast,float4(point.x,float(context.get_height())-point.y,0,1)};
+    return p.adjust_text_color(suggestion);
+}
+"""
+    return msl,hashlib.sha256(original.encode()).hexdigest()
+
+
 def generate(toolkit, output):
     values=constants(Path(toolkit)/"meltygui/core/cache/tile_cache.py")
     source=(ROOT/"Renderer/MetalShaders.metal").read_text()
-    manifest={}
+    policy,policy_hash=text_policy(toolkit)
+    source=source.replace("/* MELTY_TEXT_POLICY */",policy)
+    manifest={"_text_policy_sha256":policy_hash}
     for name,variable in PROGRAMS.items():
         if variable not in values: raise ValueError(f"Missing source shader {variable}; update its declared Metal port")
         msl,metadata=port(name,values[variable]); source+=msl; manifest[name]=metadata
@@ -105,6 +139,29 @@ def generate(toolkit, output):
         declarations+="\n".join(f"uniform {type_} {key};" for key,(type_,_) in uniforms.items())
         name=re.sub(r"(?<!^)(?=[A-Z])","_",node.name).lower()
         msl,metadata=port(name,declarations+fragment); source+=msl; manifest[name]=metadata
+        for entry in metadata:
+            if entry["name"] in uniforms:
+                entry["default"] = uniforms[entry["name"]][1]
+    style = """
+    uniform sampler2D palette;
+    uniform float palette_index;
+    uniform vec2 rect_size;
+    uniform float radius;
+    in vec2 vUV;
+    out vec4 oColor;
+    void main() {
+        vec2 half_size = rect_size * 0.5;
+        float r = min(radius, min(half_size.x, half_size.y));
+        vec2 q = abs((vUV-0.5)*rect_size) - (half_size-vec2(r));
+        float d = length(max(q,0.0)) + min(max(q.x,q.y),0.0)-r;
+        float coverage = clamp(0.5-d,0.0,1.0);
+        if (coverage <= 0.0) discard;
+        oColor=vec4(texelFetch(palette,ivec2(int(palette_index+0.5),0),0).rgb,coverage);
+    }
+    """
+    msl, metadata = port("style_context", style)
+    source += msl
+    manifest["style_context"] = metadata
     output=Path(output); output.mkdir(parents=True,exist_ok=True)
     (output/"Melty.metal").write_text(source)
     (output/"metal-programs.json").write_text(json.dumps(manifest,indent=2)+"\n")
