@@ -6,7 +6,8 @@ import time
 import traceback
 
 
-def create_app(config, host):
+def install_check(application):
+    config = application.config
     output = Path(config['cache']) / 'editing-check'
     sandbox = output / str(time.time_ns())
     project = sandbox / 'Documents/Projects/Editing'
@@ -17,11 +18,6 @@ def create_app(config, host):
     source.write_text('value = 1\n')
     sys.argv[:] = ['melty-code-editor', str(source)]
     from meltygui.core.runtime import app
-    from meltygui.core.runtime.native_app import NativeApplication
-    from meltygui.core.graphics.metal_renderer import MetalRenderer
-    import _melty_metal
-    application = NativeApplication(config, host, lambda: MetalRenderer(_melty_metal))
-    app.install_native_host(application)
     import editor
     app.run()
     return CheckedApplication(application, editor, output, project)
@@ -31,6 +27,7 @@ class CheckedApplication:
     def __init__(self, application, editor, output, project):
         self.application, self.editor = application, editor
         self.output, self.project = output, project
+        self._frame = application.frame
         self.phase = 'warmup'
         self.phase_frame = 0
         self.started = self.phase_time = time.monotonic()
@@ -76,7 +73,7 @@ class CheckedApplication:
                 injected = [dict(kind='text', text='\n')]
             elif self.phase == 'edit' and age == 0:
                 injected = [dict(kind='text', text='value = 41\nprint(value + 1)')]
-            more = app.frame(info, [*events, *injected])
+            more = self._frame(info, [*events, *injected])
             if original is not None:
                 editor.draw_file_editor_comparisons = original
                 original = None
@@ -153,3 +150,11 @@ class CheckedApplication:
     def suspend(self): self.application.suspend()
     def resume(self): self.application.resume()
     def close(self): self.application.close()
+
+
+# Test-only instrumentation around the framework-owned application. The build
+# selects this ordinary module as its entry; no app-provided native factory.
+from meltygui.core.runtime import app as _runtime
+_application = _runtime._state['native_host']
+_check = install_check(_application)
+_application.frame = _check.frame

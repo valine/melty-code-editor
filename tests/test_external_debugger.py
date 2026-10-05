@@ -8,6 +8,7 @@ import weakref
 
 import pytest
 import tasks
+from meltygui_pro.models import project_execution as execution
 from meltygui.core.melty import Melty
 from meltygui.model.source_snapshot_model import SourceSnapshot
 from test_local_debugger import metadata, pump_until
@@ -207,16 +208,16 @@ def test_rejects_mismatched_source_before_launch(tmp_path):
 
 def test_task_honors_selected_interpreter_cwd_environment_and_pending_source(tmp_path, monkeypatch):
     from types import SimpleNamespace
-    import meltygui_pro.models.project_function_runner as runner
+    import meltygui_pro.models.execution_targets as targets
     import meltygui_pro.models.project_analysis as analysis
     path = tmp_path / 'main.py'
     path.write_text('print("old disk source")\n')
     cwd = tmp_path / 'working'
     cwd.mkdir()
     source = 'import os,sys\nprint("pending source", sys.version_info[:2], os.getcwd(), os.environ["TASK_TEST"])\n'
-    monkeypatch.setattr(runner, 'project_python', lambda path: sys.executable)
+    monkeypatch.setattr(targets, 'resolve_environment', lambda root, target=None: (sys.executable, None))
     monkeypatch.setattr(analysis, 'analysis_project', lambda **kw: SimpleNamespace(source_paths=[str(tmp_path)]))
-    monkeypatch.setattr(tasks, 'task_environment', lambda root: dict(os.environ))
+    monkeypatch.setattr(execution, 'task_environment', lambda root, target=None: dict(os.environ))
     monkeypatch.setattr(tasks, 'read_tasks', lambda root: {'example': dict(module='main.py', cmd='main.py',
         cwd='working', env={'TASK_TEST': 'selected'})})
     state = tasks.TaskState()
@@ -236,7 +237,7 @@ def test_task_debug_highlight_matches_editor_source_version(tmp_path, monkeypatc
     from meltygui.code.fileref import Address
     from meltygui.code.new_codecs import TextFileCodec
     from meltygui.editor.pending_save import PendingSave
-    import meltygui_pro.models.project_function_runner as runner
+    import meltygui_pro.models.execution_targets as targets
     import meltygui_pro.models.project_analysis as analysis
 
     path = tmp_path / 'main.py'
@@ -247,9 +248,9 @@ def test_task_debug_highlight_matches_editor_source_version(tmp_path, monkeypatc
         PendingSave.mark_load(address, original, codec=TextFileCodec)
         PendingSave.queue_save(address, TextFileCodec, data='value = 2\nprint(value)\n', wake=False)
     editor_text = TextFileCodec.load(address)
-    monkeypatch.setattr(runner, 'project_python', lambda path: sys.executable)
+    monkeypatch.setattr(targets, 'resolve_environment', lambda root, target=None: (sys.executable, None))
     monkeypatch.setattr(analysis, 'analysis_project', lambda **kw: SimpleNamespace(source_paths=[str(tmp_path)]))
-    monkeypatch.setattr(tasks, 'task_environment', lambda root: dict(os.environ))
+    monkeypatch.setattr(execution, 'task_environment', lambda root, target=None: dict(os.environ))
     monkeypatch.setattr(tasks, 'read_tasks', lambda root: {'example': dict(module='main.py', cmd='main.py',
         cwd='.', env={})})
     state = tasks.TaskState()

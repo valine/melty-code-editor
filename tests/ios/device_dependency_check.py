@@ -1,7 +1,7 @@
 """Opt-in on-device package and real-editor smoke entry point.
 
-Stage with --device-check and generate with --entry-module
-device_dependency_check. All test state stays in Library/Caches.
+Include this file as an application resource and generate with
+--entry-module device_dependency_check. All test state stays in Library/Caches.
 """
 import importlib
 import io
@@ -12,7 +12,8 @@ import sys
 import time
 
 
-def create_app(config, host):
+def install_check(application):
+    config = application.config
     assert sys.platform == 'ios', sys.platform
     sandbox = Path(config['cache']) / 'dependency-check'
     sandbox.mkdir(parents=True, exist_ok=True)
@@ -78,8 +79,9 @@ def create_app(config, host):
     assert namespace['value'] == 42
     print('device dependency APIs and compile/exec OK')
     sys.argv[:] = ['melty-code-editor', str(source)]
-    from melty_ios_app import create_app as create_editor
-    application = create_editor(config, host)
+    from meltygui.core.runtime import app
+    import editor
+    app.run()
     from meltygui.code import libcst_conversion as conversion
     completion = conversion._submit_interactive(conversion._jedi_complete_worker,
                                                  'text = "hello"\ntext.up', 2, 7, str(source))
@@ -91,12 +93,13 @@ def create_app(config, host):
 class CheckedApplication:
     def __init__(self, application, source, sandbox):
         self.application, self.source, self.sandbox = application, source, sandbox
+        self._frame = application.frame
         self.task = None
         self.started = time.monotonic()
         self.done = False
 
     def frame(self, info, events):
-        more = self.application.frame(info, events)
+        more = self._frame(info, events)
         if self.task is None:
             import tasks
             self.task = tasks.TaskState()
@@ -128,3 +131,11 @@ class CheckedApplication:
         if self.task:
             self.task.stop()
         self.application.close()
+
+
+# Test-only instrumentation around the framework-owned application. The build
+# selects this ordinary module as its entry; no app-provided native factory.
+from meltygui.core.runtime import app as _runtime
+_application = _runtime._state['native_host']
+_check = install_check(_application)
+_application.frame = _check.frame

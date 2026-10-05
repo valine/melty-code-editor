@@ -6,8 +6,8 @@ import sys
 import tempfile
 import unittest
 
-ROOT = Path(__file__).resolve().parents[1]
-EDITOR = ROOT.parents[1]
+from meltygui.platforms.ios import build_directory
+EDITOR = Path(__file__).resolve().parents[2]
 
 PROGRAM = r'''
 import importlib.abc
@@ -75,7 +75,7 @@ assert native.closed
 @unittest.skipUnless(os.environ.get('MELTY_METAL_TEST') == '1', 'requires compiled host Metal extension')
 class EditorMetal(unittest.TestCase):
     def test_editor_code_file_cache_and_checkpoint_without_desktop_graphics(self):
-        artifacts = ROOT / 'build/metal-test'
+        artifacts = build_directory() / 'metal-test'
         with tempfile.TemporaryDirectory(prefix='melty-ios-editor-') as sandbox:
             env = dict(os.environ)
             env['PYTHONPATH'] = str(artifacts)

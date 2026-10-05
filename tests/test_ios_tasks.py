@@ -8,6 +8,7 @@ import pytest
 
 import meltygui_pro  # Registers project services before importing the app.
 import tasks
+from meltygui_pro.models import project_execution as execution
 from meltygui.core.melty import Melty
 from meltygui.model.source_snapshot_model import SourceSnapshot
 
@@ -197,8 +198,8 @@ def test_source_errors_and_exit_cleanup(tmp_path, ios_tasks, source, code, expec
     assert state.exit == code
     if expected is not None:
         assert expected in state.output and str(path) in state.output
-    assert state._monitoring_tool is None and not tasks._LOCAL_CONTEXT_USERS
-    assert tasks._LOCAL_FINDER not in sys.meta_path
+    assert state._monitoring_tool is None and not execution._LOCAL_CONTEXT_USERS
+    assert execution._LOCAL_FINDER not in sys.meta_path
 
 
 @pytest.mark.parametrize('entry, expected', [
@@ -213,8 +214,8 @@ def test_unsupported_task_capabilities_refused(tmp_path, monkeypatch, ios_tasks,
     def forbidden(*args, **kwargs):
         raise AssertionError('iOS attempted desktop execution')
     monkeypatch.setattr(tasks.TaskState, '_start_external_debug', forbidden)
-    monkeypatch.setattr(tasks, 'module_request', forbidden)
-    monkeypatch.setattr(tasks, 'task_environment', forbidden)
+    monkeypatch.setattr(execution, 'module_request', forbidden)
+    monkeypatch.setattr(execution, 'task_environment', forbidden)
     state = session(ios_tasks)
     state.run(str(tmp_path), 'probe', debug=True)
     assert not state.running and expected in state.error

@@ -8,6 +8,7 @@ import pytest
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 import meltygui_pro  # noqa: F401  registers its services before tasks imports project code
 import tasks
+from meltygui_pro.models import project_execution as execution
 
 
 @pytest.fixture(autouse=True)
@@ -57,7 +58,7 @@ def test_environment_prefers_the_project_venv(tmp_path):
     (tmp_path / 'pyproject.toml').write_text('[project]\nname = "x"\n')
     os.environ['PYTHONPATH'] = '/nowhere'
     try:
-        env = tasks.task_environment(str(tmp_path))
+        env = execution.task_environment(str(tmp_path))
     finally:
         del os.environ['PYTHONPATH']
     assert env['PATH'].split(os.pathsep)[0] == str(venv / 'bin')
