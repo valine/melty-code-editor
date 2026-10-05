@@ -41,10 +41,8 @@ meltygui.boot(app_id='melty-code-editor')
 # Resolve the view through the package APIs: it waits for the import worker, whose work
 # overlaps the fresh EGL context above, before importing the code-editor views.
 from meltygui import glfw_window, pressed, imgui, window_api as glfw
-# Desktop tensor renderers own GL/CUDA resources; register them where those
-# backends exist. Native code editing uses the shared inspection views.
-if sys.platform != 'ios':
-    from meltygui import draw_voxels, draw_line_graph
+# Register typed tensor views; their graphics resources are allocated on use.
+from meltygui import draw_voxels, draw_line_graph
 from app_model import EditorAppModel
 from tile_views import draw_main_editor, draw_chat  # noqa: F401  tile_views registers the Tasks tile
 from file_editor import (FileEditorComparisons, draw_file_editor_comparisons,
