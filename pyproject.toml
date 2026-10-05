@@ -6,6 +6,8 @@ name = "Melty Code Editor"
 bundle_id = "org.meltygui.code-editor"
 version = "0.1.0"
 entry = "editor.py"
+dependencies = ["meltygui", "meltygui-pro"]
+resources = ["project_templates"]
 icon = "icon/melty-code-editor.png"
 
 [tool.melty.tasks]

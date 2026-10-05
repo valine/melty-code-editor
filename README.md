@@ -67,6 +67,13 @@ Console and Locals tiles can select that session through their Links menu
 presentation state. Removing the Tasks tile or changing its renderer keeps the
 session running and preserves explicit links; Stop and app exit stop execution.
 
+The environment picker beside Run defaults to **Project venv**. Choose another
+known venv to run and debug there without changing the project's analysis or
+dependency environment. The choice persists per project in that Tasks session.
+On macOS, paired iOS devices appear by device name in the same picker. Run builds
+and launches the project's configured Melty app; see the
+[iOS setup guide](../meltygui/meltygui/platforms/ios/README.md#run-from-the-editor).
+
 File Editor prepares source keys in the background. Click its line-number gutter
 to toggle a persisted breakpoint, then use its **Debug** context-menu entry
 (or the Tasks tile's Debug button). Console provides Continue / Into /
@@ -74,7 +81,7 @@ Over / Out, and Locals selects captured stack frames. Inline values reuse the
 normal live-value markers and `draw_any` renderers. A captured binding retains
 its object after resume; other threads and GPU work may still change its contents.
 
-Debug runs Python module tasks in the project's selected interpreter, environment
+Debug runs Python module tasks in the task's selected interpreter, environment
 and working directory. The target needs Python 3.12+ (`sys.monitoring`), but does
 not need Melty installed. Breakpoints and stepping cover project modules on the
 execution thread, including imports; other threads keep running. Console captures
@@ -193,6 +200,18 @@ bundle in `dist/macos`; `--install` moves it into `~/Applications`. For other
 Melty apps, use the same per-app metadata and move shared packaging/event
 plumbing into MeltyGUI when a second app needs it. Document handling stays with
 the app that owns the open-file model.
+
+## iOS
+
+The editor uses its ordinary `editor.py` entry point on iOS. Its
+`[tool.melty.app]` metadata declares the two library dependencies and templates;
+MeltyGUI owns the UIKit/Metal host, native lifecycle and packaging commands.
+See the [MeltyGUI iOS build guide](../meltygui/meltygui/platforms/ios/README.md).
+
+The Tasks tile delegates execution to Pro's `ProjectExecution`. On iOS, Python
+module tasks run in the embedded interpreter; shell commands and project
+subprocesses are unavailable. Device checks specific to editing and dependencies
+live in `tests/ios`; the reusable host and UI checks live with MeltyGUI.
 
 ## Startup profiling
 

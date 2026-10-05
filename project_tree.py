@@ -955,14 +955,17 @@ _TILE_FILLS = {}
 
 
 def default_project(open_files):
-    """A fresh tree's project: the selected tab's, else the first saved one, else home."""
+    """A fresh tree's project: selected, saved, or the platform's workspace."""
     path = open_files.active_path if open_files is not None else None
     if isinstance(path, str) and not path.startswith(OpenFiles.GIT_DIFF_PREFIX):
         root = project_for(path)
         if root:
             return str(root)
     saved = project_roots()
-    return str(saved[0] if saved else Path.home())
+    if saved:
+        return str(saved[0])
+    from meltygui.core.runtime.paths import default_file_directory
+    return str(default_file_directory())
 
 
 def draw_project_tree_overlay_background(draw_state, draw_list):

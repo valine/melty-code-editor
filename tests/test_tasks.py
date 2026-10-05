@@ -8,6 +8,7 @@ import pytest
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 import meltygui_pro  # noqa: F401  registers its services before tasks imports project code
 import tasks
+from meltygui_pro.models import project_execution as execution
 
 
 @pytest.fixture(autouse=True)
@@ -57,7 +58,7 @@ def test_environment_prefers_the_project_venv(tmp_path):
     (tmp_path / 'pyproject.toml').write_text('[project]\nname = "x"\n')
     os.environ['PYTHONPATH'] = '/nowhere'
     try:
-        env = tasks.task_environment(str(tmp_path))
+        env = execution.task_environment(str(tmp_path))
     finally:
         del os.environ['PYTHONPATH']
     assert env['PATH'].split(os.pathsep)[0] == str(venv / 'bin')
@@ -290,6 +291,14 @@ def test_output_overlay_tracks_live_tile_bounds(monkeypatch):
     tasks.draw_tasks_overlay_background(parent, None)
     assert placed[-1][1] == (50, 84, 600, 448)
     assert painted == [pane, pane, pane]  # normal body draws do not paint twice
+
+    # Waiting stdin reserves its own row; replay keeps the editable field and
+    # output separate at the new tile bounds.
+    parent.misc['task_state'].waiting_for_input = True
+    field = state._input_view = object()
+    tasks.draw_tasks_overlay_background(parent, None)
+    assert placed[-2] == (field, (50, 500, 492, 28), parent.abs_clip_rect)
+    assert placed[-1] == (pane, (50, 84, 600, 416), parent.abs_clip_rect)
 
 
 def test_toolbar_overlay_moves_buttons_and_shadows_together(monkeypatch):

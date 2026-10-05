@@ -16,6 +16,7 @@ import sys
 
 from meltygui import imgui, draw_file_selector
 from meltygui.core.runtime.background import Background
+from meltygui.core.runtime.paths import default_file_directory
 from meltygui.hdr_color import pack_color
 from meltygui.core.conversion.dict_conversion import DictConversion
 from meltygui.core.runtime.toggles import Tint
@@ -134,7 +135,7 @@ def draw_new_project(input_value: str, draw_state, project_state: NewProjectStat
         # Once per run, not per frame: a half-typed location is not a folder either.
         state.seeded = True
         if not state.location or not pathlib.Path(state.location).expanduser().is_dir():
-            state.location = input_value or str(pathlib.Path.home())
+            state.location = input_value or str(default_file_directory())
     template = next((item for item in available if item.id == state.template), available[0] if available else None)
 
     def process_jobs():

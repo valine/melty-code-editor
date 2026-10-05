@@ -5,6 +5,7 @@ tile lives here; GitProxy owns file values, loading and watching.
 """
 from tasks import TaskState
 from pathlib import Path
+import threading
 
 from meltygui import imgui, draw_text, render_func, DrawState
 from meltygui.view.dropdown_view import fast_draw_dropdown

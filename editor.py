@@ -41,7 +41,7 @@ meltygui.boot(app_id='melty-code-editor')
 # Resolve the view through the package APIs: it waits for the import worker, whose work
 # overlaps the fresh EGL context above, before importing the code-editor views.
 from meltygui import glfw_window, pressed, imgui, window_api as glfw
-# Register tensor views for inline captures, including project-process arrays.
+# Register typed tensor views; their graphics resources are allocated on use.
 from meltygui import draw_voxels, draw_line_graph
 from app_model import EditorAppModel
 from tile_views import draw_main_editor, draw_chat  # noqa: F401  tile_views registers the Tasks tile
@@ -191,7 +191,8 @@ def default_project_location():
         root = project_for(selected)
         if root:
             return pathlib.Path(root).parent
-    return pathlib.Path.home()
+    from meltygui.core.runtime.paths import default_file_directory
+    return default_file_directory()
 
 
 def project_created(root):

@@ -2,6 +2,7 @@
 import time
 import meltygui_pro
 import tasks
+from meltygui_pro.models import project_execution as execution
 from meltygui.core.melty import Melty
 from meltygui.code.melty_scan import scan, SourceSiteIndex
 
@@ -260,7 +261,7 @@ def test_captured_scope_reuses_occurrence_maps(tmp_path, monkeypatch):
             raise AssertionError('capture traversed the AST')
         monkeypatch.setattr(ast, 'walk', forbidden)
         monkeypatch.setattr(ast, 'iter_child_nodes', forbidden)
-        recaptured = tasks.CapturedScope(state._paused_frame, state._debug_source)
+        recaptured = execution.CapturedScope(state._paused_frame, state._debug_source)
         assert recaptured.source_inspection.bindings
         assert any(binding[3] is scope.locals['value']
                    for binding in recaptured.source_inspection.bindings)
@@ -521,7 +522,7 @@ def test_local_launch_uses_supplied_snapshot_without_module_request(tmp_path, mo
     source = 'value = 42\n'
     snapshot = SourceSnapshot(str(tmp_path / 'pending.py'), source)
     monkeypatch.setattr(project_function_runner, 'project_python', lambda root: sys.executable)
-    monkeypatch.setattr(tasks, 'module_request', lambda *a: (_ for _ in ()).throw(AssertionError('source reread')))
+    monkeypatch.setattr(execution, 'module_request', lambda *a: (_ for _ in ()).throw(AssertionError('source reread')))
     state = tasks.TaskState()
     state._start_local_debug(str(tmp_path), {'module':'pending.py','cwd':'.','env':{}}, None, snapshot)
     pump_until(lambda: not state.running)
