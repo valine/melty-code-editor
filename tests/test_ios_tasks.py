@@ -1,4 +1,4 @@
-"""Embedded execution behavior on the host; these do not claim device coverage."""
+"""Shared thread execution on desktop and simulated iOS; no device coverage."""
 import os
 import sys
 import threading
@@ -23,9 +23,20 @@ def pump_until(predicate, seconds=5):
     raise AssertionError('Timed out waiting for local task event')
 
 
-@pytest.fixture(autouse=True)
-def ios_tasks(monkeypatch, tmp_path):
-    monkeypatch.setattr(sys, 'platform', 'ios')
+@pytest.fixture(autouse=True, params=['ios', 'local', 'ios-local'])
+def ios_tasks(monkeypatch, tmp_path, request):
+    if request.param in ('ios', 'ios-local'):
+        monkeypatch.setattr(sys, 'platform', 'ios')
+    if request.param in ('local', 'ios-local'):
+        original_init = tasks.TaskState.__init__
+
+        def init_local(state):
+            original_init(state)
+            state.selected_targets[str(tmp_path)] = 'local'
+            state.selected_targets[str(tmp_path / 'first')] = 'local'
+            state.selected_targets[str(tmp_path / 'second')] = 'local'
+
+        monkeypatch.setattr(tasks.TaskState, '__init__', init_local)
     monkeypatch.setattr(tasks, 'project_tasks', tasks.ProjectTasks())
     monkeypatch.setattr(tasks, '_last', None)
     monkeypatch.setattr(tasks, '_pending', None)
@@ -74,6 +85,7 @@ def test_ios_run_pending_source_with_package_imports_and_real_values(tmp_path, m
     pump_until(lambda: not state.running)
     assert state.exit == 0, state.output
     assert not state.debug_enabled and state._local_execution
+    assert isinstance(state.process, threading.Thread)
     assert 'helper output' in state.output and '__main__ 42 43' in state.output
     assert 'stdout output' in state.output and 'stderr output' in state.output
     assert 'stale disk' not in state.output

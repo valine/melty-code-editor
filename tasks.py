@@ -31,7 +31,8 @@ output stay separate from the per-project picker selection.
 The Run menu (editor.py) lists the same tasks and runs one in the first Tasks
 tile through `request_run`.
 
-On iOS both Run and Debug execute Python modules in the embedded interpreter.
+The IDE process (thread) environment runs both Run and Debug in the IDE's
+interpreter, and is the only environment on iOS.
 Project imports and text console I/O are scoped to the execution thread, while
 the module cache, app cwd and environment are shared. Shell tasks are refused.
 """
