@@ -415,6 +415,8 @@ def test_tab_overlay_reflows_at_live_bottom_without_registering_inputs(monkeypat
     monkeypatch.setattr(overlay, 'place_overlay_view', place)
     paint = Mock()
     monkeypatch.setattr(header_view, 'flat_button', paint)
+    paint.return_value = False
+    monkeypatch.setattr('meltygui_pro.editor.code_editor.flat_button', paint)
     dl = Mock()
     backing = Mock()
     monkeypatch.setattr(file_editor.imgui, 'get_window_draw_list', lambda: backing)
@@ -423,7 +425,7 @@ def test_tab_overlay_reflows_at_live_bottom_without_registering_inputs(monkeypat
     backing.add_rect_filled.assert_called_once()
     backing_rect = backing.add_rect_filled.call_args.args[:4]
     assert all(call.args[:4] != backing_rect for call in dl.add_rect_filled.call_args_list)
-    assert [call.kwargs['pos'][1] for call in paint.call_args_list] == [283, 283]
+    assert [call.kwargs['pos'][1] for call in paint.call_args_list] == [30, 30, 283, 283]
     place.assert_called_once_with(state._pane, (20, 60, 400, 223), ds.abs_clip_rect)
     assert all(call.kwargs['layout'] is False and call.kwargs['draw_list'] is dl
                for call in paint.call_args_list)
@@ -436,7 +438,7 @@ def test_tab_overlay_reflows_at_live_bottom_without_registering_inputs(monkeypat
     ds.width, ds.height = tabs[0]['w'] + 14, 200
     file_editor.draw_file_editor_overlay_background(ds, dl)
     file_editor.draw_file_editor_overlay(ds, dl)
-    assert [call.kwargs['pos'][1] for call in paint.call_args_list] == [139, 183]
+    assert [call.kwargs['pos'][1] for call in paint.call_args_list] == [30, 30, 139, 183]
     assert place.call_args.args == (state._pane, (20, 60, ds.width, 79), ds.abs_clip_rect)
     assert dl.push_clip_rect.call_count == dl.pop_clip_rect.call_count == 4
     child_paint.assert_called_once_with(state._pane)

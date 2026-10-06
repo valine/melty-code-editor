@@ -36,7 +36,7 @@ Project imports and text console I/O are scoped to the execution thread, while
 the module cache, app cwd and environment are shared. Shell tasks are refused.
 """
 from meltygui_pro.models.project_execution import ProjectExecution, OUTPUT_LIMIT
-from meltygui_pro.editor.execution_target import ExecutionTargetState, draw_execution_target
+from meltygui_pro.editor.execution_target import ExecutionTargetState, draw_execution_target, prepare_execution_target
 
 import os
 import shlex
@@ -334,7 +334,7 @@ def draw_task_input(state, view_state, draw_state, width, unique, paint=True):
         state.close_input()
 
 
-def task_toolbar_layout(left, top, width, height, toolbar_left, toolbar_height):
+def task_toolbar_layout(left, top, width, height, toolbar_left, toolbar_height, selector_width, target_width):
     """Live rectangles shared by toolbar input, paint and child placement."""
     px = Melty.px
     gap, button_w, button_h = px(4), px(30), px(24)
@@ -342,15 +342,14 @@ def task_toolbar_layout(left, top, width, height, toolbar_left, toolbar_height):
     top += max(0, height - toolbar_height)
     width = max(0, width - toolbar_left)
     button_top = top + (toolbar_height - button_h) * 0.5
-    navigation_w = 2 * button_w + 6 + gap
-    available = max(0, width - navigation_w - 3 * button_w - 4 * gap)
-    selector_w = min(px(280), available * 0.55)
-    target_w = min(px(220), max(0, available - selector_w))
-    selector_left = left + navigation_w
+    available = max(0, width - 3 * button_w - 4 * gap)
+    total = max(1, selector_width + target_width)
+    scale = min(1, available / total)
+    selector_w, target_w = selector_width * scale, target_width * scale
+    selector_left = left
     target_left = selector_left + selector_w + gap
     controls_left = target_left + target_w + gap
-    return ((left, button_top),
-            (selector_left, top, selector_w, toolbar_height),
+    return ((selector_left, top, selector_w, toolbar_height),
             (target_left, top, target_w, toolbar_height),
             (controls_left, button_top, button_w, button_h),
             (controls_left + button_w + gap, button_top, button_w, button_h),
@@ -374,18 +373,15 @@ def draw_tasks_overlay(draw_state, draw_list):
     from meltygui.core.cache.tile_marks import add_shadow, clear_shadows
     from meltygui.hdr_color import pack_color
     from meltygui.core.runtime.toggles import Tint
-    from meltygui_pro.editor.code_editor import _draw_nav_buttons
     clear_shadows(draw_state, 'task_buttons')
     state = draw_state.misc.get('task_state')
     view_state = draw_state.misc.get('_task_view_state')
     if state is None or view_state is None or view_state._toolbar is None:
-        clear_shadows(draw_state, 'nav_buttons')
         return
     toolbar = view_state._toolbar
-    nav, selector, target, run, debug, stop = task_toolbar_layout(
+    selector, target, run, debug, stop = task_toolbar_layout(
         draw_state.abs_left, draw_state.abs_top, draw_state.width, draw_state.height,
-        toolbar['left'], view_state._toolbar_height)
-    _draw_nav_buttons(draw_state, *toolbar['nav_tints'], draw_list=draw_list, pos=nav)
+        toolbar['left'], view_state._toolbar_height, *toolbar['picker_widths'])
     if not toolbar['has_tasks']:
         x, y, width, height = selector
         draw_list.push_clip_rect(x, y, x + width, y + height, True)
@@ -420,9 +416,9 @@ def draw_tasks_overlay_background(draw_state, draw_list):
         return
     replay = getattr(draw_state, '_blit_served_frame', None) == Melty.frame_count
     if view_state._toolbar is not None:
-        _, selector, target, _, _, _ = task_toolbar_layout(
+        selector, target, _, _, _ = task_toolbar_layout(
             draw_state.abs_left, draw_state.abs_top, draw_state.width, draw_state.height,
-            view_state._toolbar['left'], view_state._toolbar_height)
+            view_state._toolbar['left'], view_state._toolbar_height, *view_state._toolbar['picker_widths'])
         for view, rect in ((view_state._selector_view, selector), (view_state._target_view, target)):
             if view is not None:
                 place_overlay_view(view, rect, draw_state.abs_clip_rect)
@@ -503,23 +499,23 @@ def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
         header_h = tile_toolbar_rect[3]
     view_state._toolbar_height = header_h
     toolbar_y = max(0, (draw_state.height or 0) - header_h)
-    from meltygui_pro.editor.code_editor import _draw_nav_buttons, _nav_button_tints
-    back_tint, forward_tint, _ = _nav_button_tints()
+    selected_target = state.selected_targets.get(str(root), '')
+    prepared_target = prepare_execution_target(selected_target, str(root), execution_target_state, draw_state) if root else None
+    picker_widths = (imgui.calc_text_size(choice if names else (NO_TASKS if root else 'Open a project to run tasks')).x + 30,
+                     imgui.calc_text_size(prepared_target[2]).x + 30 if prepared_target else 0)
     view_state._toolbar = {
-        'left': toolbar_x, 'nav_tints': (back_tint, forward_tint),
+        'left': toolbar_x, 'picker_widths': picker_widths,
         'has_tasks': bool(names),
         'empty_text': NO_TASKS if root else 'Open a project to run tasks',
     }
-    nav, selector, target, run, debug, stop = task_toolbar_layout(
-        body_left, body_top, width, draw_state.height or 0, toolbar_x, header_h)
-    imgui.set_cursor_screen_pos(nav)
-    _draw_nav_buttons(draw_state, back_tint, forward_tint, paint=False)
+    selector, target, run, debug, stop = task_toolbar_layout(
+        body_left, body_top, width, draw_state.height or 0, toolbar_x, header_h, *picker_widths)
     left, top, selector_w, _ = selector
     view_state._selector_view = None
     if names and selector_w > 0:
         imgui.set_cursor_screen_pos((left, top))
         picked, choice, view_state._selector_view = draw_dropdown(
-            choice, collection=names, name='task', show_header=False,
+            choice, collection=names, name='task', show_header=False, trigger_caret=('', ''),
             width=selector_w, height=header_h,
             trigger_height=header_h / Melty.ui_scale, shadow=False,
             return_extras=True)
@@ -532,7 +528,8 @@ def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
         imgui.set_cursor_screen_pos(target[:2])
         picked, selected, view_state._target_view = draw_execution_target(
             state.selected_targets.get(str(root), ''), str(root), execution_target_state, draw_state,
-            width=target[2], height=header_h, trigger_height=header_h / Melty.ui_scale)
+            width=target[2], height=header_h, trigger_height=header_h / Melty.ui_scale,
+            prepared=prepared_target, trigger_caret=('', ''))
         if picked:
             state.selected_targets[str(root)] = selected
             draw_state.invalidate()

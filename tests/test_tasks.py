@@ -308,7 +308,7 @@ def test_toolbar_overlay_moves_buttons_and_shadows_together(monkeypatch):
 
     state = tasks.TaskViewState()
     state._toolbar_height = 28
-    state._toolbar = {'left': 100, 'nav_tints': (None, None), 'has_tasks': True}
+    state._toolbar = {'left': 100, 'picker_widths': (180, 140), 'has_tasks': True}
     parent = NS(misc={'task_state': tasks.TaskState(), '_task_view_state': state}, abs_left=10, abs_top=20,
                 width=600, height=300, abs_clip_rect=(10, 20, 610, 320))
     buttons, shadows, cleared, navigation = [], [], [], []
@@ -329,7 +329,7 @@ def test_toolbar_overlay_moves_buttons_and_shadows_together(monkeypatch):
             assert shadow['draw_state'] is parent
             assert shadow['group'] == 'task_buttons'
             assert shadow['clip'] == parent.abs_clip_rect
-        assert navigation[-1]['pos'] == (110, parent.abs_top + height - 26)
+        assert navigation == []
     assert cleared == [(parent, 'task_buttons')] * 3
     assert buttons[0]['pos'][0] > buttons[3]['pos'][0]  # narrow tile reflows
 

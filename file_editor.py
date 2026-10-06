@@ -232,7 +232,9 @@ def draw_file_editor_overlay_background(draw_state, draw_list):
 
 def draw_file_editor_overlay(draw_state, draw_list):
     """Paint prepared tabs at live bounds; all input stays in the normal body."""
-    from meltygui_pro.editor.code_editor import paint_editor_tabs
+    from meltygui_pro.editor.code_editor import paint_editor_tabs, _draw_nav_buttons, _nav_button_tints
+    _draw_nav_buttons(draw_state, *_nav_button_tints()[:2], draw_list=draw_list,
+                      pos=(draw_state.abs_left, draw_state.abs_top))
     state = draw_state.misc.get("file_editor_state")
     if state is None or state._tab_overlay is None:
         from meltygui.core.cache.tile_marks import clear_shadows
@@ -278,10 +280,15 @@ def draw_file_editor(input_value: OpenFiles, draw_state=None,
     path = state.selected_path
     options, text, status = version_value(state)
     version_label = next((label for label, value in options.items() if value == state.version), state.version)
-    # Keep these controls anchored to content; frozen resize need not repaint them.
-    version_width = min(max(1, width - (94 if state._comparison is not None else 0)),
-                        imgui.calc_text_size(f"\uf078 {version_label}").x + 60)
+    from meltygui.core.melty import Melty
+    from meltygui_pro.editor.code_editor import _draw_nav_buttons, _nav_button_tints
     imgui.set_cursor_screen_pos((left, top))
+    _draw_nav_buttons(draw_state, *_nav_button_tints()[:2], paint=False)
+    navigation_width = 2 * Melty.px(30) + 6 + 8
+    # Keep these controls anchored to content; frozen resize need not repaint them.
+    version_width = min(max(1, width - navigation_width - (94 if state._comparison is not None else 0)),
+                        imgui.calc_text_size(f"\uf078 {version_label}").x + 60)
+    imgui.set_cursor_screen_pos((left + navigation_width, top))
     picked, version = fast_draw_dropdown(
         state.version, collection=options, name="Version", show_name=False,
         display_label=version_label,
@@ -292,7 +299,7 @@ def draw_file_editor(input_value: OpenFiles, draw_state=None,
         changed = True
     if state._comparison is not None:
         from meltygui_pro.editor.comparison import draw_comparison_controls
-        imgui.set_cursor_screen_pos((left + version_width + 8, top))
+        imgui.set_cursor_screen_pos((left + navigation_width + version_width + 8, top))
         draw_comparison_controls(draw_state, state._comparison)
     # One codec-selected view, including loading/empty/error states. Its identity
     # includes the version, so historic cursors/folds never replace the working ones.

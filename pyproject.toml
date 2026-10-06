@@ -10,6 +10,9 @@ dependencies = ["meltygui", "meltygui-pro"]
 resources = ["project_templates"]
 icon = "icon/melty-code-editor.png"
 
+[tool.melty.app.ios]
+build_directory = "platforms/ios/build/latest"
+
 [tool.melty.tasks]
 test = "python -m pytest tests -q"
 smoke = "MELTY_BENCH=1 python editor.py editor.py"
