@@ -257,7 +257,7 @@ def run_menu():
     """The selected tab's project tasks, rebuilt each frame."""
     menu = {'Rerun last task (Ctrl+Shift+R)': tasks.request_rerun}
     root = selected_tab_project()
-    names = list(tasks.read_tasks(root)) if root else []
+    names = list(tasks.task_choices(root))
     if names:
         menu['Tasks'] = {name: (lambda _name=name, _root=root: tasks.request_run(_root, _name))
                          for name in names}

@@ -55,6 +55,7 @@ from meltygui_pro.models.projects import project_for, project_roots
 from project_tree import draw_project_tree, project_selection
 from meltygui import DrawState
 
+RUN_CURRENT_FILE = 'Run Current File'
 NO_TASKS = 'No tasks — right-click a Python module to Run'
 OUTPUT_TOP = 24.0           # status line (20) and gap (4), logical pixels
 
@@ -117,6 +118,25 @@ class TaskState(ProjectExecution):
             return
         self.execute(root, task, name, debug, file_metadata, source_snapshot)
 
+    def run_current_file(self, editor_view, *, debug=False, file_metadata=None):
+        """Resolve the linked editor at click time and reuse its normal module task."""
+        editor = editor_view.misc.get('file_editor_state') if editor_view is not None else None
+        path = editor.selected_path if editor is not None else None
+        if not path or editor.version != 'current':
+            self.error = 'Select a current Python file in the linked File Editor.'
+            self._changed()
+            return
+        root = current_file_project(editor_view)
+        snapshot = None
+        value = editor._file
+        if value is not None and str(value.repo.root / value.path) == path and value.version == 'current':
+            snapshot = value.source_snapshot()
+        self.run_module(path, root, debug=debug, file_metadata=file_metadata,
+                        source_snapshot=snapshot)
+        # Keep the dynamic option selected; the concrete task is still available
+        # in the list and remains the run identity for Rerun last task.
+        self.selected_tasks[root] = RUN_CURRENT_FILE
+
     def _execution_started(self):
         global _last
         _last = (self.project, self.task)
@@ -169,7 +189,9 @@ def add_module_task(path, root, save=False):
         while (parent / '__init__.py').is_file():
             parts.insert(0, parent.name)
             parent = parent.parent
-        task = {'cmd': 'python -m ' + shlex.quote('.'.join(parts)),
+        command = ('python -m ' + shlex.quote('.'.join(parts)) if len(parts) > 1
+                   else 'python ' + shlex.quote(path.name))
+        task = {'cmd': command,
                 'cwd': os.path.relpath(parent, root), 'env': {}, 'module': relative}
     else:
         task = existing[name]
@@ -248,6 +270,19 @@ def pending_run():
 
 # ── the tile ────────────────────────────────────────────────────────────────
 
+def initialize_editor_link(tile):
+    """Adopt Auto once for existing and new Tasks tiles; preserve later Unlinked."""
+    from meltygui.core.layout.tile_links import AUTO
+    from meltygui.state.view_reference import view_identifier
+    if getattr(tile, 'tasks_editor_link_initialized', False):
+        return
+    key = view_identifier(draw_tasks)
+    bindings = dict(tile.links.get(key, {}))
+    bindings.setdefault('file_editor_view', AUTO)
+    tile.links = {**tile.links, key: bindings}
+    tile.tasks_editor_link_initialized = True
+
+
 def tile_project(files_view, open_files):
     """Read the explicitly injected Files selection, with a standalone fallback."""
     selection = project_selection(files_view)
@@ -262,14 +297,28 @@ def tile_project(files_view, open_files):
     return str(saved[0]) if saved else None
 
 
+def current_file_project(editor_view):
+    """Use the linked editor's project for both its execution target and run."""
+    editor = editor_view.misc.get('file_editor_state') if editor_view is not None else None
+    if editor is None or not editor.selected_path:
+        return None
+    source = (editor_view._kwargs or {}).get('files_view')
+    selection = project_selection(source)
+    root = selection.selected_project if selection is not None else None
+    return str(Path(root or project_for(editor.selected_path) or Path(editor.selected_path).parent).resolve())
+
+
+def task_choices(root):
+    """The dynamic default precedes the project's persisted task definitions."""
+    return {RUN_CURRENT_FILE: None, **(read_tasks(root) if root else {})}
+
+
 def selected_task(state, root, tasks):
     """Restore a project's picker; migrate an older tile's saved run selection."""
     selections = state.selected_tasks
     if state.project and state.task:
         selections.setdefault(str(state.project), state.task)
-    if not root:
-        return None
-    root = str(root)
+    root = str(root or '')
     if selections.get(root) not in tasks:
         selections[root] = next(iter(tasks), None)
     return selections[root]
@@ -445,6 +494,11 @@ def draw_tasks_overlay_background(draw_state, draw_list):
         paint_cached_view(view_state._output_view)
 
 
+# File Editor consumes TaskState; defer its import and source annotation so both
+# modules can be imported first, with links resolved after module initialization.
+import file_editor
+
+
 @render_func(multi_instance=True, tint=(0.36, 0.47, 0.42), icon='', display_name='Tasks',
              selectable=False, disable_scroll=True, show_add_delete=False, is_tree=False,
              show_bg=False, shadow=False, show_header=False, use_cache=True, tile_toolbar=True,
@@ -454,6 +508,7 @@ def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
                _task_view_state: TaskViewState = None,
                execution_target_state: ExecutionTargetState = None,
                files_view: DrawState[draw_project_tree] = None,
+               file_editor_view: "DrawState[file_editor.draw_file_editor]" = None,
                header_height=28.0, tile_toolbar_rect=None, file_metadata=None, **kwargs):
     """The Tasks tile: output and status above a bottom task/run/stop toolbar. `input_value` is the tile's `OpenFiles`, returned unchanged."""
     global _pending, _pending_error, _pending_debug
@@ -487,7 +542,7 @@ def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
         _pending_debug = False
 
     root = tile_project(files_view, open_files)
-    tasks = read_tasks(root) if root else {}
+    tasks = task_choices(root)
     names = list(tasks)
     choice = selected_task(state, root, tasks)
 
@@ -500,8 +555,9 @@ def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
         header_h = tile_toolbar_rect[3]
     view_state._toolbar_height = header_h
     toolbar_y = max(0, (draw_state.height or 0) - header_h)
-    selected_target = state.selected_targets.get(str(root), '')
-    prepared_target = prepare_execution_target(selected_target, str(root), execution_target_state, draw_state) if root else None
+    target_root = current_file_project(file_editor_view) if choice == RUN_CURRENT_FILE else root
+    selected_target = state.selected_targets.get(str(target_root), '')
+    prepared_target = prepare_execution_target(selected_target, str(target_root), execution_target_state, draw_state) if target_root else None
     picker_widths = (imgui.calc_text_size(choice if names else (NO_TASKS if root else 'Open a project to run tasks')).x + 30,
                      imgui.calc_text_size(prepared_target[2]).x + 30 if prepared_target else 0)
     view_state._toolbar = {
@@ -521,18 +577,18 @@ def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
             trigger_height=header_h / Melty.ui_scale, shadow=False,
             return_extras=True)
         if picked and isinstance(choice, str):
-            state.selected_tasks[str(root)] = choice
+            state.selected_tasks[str(root or '')] = choice
             draw_state.invalidate()
     view_state._target_view = None
-    if root and target[2] > 0:
+    if target_root and target[2] > 0:
         state.ensure_runtime()
         imgui.set_cursor_screen_pos(target[:2])
         picked, selected, view_state._target_view = draw_execution_target(
-            state.selected_targets.get(str(root), ''), str(root), execution_target_state, draw_state,
+            state.selected_targets.get(str(target_root), ''), str(target_root), execution_target_state, draw_state,
             width=target[2], height=header_h, trigger_height=header_h / Melty.ui_scale,
-            prepared=prepared_target, trigger_caret=('', ''))
+            prepared=prepared_target, file_metadata=file_metadata, trigger_caret=('', ''))
         if picked:
-            state.selected_targets[str(root)] = selected
+            state.selected_targets[str(target_root)] = selected
             draw_state.invalidate()
     for rect, (label, name, enabled, color, text_color) in zip((run, debug, stop), task_toolbar_buttons(state, view_state)):
         x, y, button_w, button_h = rect
@@ -570,9 +626,15 @@ def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
     if action == 'stop':
         state.stop()
     elif action is not None:
-        state.run(root, choice, debug=action == 'debug', file_metadata=file_metadata)
+        if choice == RUN_CURRENT_FILE:
+            state.run_current_file(file_editor_view, debug=action == 'debug', file_metadata=file_metadata)
+        else:
+            state.run(root, choice, debug=action == 'debug', file_metadata=file_metadata)
     elif pending_start is not None:
-        state.run(*pending_start)
+        if pending_start[1] == RUN_CURRENT_FILE:
+            state.run_current_file(file_editor_view, debug=pending_start[2], file_metadata=file_metadata)
+        else:
+            state.run(*pending_start)
     return False, input_value
 
 

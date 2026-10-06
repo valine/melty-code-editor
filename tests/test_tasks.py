@@ -350,3 +350,92 @@ def test_output_follow_range_clamp_and_unmeasured_content():
     output._max_scroll_y = 120
     tasks.follow_output(state, output, 2, running=state.running)
     assert output.scroll_offset == (0, 120)
+
+
+def test_current_file_default_is_not_a_persisted_definition(tmp_path):
+    state = tasks.TaskState()
+    choices = tasks.task_choices(str(tmp_path))
+    assert tasks.selected_task(state, str(tmp_path), choices) == tasks.RUN_CURRENT_FILE
+    assert tasks.selected_task(state, None, tasks.task_choices(None)) == tasks.RUN_CURRENT_FILE
+    assert tasks.read_tasks(tmp_path) == {}
+
+
+def test_current_file_tracks_linked_editor_and_creates_reusable_tasks(tmp_path, monkeypatch):
+    from types import SimpleNamespace as NS
+    from file_editor import FileEditorState
+    import editor_settings
+    monkeypatch.setattr(editor_settings, 'settings', {'Tasks': {'save_tasks': False}})
+    monkeypatch.setattr(tasks, 'project_for', lambda path: tmp_path)
+    editor = FileEditorState()
+    view = NS(misc={'file_editor_state': editor}, _kwargs={})
+    state = tasks.TaskState()
+    runs = []
+    monkeypatch.setattr(state, 'execute', lambda *args: runs.append(args))
+    for filename in ('first.py', 'second file.py', 'second file.py'):
+        path = tmp_path / filename
+        path.write_text('print("hello")\n')
+        editor.selected_path = str(path)
+        state.run_current_file(view, debug=True, file_metadata='metadata')
+        assert runs[-1][0] == str(tmp_path)
+        assert runs[-1][1]['module'] == filename
+        assert runs[-1][2:5] == ('Run ' + filename, True, 'metadata')
+        assert state.selected_tasks[str(tmp_path)] == tasks.RUN_CURRENT_FILE
+    assert len(tasks.read_tasks(tmp_path)) == 2
+    assert tasks.read_tasks(tmp_path)['Run second file.py']['cmd'] == "python 'second file.py'"
+    # A concrete task keeps its file when the linked editor changes tabs.
+    state.run(str(tmp_path), 'Run first.py')
+    assert runs[-1][1]['module'] == 'first.py'
+
+
+def test_current_file_missing_or_historic_editor_does_not_run(tmp_path, monkeypatch):
+    from types import SimpleNamespace as NS
+    from file_editor import FileEditorState
+    state = tasks.TaskState()
+    monkeypatch.setattr(state, 'run_module', lambda *a, **kw: pytest.fail('unexpected run'))
+    editor = FileEditorState()
+    for view in (None, NS(misc={}, _kwargs={}), NS(misc={'file_editor_state': editor}, _kwargs={})):
+        state.run_current_file(view)
+        assert 'linked File Editor' in state.error
+    editor.selected_path, editor.version = str(tmp_path / 'main.py'), 'HEAD'
+    state.run_current_file(NS(misc={'file_editor_state': editor}, _kwargs={}))
+    assert 'current Python file' in state.error
+
+
+def test_generated_commands_keep_script_extension_and_package_context(tmp_path):
+    script = tmp_path / 'my.script.py'
+    script.write_text('')
+    name = tasks.add_module_task(script, tmp_path)
+    assert tasks.read_tasks(tmp_path)[name]['cmd'] == 'python my.script.py'
+    package = tmp_path / 'pkg'
+    package.mkdir()
+    (package / '__init__.py').write_text('')
+    module = package / 'main.py'
+    module.write_text('')
+    name = tasks.add_module_task(module, tmp_path)
+    assert tasks.read_tasks(tmp_path)[name]['cmd'] == 'python -m pkg.main'
+    assert tasks.read_tasks(tmp_path)[name]['module'] == 'pkg/main.py'
+
+
+def test_current_file_runs_pending_source_in_linked_project(tmp_path, monkeypatch):
+    from types import SimpleNamespace as NS
+    from file_editor import FileEditorState
+    from meltygui.editor.pending_save import PendingSave
+    import editor_settings
+    monkeypatch.setattr(editor_settings, 'settings', {'Tasks': {'save_tasks': False}})
+    root = project(tmp_path, '')
+    path = tmp_path / 'sub' / 'main.py'
+    path.write_text('raise RuntimeError("stale disk text")\n')
+    monkeypatch.setattr(PendingSave, 'current_file_text', lambda path: 'print("linked pending source")\n')
+    editor = FileEditorState()
+    editor.selected_path = str(path)
+    source = NS(misc={'panel_state': NS(selected_project=root)})
+    view = NS(misc={'file_editor_state': editor}, _kwargs={'files_view': source})
+    assert tasks.current_file_project(view) == root
+    state = tasks.TaskState()
+    state.run_current_file(view)
+    assert state.error is None
+    assert wait(state) and state.exit == 0
+    assert 'linked pending source' in state.output
+    assert state.task == 'Run sub/main.py'
+    assert state.selected_tasks[root] == tasks.RUN_CURRENT_FILE
+    assert tasks.read_tasks(root)[state.task]['module'] == 'sub/main.py'

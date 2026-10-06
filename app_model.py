@@ -31,6 +31,9 @@ class EditorAppModel(DictConversion):
                     key = view_identifier(tile.render_func)
                     if key not in tile.links:
                         tile.links = {**tile.links, key: {'files_view': AUTO}}
+                    if tile.render_func is draw_tasks:
+                        from tasks import initialize_editor_link
+                        initialize_editor_link(tile)
                     if tile.render_func is draw_file_editor:
                         from file_editor import migrate_comparison_link
                         migrate_comparison_link(tile)

@@ -134,3 +134,23 @@ def test_chat_forwards_link_and_selected_project(monkeypatch):
     model.bind_open_files(files)
     draw_chat(files, **resolve_parameters(chat, {source.tile.id: source, chat.tile.id: chat}))
     assert render.call_args.kwargs == {'project_filter': None, 'files_view': None}
+
+
+def test_tasks_link_to_selected_file_editor(monkeypatch):
+    monkeypatch.setattr(Melty, 'draw_state_registry', {})
+    tree = Split(children=[Tile(render_func=view) for view in
+                           (draw_file_editor, draw_file_editor, draw_tasks)])
+    model = EditorAppModel()
+    model.tiles = tree
+    model.bind_open_files(OpenFiles())
+    endpoints = prepare_endpoints(tree)
+    first, second, runner = endpoints.values()
+    assert resolve_parameters(runner, endpoints)['file_editor_view'] in (first.draw_state, second.draw_state)
+    from meltygui.core.layout.tile_links import candidates
+    identity = next(identity for identity, view in candidates(runner, 'file_editor_view', endpoints)
+                    if view is second.draw_state)
+    set_binding(runner, 'file_editor_view', identity)
+    assert resolve_parameters(runner, endpoints)['file_editor_view'] is second.draw_state
+    set_binding(runner, 'file_editor_view', None)
+    model.bind_open_files(OpenFiles())
+    assert resolve_parameters(runner, endpoints)['file_editor_view'] is None
