@@ -649,6 +649,7 @@ def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
         imgui.set_cursor_screen_pos((body_left, body_top + output_top + output_h))
         draw_task_input(state, view_state, draw_state, width, unique, paint=False)
     imgui.set_cursor_screen_pos((body_left, body_top + output_top))
+    # Read-only draw_text retains selection/copy without opening the touch keyboard.
     _, _, output_ds = draw_text(state.output, name=f'task-output##{unique}',
                                 width=draw_state.content_width, height=output_h,
                                 editable=False, syntax_highlight=False,
