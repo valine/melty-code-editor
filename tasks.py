@@ -418,6 +418,39 @@ def task_toolbar_buttons(state, view_state):
     )
 
 
+def task_output_top(state):
+    return Melty.px(OUTPUT_TOP + (28 if state.debug_enabled else 0))
+
+
+def draw_task_debug_controls(state, draw_state, left, top, *, paint=False, draw_list=None):
+    """Task-owned debug actions, with identical input and live overlay bounds."""
+    if not state.debug_enabled:
+        return None
+    controls = [("\uf04b", 'continue', 'Continue', 30, state.paused),
+                ("\uf063", 'step_into', 'Step into', 30, state.paused),
+                ("\uf064", 'step_over', 'Step over', 30, state.paused),
+                ("\uf062", 'step_out', 'Step out', 30, state.paused)]
+    if state._external is not None and state.running:
+        controls.append(('Force stop', 'force_stop', 'Force stop', 98, True))
+    command = None
+    for label, mode, tooltip, width, enabled in controls:
+        rect = (left, top + Melty.px(OUTPUT_TOP), Melty.px(width), Melty.px(24))
+        if not paint:
+            imgui.set_cursor_screen_pos(rect[:2])
+        if flat_button(label, draw_state if enabled else None,
+                       None if paint else f'tasks-debug-{mode}',
+                       pos=rect[:2], width=rect[2], height=rect[3], layout=not paint,
+                       paint=paint, draw_list=draw_list, tooltip=tooltip,
+                       hovered=None if enabled else False) and enabled and not paint:
+            command = mode
+        if paint:
+            from meltygui.core.cache.tile_marks import add_shadow
+            add_shadow(rect, corner_radius=Melty.px(6), clip=draw_state.abs_clip_rect,
+                       draw_state=draw_state, group='task_buttons')
+        left += Melty.px(width + 4)
+    return command
+
+
 def draw_tasks_overlay(draw_state, draw_list):
     """Paint toolbar chrome and retain its shadows at the current tile bounds."""
     from meltygui.core.cache.tile_marks import add_shadow, clear_shadows
@@ -449,8 +482,10 @@ def draw_tasks_overlay(draw_state, draw_list):
                     hovered=None if enabled else False, tooltip=name.capitalize())
         add_shadow(rect, corner_radius=Melty.px(6), clip=draw_state.abs_clip_rect,
                    draw_state=draw_state, group='task_buttons')
+    draw_task_debug_controls(state, draw_state, draw_state.abs_left, draw_state.abs_top,
+                             paint=True, draw_list=draw_list)
     if state.waiting_for_input:
-        top = draw_state.abs_top + max(Melty.px(OUTPUT_TOP),
+        top = draw_state.abs_top + max(task_output_top(state),
             draw_state.height - view_state._toolbar_height - Melty.px(32))
         _, send, eof = task_input_layout(draw_state.abs_left, top, draw_state.width)
         for label, rect in (('Send', send), ('EOF', eof)):
@@ -476,8 +511,8 @@ def draw_tasks_overlay_background(draw_state, draw_list):
                     paint_cached_view(view)
     if view_state._output_view is None:
         return
-    top = Melty.px(OUTPUT_TOP)
     state = draw_state.misc.get('task_state')
+    top = task_output_top(state) if state is not None else Melty.px(OUTPUT_TOP)
     input_h = Melty.px(32) if state is not None and state.waiting_for_input else 0
     height = max(0, draw_state.height - view_state._toolbar_height - top - input_h)
     if input_h and getattr(view_state, '_input_view', None) is not None:
@@ -510,7 +545,7 @@ def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
                files_view: DrawState[draw_project_tree] = None,
                file_editor_view: "DrawState[file_editor.draw_file_editor]" = None,
                header_height=28.0, tile_toolbar_rect=None, file_metadata=None, **kwargs):
-    """The Tasks tile: output and status above a bottom task/run/stop toolbar. `input_value` is the tile's `OpenFiles`, returned unchanged."""
+    """Task output, status and debug controls above the bottom run toolbar."""
     global _pending, _pending_error, _pending_debug
     from meltygui.core.windowing.glfw_utils import request_render
     from meltygui.view.text_view import draw_text
@@ -605,7 +640,8 @@ def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
         imgui.set_cursor_screen_pos((body_left, body_top))
         output_root = state.project or root
         imgui.text(f'{Path(output_root).name if output_root else "no project"}  {status_text(state)}')
-    output_top = px(OUTPUT_TOP)
+    debug_command = draw_task_debug_controls(state, draw_state, body_left, body_top)
+    output_top = task_output_top(state)
     input_h = px(32) if state.waiting_for_input else 0
     output_h = max(0, toolbar_y - output_top - input_h)
     view_state._input_view = None
@@ -625,6 +661,10 @@ def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
         follow_output(view_state, output_ds, px(2), running=state.running)
     if action == 'stop':
         state.stop()
+    elif debug_command == 'force_stop':
+        state.force_stop()
+    elif debug_command is not None:
+        state.resume(debug_command)
     elif action is not None:
         if choice == RUN_CURRENT_FILE:
             state.run_current_file(file_editor_view, debug=action == 'debug', file_metadata=file_metadata)
@@ -657,28 +697,8 @@ def draw_console(input_value: object, debugger_state: TaskState = None,
     if isinstance(retired, ConsoleViewState):
         _console_view_state = draw_state.misc['_console_view_state'] = retired
     debugger_state.ensure_runtime()
-    command = None
     left, top = imgui.get_cursor_screen_pos()
     px = Melty.px
-    if debugger_state.debug_enabled:
-        # FA5 arrows describe motion through the current frame; hover gives
-        # the full command name. Keep the same compact size as task controls.
-        controls = ((f'\uf04b', 'continue', 'Continue'),
-                    (f'\uf063', 'step_into', 'Step into'),
-                    (f'\uf064', 'step_over', 'Step over'),
-                    (f'\uf062', 'step_out', 'Step out'))
-        for index, (label, mode, tooltip) in enumerate(controls):
-            imgui.set_cursor_screen_pos((left + index * px(34), top))
-            if flat_button(label, draw_state if debugger_state.paused else None,
-                           f'debug-{mode}', width=px(30), height=px(24), tooltip=tooltip,
-                           hovered=None if debugger_state.paused else False) and debugger_state.paused:
-                command = mode
-        top += px(28)
-        if debugger_state._external is not None and debugger_state.running:
-            imgui.set_cursor_screen_pos((left, top))
-            if flat_button('Force stop', draw_state, 'force-stop', width=px(98), height=px(24)):
-                debugger_state.force_stop()
-            top += px(28)
     imgui.set_cursor_screen_pos((left, top))
     imgui.text(status_text(debugger_state))
     if debugger_state.waiting_for_input:
@@ -691,8 +711,6 @@ def draw_console(input_value: object, debugger_state: TaskState = None,
     if output_ds is not None:
         # View-local follow history; the shared session never owns this pane.
         follow_output(_console_view_state, output_ds, Melty.px(2), running=debugger_state.running)
-    if command is not None:
-        debugger_state.resume(command)
     return False, input_value
 
 

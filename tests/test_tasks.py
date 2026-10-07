@@ -300,6 +300,53 @@ def test_output_overlay_tracks_live_tile_bounds(monkeypatch):
     assert placed[-2] == (field, (50, 500, 492, 28), parent.abs_clip_rect)
     assert placed[-1] == (pane, (50, 84, 600, 416), parent.abs_clip_rect)
 
+    # Debug controls reserve a row in both normal layout and cached replay.
+    parent.misc['task_state'].debug_enabled = True
+    tasks.draw_tasks_overlay_background(parent, None)
+    assert placed[-2] == (field, (50, 500, 492, 28), parent.abs_clip_rect)
+    assert placed[-1] == (pane, (50, 112, 600, 388), parent.abs_clip_rect)
+
+
+@pytest.mark.parametrize('command', ['continue', 'step_into', 'step_over', 'step_out', 'force_stop'])
+def test_debug_controls_only_dispatch_from_enabled_task_body(monkeypatch, command):
+    from types import SimpleNamespace as NS
+    from meltygui.core.cache import tile_marks
+
+    state = tasks.TaskState()
+    state.debug_enabled = state.running = state.paused = True
+    state._external = object()
+    parent = NS(abs_clip_rect=(10, 20, 410, 320))
+    calls, shadows = [], []
+    monkeypatch.setattr(tasks.Melty, 'px', lambda value: value)
+    monkeypatch.setattr(tasks.imgui, 'set_cursor_screen_pos', lambda pos: None)
+    monkeypatch.setattr(tile_marks, 'add_shadow', lambda rect, **kw: shadows.append(rect))
+
+    def click(label, owner, view_id, **kwargs):
+        calls.append((owner, view_id, kwargs))
+        return kwargs['layout'] and view_id == f'tasks-debug-{command}'
+
+    monkeypatch.setattr(tasks, 'flat_button', click)
+    assert tasks.draw_task_debug_controls(state, parent, 10, 20) == command
+    body = calls[:]
+    assert all(owner is parent and kw['layout'] and not kw['paint'] for owner, _, kw in body)
+    calls.clear()
+    assert tasks.draw_task_debug_controls(state, parent, 10, 20, paint=True, draw_list=object()) is None
+    assert [kw['pos'] for _, _, kw in calls] == [kw['pos'] for _, _, kw in body]
+    assert shadows == [(*kw['pos'], kw['width'], kw['height']) for _, _, kw in body]
+    assert all(view_id is None and not kw['layout'] for _, view_id, kw in calls)
+
+    # Resume actions are disabled while running; force stop remains available.
+    state.paused = False
+    calls.clear()
+    assert tasks.draw_task_debug_controls(state, parent, 10, 20) == ('force_stop' if command == 'force_stop' else None)
+    assert all(owner is None and kw['hovered'] is False for owner, _, kw in calls[:4])
+    state.running = False
+    assert tasks.draw_task_debug_controls(state, parent, 10, 20) is None
+    state.debug_enabled = False
+    calls.clear()
+    assert tasks.draw_task_debug_controls(state, parent, 10, 20) is None
+    assert calls == []
+
 
 def test_toolbar_overlay_moves_buttons_and_shadows_together(monkeypatch):
     from types import SimpleNamespace as NS
