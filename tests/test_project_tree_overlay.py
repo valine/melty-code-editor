@@ -94,11 +94,12 @@ def test_tree_overlay_uses_live_width_scroll_and_shared_selection(monkeypatch):
     monkeypatch.setattr(Melty, 'paint_selection', selection)
     dl = Mock()
     project_tree.draw_file_rows_overlay(ds, dl)
-    assert selection.call_args.args == (ds, dl, (12, 76, 288, 20))
+    assert selection.call_args.args == (ds, dl, (12, 76, 296, 20))
+    assert selection.call_args.kwargs == {'outline': False}
     ds.width, ds.abs_left, ds.abs_top, ds.scroll_offset = 480, 40, 60, (0, 40)
     ds.abs_clip_rect = (40, 60, 520, 240)
     project_tree.draw_file_rows_overlay(ds, dl)
-    assert selection.call_args.args == (ds, dl, (42, 86, 468, 20))
+    assert selection.call_args.args == (ds, dl, (42, 86, 476, 20))
 
 
 def test_shared_tree_state_keeps_each_views_row_layout(frame, tmp_path, monkeypatch):
@@ -135,7 +136,7 @@ def test_shared_tree_state_keeps_each_views_row_layout(frame, tmp_path, monkeypa
         selection = create_autospec(Melty.paint_selection)
         monkeypatch.setattr(Melty, 'paint_selection', selection)
         dl = Mock()
-        for (ds, expected), (width, height) in zip(views, ((228, 20), (468, 28))):
+        for (ds, expected), (width, height) in zip(views, ((240, 20), (480, 28))):
             assert ds.misc['_row_overlay'].layout == expected
             project_tree.draw_file_rows_overlay(ds, dl)
             assert selection.call_args.args == (ds, dl, (ds.abs_left, ds.abs_top, width, height))
