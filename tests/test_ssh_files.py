@@ -231,7 +231,7 @@ def test_remote_manifest_pending_save_and_create(server):
     tasks.save_module_task(server, 'run', {'cmd': 'python main.py', 'module': 'main.py', 'cwd': '.', 'env': {}})
     assert tasks.read_tasks(server)['run']['module'] == 'main.py'
     address, (codec, kwargs) = next(iter(PendingSave.pending_saves.items()))
-    PendingSave.save_remote(address, codec, kwargs)
+    PendingSave.apply_all_saves()
     deadline = time.monotonic() + 10
     while ssh.entry(manifest).get('saving') and time.monotonic() < deadline:
         Melty._drain_render_tasks()
@@ -255,7 +255,7 @@ def test_save_ack_keeps_newer_edit(server, monkeypatch):
         assert proceed.wait(5)
         return result
     monkeypatch.setattr(ssh, 'write_bytes', slow)
-    PendingSave.save_remote(address, TextFileCodec, dict(data='first\n'))
+    PendingSave.apply_all_saves()
     assert written.wait(5)
     PendingSave.queue_save(address, TextFileCodec, data='newer edit\n')
     proceed.set()
@@ -265,7 +265,13 @@ def test_save_ack_keeps_newer_edit(server, monkeypatch):
         time.sleep(.02)
     assert PendingSave.remote_text(location) == 'newer edit\n'
     assert Path(location.remote_path).read_text() == 'first\n'
-    assert TextFileCodec.save(address, 'newer edit\n') is True
+    PendingSave.apply_all_saves()
+    deadline = time.monotonic() + 5
+    while ssh.entry(location).get('saving') and time.monotonic() < deadline:
+        Melty._drain_render_tasks()
+        time.sleep(.02)
+    assert PendingSave.entry_for(address) is None
+    assert Path(location.remote_path).read_text() == 'newer edit\n'
 
 
 def test_ssh_disconnect_does_not_relaunch(server):
@@ -306,14 +312,15 @@ def test_shared_file_value_loads_edits_and_refreshes(server):
         reopened = Address(path)
         assert TextFileCodec.load(reopened) == 'after = 2\n'
         assert reopened._remote_stamp == current.address._remote_stamp
-        PendingSave.save_file(current.address)
+        assert disk.read_text() == 'before = 1\n'
+        PendingSave.apply_all_saves()
         deadline = time.monotonic() + 8
         while PendingSave.entry_for(current.address) and time.monotonic() < deadline:
             Melty._drain_render_tasks()
             time.sleep(.02)
         assert disk.read_text() == 'after = 2\n'
         disk.write_text('external = 333\n')
-        PendingSave.refresh_file(current.address, current.codec)
+        ssh._operation(server, 'rows')  # The Files view's normal directory update.
         deadline = time.monotonic() + 8
         while current.get('value') != 'external = 333\n' and time.monotonic() < deadline:
             Melty._drain_render_tasks()
@@ -323,25 +330,24 @@ def test_shared_file_value_loads_edits_and_refreshes(server):
         current.unsubscribe(callback)
 
 
-def test_reload_retains_edits_made_during_download(monkeypatch):
+def test_codec_refresh_retains_pending_edits_and_save_baseline(monkeypatch):
     path = FileLocation('sftp://example/project/main.py')
     address = Address(path)
     address._remote_stamp, address._remote_encoding = (1, 3, 33188), 'utf-8'
     state = ssh.entry(path)
-    state.update(data=b'old', read_id=1)
-    monkeypatch.setattr(ssh, 'request', lambda *args, **kwargs: None)
-    PendingSave.queue_save(address, TextFileCodec, data='first draft')
-    PendingSave.refresh_file(address, TextFileCodec, discard=True)
-    PendingSave.queue_save(address, TextFileCodec, data='newer draft')
-    state.update(data=b'other', read_id=2, loading=False)
-    status = PendingSave.file_status(address, TextFileCodec)
-    assert PendingSave.pending_text_for(address) == 'newer draft'
-    assert 'retained' in status['save_error']
-    PendingSave.refresh_file(address, TextFileCodec, discard=True)
-    state['read_id'] = 3
-    PendingSave.file_status(address, TextFileCodec)
-    assert PendingSave.entry_for(address) is None
-    assert ssh.recovered_edit(path) is None
+    state.update(data=b'old', read_id=1, stale=True)
+    requests = []
+    monkeypatch.setattr(ssh, 'request', lambda *args, **kwargs: requests.append(args))
+    PendingSave.mark_load(address, 'old')
+    PendingSave.queue_save(address, TextFileCodec, data='my draft')
+    TextFileCodec.file_status(address)
+    assert requests[-1] == (path, 'data')
+    state.update(data=b'other', read_id=2, loading=False, stale=False)
+    reopened = Address(path)
+    assert TextFileCodec.load(reopened) == 'my draft'
+    assert reopened._remote_stamp == (1, 3, 33188)
+    assert PendingSave.originals[address] == 'old'
+    assert ssh.recovered_edit(path)['text'] == 'my draft'
 
 
 def test_directory_refresh_does_not_rebase_loaded_contents(server):
@@ -383,3 +389,53 @@ def test_manifest_task_cannot_run_stale_definition(server, monkeypatch):
     state.run(str(server), 'hello')
     assert state.error
     assert not state.running
+
+
+@pytest.mark.parametrize('remote', [False, True])
+def test_pending_view_reads_original_through_codec(tmp_path, monkeypatch, remote):
+    from meltygui.view import file_view
+    from meltygui.view.file_view import RenderFuncs
+    from types import SimpleNamespace
+    path = FileLocation('sftp://example/project/base.txt') if remote else tmp_path / 'base.txt'
+    if remote:
+        ssh.entry(path).update(data=b'saved text', data_stat=SimpleNamespace(
+            st_mtime=1, st_size=10, st_mode=33188))
+        monkeypatch.setattr(ssh, 'request', lambda *args, **kwargs: None)
+    else:
+        path.write_text('saved text')
+    address = Address(path)
+    TextFileCodec.load(address)
+    expected = getattr(address, '_remote_stamp', None)
+    PendingSave.queue_save(address, TextFileCodec, data='unsaved draft')
+    monkeypatch.setattr(RenderFuncs, 'draw_function', lambda *args, **kwargs: None)
+    monkeypatch.setattr(RenderFuncs, 'button', lambda *args, **kwargs: (False, None))
+    rendered = []
+    monkeypatch.setattr(RenderFuncs, 'draw_text', lambda value, **kwargs: rendered.append(value))
+    monkeypatch.setattr(PendingSave, 'merge_results', [])
+    file_view.draw_pending_saves.__wrapped__()
+    assert PendingSave.originals[address] == 'saved text'
+    assert PendingSave.pending_text_for(address) == 'unsaved draft'
+    assert getattr(address, '_remote_stamp', None) == expected
+    file_view.draw_pending_saves.__wrapped__()
+    assert any('unsaved draft' in value for value in rendered)
+
+
+def test_pending_apply_keeps_remote_conflict_visible(server):
+    path = server / 'conflict.txt'
+    disk = Path(path.remote_path)
+    disk.write_text('original')
+    ssh.entry(path).update(ssh._operation(path, 'data'))
+    address = Address(path)
+    PendingSave.mark_load(address, TextFileCodec.load(address))
+    PendingSave.queue_save(address, TextFileCodec, data='my draft')
+    disk.write_text('external change')
+    PendingSave.apply_all_saves()
+    deadline = time.monotonic() + 5
+    while ssh.entry(path).get('saving') and time.monotonic() < deadline:
+        Melty._drain_render_tasks()
+        time.sleep(.02)
+    assert ssh.entry(path).get('save_error')
+    assert PendingSave.pending_text_for(address) == 'my draft'
+    assert PendingSave.originals[address] == 'original'
+    assert ssh.recovered_edit(path)['text'] == 'my draft'
+    assert disk.read_text() == 'external change'

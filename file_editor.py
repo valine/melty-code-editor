@@ -23,13 +23,12 @@ from meltygui_pro.navigation import source_editor, remember_editor, forget_edito
 
 
 @no_save("version_ready", "_file", "_pane", "_text", "_line_numbers", "_comparison", "_diff_folds", "_tab_overlay",
-         "_execution_action", "_status_height")
+         "_execution_action")
 class FileEditorState(DictConversion):
     _execution_action = None
     def __init__(self):
         super().__init__()
         self._execution_action = None
-        self._status_height = 0
         self.selected_path = None
         self.version = "current"
         self.version_ready = 0
@@ -228,8 +227,8 @@ def draw_file_editor_overlay_background(draw_state, draw_list):
     if state._pane is not None:
         from meltygui.core.rendering.overlay import place_overlay_view
         place_overlay_view(state._pane,
-                           (left, draw_state.abs_top + 30 + state._status_height, draw_state.width,
-                            max(1, draw_state.height - height - 30 - state._status_height)),
+                           (left, draw_state.abs_top + 30, draw_state.width,
+                            max(1, draw_state.height - height - 30)),
                            draw_state.abs_clip_rect)
         if getattr(draw_state, "_blit_served_frame", None) == Melty.frame_count:
             from meltygui.core.rendering.overlay import paint_cached_view
@@ -311,13 +310,6 @@ def draw_file_editor(input_value: OpenFiles, draw_state=None,
     # One codec-selected view, including loading/empty/error states. Its identity
     # includes the version, so historic cursors/folds never replace the working ones.
     imgui.set_cursor_screen_pos((left, top + 30))
-    from meltygui.view.pending_file_view import draw_file_status
-    from meltygui.code.new_codecs import codec_for_path
-    status_height = (draw_file_status(state._file.address,
-                     state._file.codec or codec_for_path(state._file.address.path), draw_state)
-                     if state._file is not None else 0)
-    state._status_height = status_height
-    imgui.set_cursor_screen_pos((left, top + 30 + status_height))
     file_value = state._file if text is not None else None
     editable = file_value is not None and file_value.writable
     is_text = isinstance(text, str)
@@ -342,7 +334,7 @@ def draw_file_editor(input_value: OpenFiles, draw_state=None,
         source_context=file_value, context_menu=context_menu,
         debugger_state=debugger_state, code_tree=state.source_tree(text, path),
         line_numbers=state._line_numbers[1] if is_text else None,
-        width=width, height=max(1, height - tab_height - 30 - status_height), return_extras=True,
+        width=width, height=max(1, height - tab_height - 30), return_extras=True,
         editable=editable, syntax_highlight=is_text,
         syntax_language="python" if path and path.endswith(".py") else "text",
         show_header=False, show_file_header=False, gutter_indent=True, freeze_resize=True,
