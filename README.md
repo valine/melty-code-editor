@@ -71,7 +71,11 @@ addresses, using the machine's /24 on larger networks). Select a result to fill
 the form, then add it. The scan only reads SSH identification banners; it does
 not log in or change known hosts. Each Scan refreshes the available networks;
 Stop cancels the scan. The selected tab and unfinished form persist;
-network results are refreshed each session.
+network results are refreshed each session. Up to 64 addresses are checked
+concurrently, with results shown as they arrive. Devices that answer Bonjour
+name queries show their network name beside the IP; other devices keep the IP
+label. Name lookups have a separate short deadline and never replace the SSH
+address. Selecting a named device also fills the new root's name.
 
 On iOS, interface discovery uses the system's `getifaddrs` API through ctypes;
 it does not require psutil. The bundled host includes the local-network privacy

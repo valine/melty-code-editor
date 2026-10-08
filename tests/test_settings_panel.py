@@ -1,6 +1,7 @@
 """Root settings and SSH discovery, using only isolated settings/loopback sockets."""
 import json
 import socket
+import struct
 import threading
 import time
 from types import SimpleNamespace
@@ -167,9 +168,11 @@ def wait_done(job):
 def test_scan_results_and_cancel_cleanup(monkeypatch):
     monkeypatch.setattr(panel, 'local_networks', lambda: {'small': '192.168.1.0/30', 'large': '192.168.1.0/24'})
     monkeypatch.setattr(panel, 'ssh_available', lambda host: host.endswith('.1'))
+    monkeypatch.setattr(panel, 'network_name', lambda host: 'studio.local')
     job = panel.start_scan('192.168.1.0/30', wake=lambda: None)
     wait_done(job)
     assert job['hosts'] == ('192.168.1.1',)
+    assert job['names'] == {'192.168.1.1': 'studio.local'}
     assert job['completed'] == job['total'] == 2
     entered, release = threading.Event(), threading.Event()
     def probe(host):
@@ -246,3 +249,90 @@ def test_scan_refreshes_disconnected_selection(monkeypatch):
     wait_done(job)
     assert job['network'] == '192.168.2.0/30'
     assert job['total'] == 2
+
+
+def test_scan_streams_fast_hosts_before_a_silent_host_finishes(monkeypatch):
+    release, named = threading.Event(), threading.Event()
+    monkeypatch.setattr(panel, 'local_networks', lambda: {'test': '192.168.1.0/30'})
+    def probe(host):
+        if host.endswith('.1'):
+            release.wait(2)
+            return False
+        return True
+    def name(host):
+        named.set()
+        return 'mac-mini.local'
+    monkeypatch.setattr(panel, 'ssh_available', probe)
+    monkeypatch.setattr(panel, 'network_name', name)
+    job = panel.start_scan('192.168.1.0/30', wake=lambda: None)
+    try:
+        assert named.wait(1)
+        assert job['hosts'] == ('192.168.1.2',)
+        assert not job['done']
+    finally:
+        release.set()
+        wait_done(job)
+
+
+def test_scan_keeps_64_probes_busy_and_cancels_queued_work(monkeypatch):
+    release, busy, lock = threading.Event(), threading.Event(), threading.Lock()
+    seen = []
+    monkeypatch.setattr(panel, 'local_networks', lambda: {'test': '192.168.1.0/24'})
+    def probe(host):
+        with lock:
+            seen.append(host)
+            if len(seen) == 64:
+                busy.set()
+        release.wait(2)
+        return False
+    monkeypatch.setattr(panel, 'ssh_available', probe)
+    job = panel.start_scan('192.168.1.0/24', wake=lambda: None)
+    try:
+        assert busy.wait(1)
+        job['cancel'].set()
+    finally:
+        release.set()
+        wait_done(job)
+    assert len(seen) == 64
+
+
+def test_network_name_from_device_unicast_reply():
+    # A real loopback datagram exchange; owner is compressed back to the question.
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as server:
+        server.bind(('127.0.0.1', 0))
+        server.settimeout(2)
+        received = []
+        def reply():
+            query, peer = server.recvfrom(9000)
+            received.append(query)
+            name = b'\x08mac-mini\x05local\x00'
+            packet = (struct.pack('!6H', 0, 0x8400, 1, 1, 0, 0) + query[12:] +
+                      b'\xc0\x0c' + struct.pack('!HHIH', 12, 0x8001, 120, len(name)) + name)
+            server.sendto(packet, peer)
+        thread = threading.Thread(target=reply, daemon=True)
+        thread.start()
+        assert panel.network_name('127.0.0.1', port=server.getsockname()[1]) == 'mac-mini.local'
+        thread.join(2)
+        assert received[0].endswith(struct.pack('!HH', 12, 1))
+
+
+def test_network_name_timeout():
+    # An open responder that never answers must not stall a scan.
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as server:
+        server.bind(('127.0.0.1', 0))
+        started = time.monotonic()
+        assert panel.network_name('127.0.0.1', port=server.getsockname()[1], timeout=.03) == ''
+        assert time.monotonic() - started < .5
+
+
+@pytest.mark.parametrize('packet', [b'', b'\xc0\x00', b'\xc0', b'\x04ab', b'\x01\n\0', b'\x40' + b'a' * 64])
+def test_dns_name_rejects_truncated_cyclic_and_invalid_names(packet):
+    with pytest.raises(ValueError):
+        panel.dns_name(packet, 0)
+
+
+def test_ptr_ignores_another_devices_name():
+    owner = b'\x01x\0'
+    name = b'\x05other\x05local\0'
+    packet = struct.pack('!6H', 0, 0x8400, 0, 1, 0, 0) + owner + struct.pack('!HHIH', 12, 1, 120, len(name)) + name
+    assert panel.ptr_hostname(packet, '1.0.0.127.in-addr.arpa') == ''

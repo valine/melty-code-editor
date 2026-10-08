@@ -1,10 +1,11 @@
 """The Settings tile: shared settings, named roots, and bounded SSH discovery."""
 import ipaddress
 import socket
+import struct
 import sys
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from pathlib import Path
 
 from meltygui import imgui, render_func
@@ -161,6 +162,83 @@ def ssh_available(host, port=22, timeout=0.6):
     return False
 
 
+def dns_name(packet, offset):
+    """Read a DNS name, including compressed PTR replies, without following loops."""
+    labels, seen, end = [], set(), None
+    while True:
+        if offset in seen or offset >= len(packet) or len(seen) >= 128:
+            raise ValueError('Invalid DNS name')
+        seen.add(offset)
+        size = packet[offset]
+        offset += 1
+        if size & 0xc0 == 0xc0:
+            if offset >= len(packet):
+                raise ValueError('Truncated DNS pointer')
+            end = end or offset + 1
+            offset = ((size & 0x3f) << 8) | packet[offset]
+        elif size == 0:
+            name = '.'.join(labels)
+            if len(name.encode('utf-8')) > 253 or any(ord(char) < 32 or ord(char) == 127 for char in name):
+                raise ValueError('Invalid DNS hostname')
+            return name, end or offset
+        else:
+            if size > 63 or offset + size > len(packet):
+                raise ValueError('Invalid DNS label')
+            labels.append(packet[offset:offset + size].decode('utf-8'))
+            offset += size
+
+
+def ptr_hostname(packet, reverse):
+    """Only accept a PTR for the address we asked about; ignore unrelated records."""
+    _, flags, questions, answers, authorities, additional = struct.unpack_from('!6H', packet)
+    if not flags & 0x8000 or flags & 0x020f:  # response, not truncated, no DNS error
+        return ''
+    offset = 12
+    for _ in range(questions):
+        _, offset = dns_name(packet, offset)
+        offset += 4
+    for _ in range(answers + authorities + additional):
+        owner, offset = dns_name(packet, offset)
+        kind, family, _, size = struct.unpack_from('!HHIH', packet, offset)
+        offset += 10
+        if offset + size > len(packet):
+            raise ValueError('Truncated DNS record')
+        if kind == 12 and family & 0x7fff == 1 and owner.casefold() == reverse.casefold():
+            name, end = dns_name(packet, offset)
+            if end > offset + size:
+                raise ValueError('Invalid PTR record')
+            return name
+        offset += size
+    return ''
+
+
+def network_name(host, timeout=0.4, port=5353):
+    """Ask this device's Bonjour responder directly (RFC 6762 §5.5).
+
+    Unicast avoids a multicast entitlement on iOS. Unlike gethostbyaddr, this
+    has a real deadline, so an absent name cannot stall scanning or app exit.
+    """
+    reverse = ipaddress.IPv4Address(host).reverse_pointer
+    question = b''.join(bytes([len(label)]) + label.encode('ascii') for label in reverse.split('.')) + b'\0'
+    query = struct.pack('!6H', 0, 0, 1, 0, 0, 0) + question + struct.pack('!HH', 12, 1)
+    deadline = time.monotonic() + timeout
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as connection:
+            connection.connect((host, port))
+            connection.send(query)
+            while (remaining := deadline - time.monotonic()) > 0:
+                connection.settimeout(remaining)
+                try:
+                    name = ptr_hostname(connection.recv(9000), reverse)
+                except (ValueError, UnicodeError, struct.error):
+                    continue
+                if name:
+                    return name
+    except OSError:
+        pass
+    return ''
+
+
 def wait_for_network_access(job, wake):
     """iOS prompts on first use; a denial stays actionable while Settings is open."""
     if sys.platform != 'ios':
@@ -193,7 +271,8 @@ def start_scan(network, wake=request_render):
     if network and ipaddress.IPv4Network(network).num_addresses > 256:
         raise ValueError('Choose a network with at most 256 addresses.')
     job = dict(cancel=threading.Event(), done=False, completed=0,
-               total=0, hosts=(), error='', permission='pending', networks=None, network=network)
+               total=0, hosts=(), error='', permission='pending' if sys.platform == 'ios' else 'granted',
+               networks=None, network=network, names={})
 
     def run():
         def probe(host):
@@ -214,17 +293,28 @@ def start_scan(network, wake=request_render):
             job['total'] = len(hosts)
             job['permission'] = 'granted'
             wake()
-            with ThreadPoolExecutor(max_workers=16, thread_name_prefix='ssh-discovery') as pool:
-                # Only one batch is outstanding, so Stop does not leave queued probes.
-                for offset in range(0, len(hosts), 16):
-                    if job['cancel'].is_set():
-                        break
-                    batch = hosts[offset:offset + 16]
-                    for host, found in zip(batch, pool.map(probe, batch)):
-                        if found:
-                            job['hosts'] += (host,)
-                        job['completed'] += 1
-                    wake()
+            pool = ThreadPoolExecutor(max_workers=64, thread_name_prefix='ssh-discovery')
+            try:
+                pending = {pool.submit(probe, host): ('probe', host) for host in hosts}
+                while pending and not job['cancel'].is_set():
+                    ready, _ = wait(pending, timeout=0.05, return_when=FIRST_COMPLETED)
+                    for future in ready:
+                        if job['cancel'].is_set():
+                            break
+                        kind, host = pending.pop(future)
+                        result = future.result()
+                        if kind == 'name':
+                            if result:
+                                job['names'] = {**job['names'], host: result}
+                        else:
+                            job['completed'] += 1
+                            if result:
+                                job['hosts'] += (host,)
+                                pending[pool.submit(network_name, host)] = ('name', host)
+                    if ready:
+                        wake()
+            finally:
+                pool.shutdown(wait=True, cancel_futures=True)
         except Exception as error:
             job['error'] = str(error)
         finally:
@@ -243,7 +333,7 @@ def cleanup_settings(draw_state):
 
 @render_func(selectable=False, on_cleanup=cleanup_settings)
 def draw_settings(input_value: CodeDict, draw_state, state: SettingsState = None):
-    if state.scan is not None and state.scan['networks'] is not None:
+    if state.scan is not None and state.scan.get('networks') is not None:
         state.networks, state.network = state.scan['networks']
         state.scan['networks'] = None
     if state.scan is not None and not state.scan['done']:
@@ -351,22 +441,25 @@ def draw_roots(settings, state, draw_state):
         if state.scan is not None:
             job = state.scan
             status = 'Stopped' if job['cancel'].is_set() else ('Done' if job['done'] else f'{job["completed"]}/{job["total"]}')
-            if scanning and job['permission'] in ('pending', 'denied'):
+            if scanning and job.get('permission') in ('pending', 'denied'):
                 label('Local Network access required' if job['permission'] == 'denied' else 'Requesting network access…')
             else:
                 label(job['error'] or f'{status} · {len(job["hosts"])} found')
             top += row
-            if job['permission'] == 'denied':
+            if job.get('permission') == 'denied':
                 if button('Open Settings', 'network-settings', 0, 140):
                     import _melty_ios
                     _melty_ios.open_app_settings()
                 top += row + 4
-            for host in job['hosts']:
-                if button(host, ('ssh-host', host), 0, width):
+            for host in sorted(job['hosts'], key=ipaddress.IPv4Address):
+                name = job.get('names', {}).get(host, '')
+                title = f'{name} · {host}' if name else host
+                if button(title, ('ssh-host', host), 0, width):
                     user, sep, _ = state.host.rpartition('@')
                     state.host = f'{user}@{host}' if sep else host
-                    state.name = state.name or host
+                    state.name = state.name or name.removesuffix('.local') or host
                     state.port = '22'
+                    draw_state.invalidate()  # The form above was drawn before this selection.
                 top += row + 2
 
     imgui.set_cursor_screen_pos((left, top))
