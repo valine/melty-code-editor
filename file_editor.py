@@ -237,20 +237,27 @@ def draw_file_editor_overlay_background(draw_state, draw_list):
 
 def draw_file_editor_overlay(draw_state, draw_list):
     """Paint prepared tabs at live bounds; all input stays in the normal body."""
+    from meltygui.core.rendering.overlay import overlay_checkpoint
     from meltygui_pro.editor.code_editor import paint_editor_tabs, _draw_nav_buttons, _nav_button_tints
-    _draw_nav_buttons(draw_state, *_nav_button_tints(sync_metadata=False)[:2], draw_list=draw_list,
+    tints = _nav_button_tints(sync_metadata=False)
+    overlay_checkpoint(draw_state, 'Navigation targets')
+    _draw_nav_buttons(draw_state, *tints[:2], draw_list=draw_list,
                       pos=(draw_state.abs_left, draw_state.abs_top))
+    overlay_checkpoint(draw_state, 'Navigation arrows')
     state = draw_state.misc.get("file_editor_state")
     if state is None or state._tab_overlay is None:
         from meltygui.core.cache.tile_marks import clear_shadows
         clear_shadows(draw_state, 'editor_tabs')
+        overlay_checkpoint(draw_state, 'Tab shadows')
         return
     tabs, layout_tabs, button_height, row_height, swatch_width, background = state._tab_overlay
     height = layout_tabs(draw_state.width) if tabs else 0
     rect = (draw_state.abs_left, draw_state.abs_top + draw_state.height - height,
             draw_state.width, height)
+    overlay_checkpoint(draw_state, 'Tab layout')
     paint_editor_tabs(draw_state, draw_list, tabs, rect, button_height,
                       row_height, swatch_width, background)
+    overlay_checkpoint(draw_state, 'Tab finish')
 
 
 @render_func(multi_instance=True, use_cache=True, disable_scroll=True, selectable=False,
