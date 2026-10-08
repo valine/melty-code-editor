@@ -103,3 +103,11 @@ feature's shape.
 **A design doc is a page**: the state fields, the function signatures, the view, the build order,
 and a "later" list. The first version ships the core; extras wait in "later" until someone wants
 them. When a design genuinely needs more than this, say why in a sentence and go ahead.
+
+## Change summaries
+
+After completing a bug fix or feature addition, include a concise Python
+pseudocode summary of the changes in the final response. Use a fenced `python`
+code block to show the key behavior or control flow, with brief comments explaining
+what changed; for bug fixes, make the corrected behavior clear. Keep the summary
+focused on the actual changes and identify it as pseudocode, not runnable code.

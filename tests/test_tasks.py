@@ -274,22 +274,22 @@ def test_output_overlay_tracks_live_tile_bounds(monkeypatch):
     monkeypatch.setattr(overlay, 'paint_cached_view', painted.append)
 
     tasks.draw_tasks_overlay_background(parent, None)
-    assert placed[-1] == (pane, (100, 224, 400, 248), parent.abs_clip_rect)
+    assert placed[-1] == (pane, (100, 200, 400, 272), parent.abs_clip_rect)
     assert painted == [pane]
     # Resize/move replay must not depend on the body's last layout.
     parent.abs_left, parent.abs_top = 50, 60
     parent.width, parent.height = 600, 60
     parent.abs_clip_rect = (50, 60, 650, 120)
     tasks.draw_tasks_overlay_background(parent, None)
-    assert placed[-1] == (pane, (50, 84, 600, 8), parent.abs_clip_rect)
+    assert placed[-1] == (pane, (50, 60, 600, 32), parent.abs_clip_rect)
     parent.height = 40
     parent.abs_clip_rect = (50, 60, 650, 100)
     tasks.draw_tasks_overlay_background(parent, None)
-    assert placed[-1] == (pane, (50, 84, 600, 0), parent.abs_clip_rect)
+    assert placed[-1] == (pane, (50, 60, 600, 12), parent.abs_clip_rect)
     parent.height = 500
     parent._blit_served_frame = 41
     tasks.draw_tasks_overlay_background(parent, None)
-    assert placed[-1][1] == (50, 84, 600, 448)
+    assert placed[-1][1] == (50, 60, 600, 472)
     assert painted == [pane, pane, pane]  # normal body draws do not paint twice
 
     # Waiting stdin reserves its own row; replay keeps the editable field and
@@ -298,13 +298,13 @@ def test_output_overlay_tracks_live_tile_bounds(monkeypatch):
     field = state._input_view = object()
     tasks.draw_tasks_overlay_background(parent, None)
     assert placed[-2] == (field, (50, 500, 492, 28), parent.abs_clip_rect)
-    assert placed[-1] == (pane, (50, 84, 600, 416), parent.abs_clip_rect)
+    assert placed[-1] == (pane, (50, 60, 600, 440), parent.abs_clip_rect)
 
     # Debug controls reserve a row in both normal layout and cached replay.
     parent.misc['task_state'].debug_enabled = True
     tasks.draw_tasks_overlay_background(parent, None)
     assert placed[-2] == (field, (50, 500, 492, 28), parent.abs_clip_rect)
-    assert placed[-1] == (pane, (50, 112, 600, 388), parent.abs_clip_rect)
+    assert placed[-1] == (pane, (50, 88, 600, 412), parent.abs_clip_rect)
 
 
 @pytest.mark.parametrize('command', ['continue', 'step_into', 'step_over', 'step_out', 'force_stop'])

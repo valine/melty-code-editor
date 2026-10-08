@@ -58,7 +58,7 @@ from meltygui import DrawState
 
 RUN_CURRENT_FILE = 'Run Current File'
 NO_TASKS = 'No tasks — right-click a Python module to Run'
-OUTPUT_TOP = 24.0           # status line (20) and gap (4), logical pixels
+OUTPUT_TOP = 0.0            # console starts at the tile's top, logical pixels
 
 
 class ProjectTasks(DictConversion):
@@ -556,7 +556,7 @@ def draw_tasks_overlay_background(draw_state, draw_list):
 import file_editor
 
 
-@render_func(multi_instance=True, tint=(0.36, 0.47, 0.42), icon='', display_name='Tasks',
+@render_func(multi_instance=True, tint=(0.0, 0.0, 0.0), bg_offset=-2, icon='', display_name='Tasks',
              selectable=False, disable_scroll=True, show_add_delete=False, is_tree=False,
              show_bg=False, shadow=False, show_header=False, use_cache=True, tile_toolbar=True,
              draw_overlay_background=draw_tasks_overlay_background,
@@ -661,11 +661,6 @@ def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
             action = name
 
     # Keep the output view in the render/cache lifecycle even at zero height.
-    status_h = px(20)
-    if toolbar_y >= status_h:
-        imgui.set_cursor_screen_pos((body_left, body_top))
-        output_root = state.project or root
-        imgui.text(f'{file_path(output_root).name if output_root else "no project"}  {status_text(state)}')
     debug_command = draw_task_debug_controls(state, draw_state, body_left, body_top)
     output_top = task_output_top(state)
     if getattr(state, 'ssh_unconfirmed', False) and not state.running:
@@ -686,9 +681,9 @@ def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
     # Read-only draw_text retains selection/copy without opening the touch keyboard.
     _, _, output_ds = draw_text(state.output, name=f'task-output##{unique}',
                                 width=draw_state.content_width, height=output_h,
-                                editable=False, syntax_highlight=False,
+                                editable=False, syntax_highlight=False, console_colors=True,
                                 autocomplete=False, wrap=True, show_header=False,
-                                show_widgets=False, use_cache=True, freeze_resize=True, shadow=False,
+                                show_widgets=False, use_cache=True, freeze_resize=True, show_bg=False, shadow=False,
                                 return_extras=True)
     view_state._output_view = output_ds
     # Follow the tail while running; scrolling up stops following until the next run.

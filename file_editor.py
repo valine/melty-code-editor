@@ -216,20 +216,28 @@ def draw_file_editor_overlay_background(draw_state, draw_list):
     state = draw_state.misc.get("file_editor_state")
     if state is None or state._tab_overlay is None:
         return
-    tabs, layout_tabs, *_, background = state._tab_overlay
+    tabs, layout_tabs, *_ = state._tab_overlay
     height = layout_tabs(draw_state.width) if tabs else 0
     left = draw_state.abs_left
     if height > 0 and draw_state.width > 0:
-        from meltygui_pro.editor.code_editor import paint_editor_tab_background
+        # A flattened parent cache can still contain the pane's old pixels.
+        # Cover them using the tile's own fill, not a separate tab-bar color.
+        from meltygui.core.layout.tile_manager_core import paint_tile_background
         bottom = draw_state.abs_top + draw_state.height
-        paint_editor_tab_background(draw_state,
-                                    (left, bottom - height, draw_state.width, height), background)
+        paint_tile_background(draw_state, draw_file_editor,
+                              (left, bottom - height, left + draw_state.width, bottom),
+                              draw_list)
     if state._pane is not None:
         from meltygui.core.rendering.overlay import place_overlay_view
+        pane_top = draw_state.abs_top + 30
+        pane_height = max(1, draw_state.height - height - 30)
+        clip = (left, pane_top, left + draw_state.width, pane_top + pane_height)
+        if draw_state.abs_clip_rect is not None:
+            x0, y0, x1, y1 = draw_state.abs_clip_rect
+            clip = (max(clip[0], x0), max(clip[1], y0),
+                    min(clip[2], x1), min(clip[3], y1))
         place_overlay_view(state._pane,
-                           (left, draw_state.abs_top + 30, draw_state.width,
-                            max(1, draw_state.height - height - 30)),
-                           draw_state.abs_clip_rect)
+                           (left, pane_top, draw_state.width, pane_height), clip)
         if getattr(draw_state, "_blit_served_frame", None) == Melty.frame_count:
             from meltygui.core.rendering.overlay import paint_cached_view
             paint_cached_view(state._pane)
@@ -274,7 +282,7 @@ def draw_file_editor_overlay(draw_state, draw_list):
 @render_func(multi_instance=True, use_cache=True, disable_scroll=True, selectable=False,
              on_cleanup=cleanup_file_editor, draw_overlay=draw_file_editor_overlay,
              draw_overlay_background=draw_file_editor_overlay_background,
-             display_name="File Editor", icon=f"\uf15c", tint=(0.20, 0.30, 0.48))
+             display_name="File Editor", icon=f"\uf15c")
 @source_editor
 def draw_file_editor(input_value: OpenFiles, draw_state=None,
                      diff_with: "DrawState[draw_file_editor]" = None, instance=0,
@@ -344,21 +352,27 @@ def draw_file_editor(input_value: OpenFiles, draw_state=None,
             context_menu["Debug"] = lambda action=action: state.request_debug((*action, True), draw_state.invalidate)
     from meltygui.code.new_converters import _codec_view
     view = _codec_view(file_value.codec if file_value is not None else None, displayed, draw_text)
-    edited, replacement, pane = view(
-        displayed, name=f"file:{path}:{state.version}",
-        file_key=file_value.display_path if file_value is not None else path,
-        jump_to=navigation_address(path, state.version) if file_value is not None else None,
-        source_context=file_value, context_menu=context_menu,
-        debugger_state=debugger_state, code_tree=state.source_tree(text, path),
-        line_numbers=state._line_numbers[1] if is_text else None,
-        width=width, height=max(1, height - tab_height - 30), return_extras=True,
-        editable=editable, syntax_highlight=is_text,
-        syntax_language="python" if path and path.endswith(".py") else "text",
-        show_header=False, show_file_header=False, gutter_indent=True, freeze_resize=True,
-        roster_live_hold=editable and state.version == "current", autocomplete=editable, shadow=False,
-        diff_fold_ranges=state._diff_folds if is_text else None,
-        expand_diff=state._comparison.expand_diff if state._comparison is not None else None,
-        use_cache=True)
+    # Clip both live content and captured pixels above the transparent tabs.
+    Melty.push_clip((left, top + 30, left + width, top + max(30, height - tab_height)))
+    try:
+        edited, replacement, pane = view(
+            displayed, name=f"file:{path}:{state.version}",
+            file_key=file_value.display_path if file_value is not None else path,
+            jump_to=navigation_address(path, state.version) if file_value is not None else None,
+            source_context=file_value, context_menu=context_menu,
+            debugger_state=debugger_state, code_tree=state.source_tree(text, path),
+            line_numbers=state._line_numbers[1] if is_text else None,
+            width=width, height=max(1, height - tab_height - 30), return_extras=True,
+            editable=editable, syntax_highlight=is_text,
+            syntax_language="python" if path and path.endswith(".py") else "text",
+            show_header=False, show_file_header=False, gutter_indent=True, freeze_resize=True,
+            roster_live_hold=editable and state.version == "current", autocomplete=editable, shadow=False,
+            diff_fold_ranges=state._diff_folds if is_text else None,
+            expand_diff=state._comparison.expand_diff if state._comparison is not None else None,
+            use_cache=True)
+    finally:
+        Melty.pop_clip()
+
     if edited and editable:
         file_value["value"] = replacement
         text = replacement
