@@ -17,6 +17,7 @@ To add a setting: add the attribute here with its default, read it from
 register.
 """
 from meltygui.model.code_dict_model import CodeDict, Hotswap, LaunchOverride
+from meltygui.model.ssh_file_model import SSH
 
 
 class CodeEditorSettings:
@@ -25,6 +26,8 @@ class CodeEditorSettings:
         # The file browser's shortcuts column (home, the XDG folders, the
         # marked projects) to the left of the editor.
         show_shortcuts = True
+        # Named places to browse. SSH("host") opens that account's home folder.
+        project_roots = {}
         # The path strip along the top of the selected file's column.
         show_breadcrumbs = True
         # Python syntax analysis: folds, symbol colours, autocomplete.

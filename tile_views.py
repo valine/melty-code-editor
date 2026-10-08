@@ -14,6 +14,7 @@ def draw_main_editor(input_value: OpenFiles, files_view: DrawState[draw_project_
     return draw_code_editor(
         input_value, name="code-editor", disable_scroll=True,
         show_shortcuts=options["show_shortcuts"], show_breadcrumbs=options["show_breadcrumbs"],
+        project_roots=options["project_roots"],
         syntax_analysis=options["syntax_analysis"], show_ribbons=options["show_ribbons"],
         on_run_module=request_module_run, project_source=project_selection(files_view),
         files_view=files_view,

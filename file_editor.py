@@ -5,6 +5,7 @@ tile lives here; GitProxy owns file values, loading and watching.
 """
 from tasks import TaskState
 from pathlib import Path
+from meltygui.model.file_location_model import file_path
 import threading
 
 from meltygui import imgui, draw_text, render_func, DrawState
@@ -22,12 +23,13 @@ from meltygui_pro.navigation import source_editor, remember_editor, forget_edito
 
 
 @no_save("version_ready", "_file", "_pane", "_text", "_line_numbers", "_comparison", "_diff_folds", "_tab_overlay",
-         "_execution_action")
+         "_execution_action", "_status_height")
 class FileEditorState(DictConversion):
     _execution_action = None
     def __init__(self):
         super().__init__()
         self._execution_action = None
+        self._status_height = 0
         self.selected_path = None
         self.version = "current"
         self.version_ready = 0
@@ -111,7 +113,7 @@ def adopt_selection(files, state, instance, project_source=None):
         if not path.startswith(OpenFiles.GIT_DIFF_PREFIX):
             if link is not None and path not in paths:
                 from meltygui_pro.models.projects import project_for
-                link.set_project(str(project_for(path) or Path(path).parent))
+                link.set_project(str(project_for(path) or file_path(path).parent))
                 paths = [p for p in files.paths_in(link.selected_project)
                          if not p.startswith(OpenFiles.GIT_DIFF_PREFIX)]
             state.selected_path = path
@@ -124,7 +126,7 @@ def adopt_selection(files, state, instance, project_source=None):
 def version_value(state):
     """Presentation of the selected proxy, with no file-loading machinery."""
     ready = state.version_ready
-    options = {"Current": "current", "Filesystem": "filesystem", "HEAD": "HEAD"}
+    options = {"Current": "current"}
     value = state._file
     if value is not None and str(value.repo.root / value.path) == state.selected_path:
         options.update(value.versions)
@@ -161,6 +163,10 @@ def navigation_address(path, version):
         return None
     from meltygui.code.fileref import Address
     address = Address(path)
+    from meltygui.code.new_codecs import codec_for_path
+    codec = codec_for_path(address.path)
+    if codec is None or not codec.show_code_buttons(address):
+        return None
     address.pending_coords = True
     return address
 
@@ -222,8 +228,8 @@ def draw_file_editor_overlay_background(draw_state, draw_list):
     if state._pane is not None:
         from meltygui.core.rendering.overlay import place_overlay_view
         place_overlay_view(state._pane,
-                           (left, draw_state.abs_top + 30, draw_state.width,
-                            max(1, draw_state.height - height - 30)),
+                           (left, draw_state.abs_top + 30 + state._status_height, draw_state.width,
+                            max(1, draw_state.height - height - 30 - state._status_height)),
                            draw_state.abs_clip_rect)
         if getattr(draw_state, "_blit_served_frame", None) == Melty.frame_count:
             from meltygui.core.rendering.overlay import paint_cached_view
@@ -232,6 +238,7 @@ def draw_file_editor_overlay_background(draw_state, draw_list):
 
 def draw_file_editor_overlay(draw_state, draw_list):
     """Paint prepared tabs at live bounds; all input stays in the normal body."""
+    state = draw_state.misc.get('file_editor_state')
     from meltygui_pro.editor.code_editor import paint_editor_tabs, _draw_nav_buttons, _nav_button_tints
     _draw_nav_buttons(draw_state, *_nav_button_tints()[:2], draw_list=draw_list,
                       pos=(draw_state.abs_left, draw_state.abs_top))
@@ -272,7 +279,7 @@ def draw_file_editor(input_value: OpenFiles, draw_state=None,
     width, height = draw_state.width, draw_state.height
     (tabs, tab_button_height, tab_row_height, swatch_width,
      layout_tabs, hold_close) = prepare_editor_tabs(
-        paths, paths, [Path(path).name for path in paths], draw_state, tab_bar_state)
+        paths, paths, [file_path(path).name for path in paths], draw_state, tab_bar_state)
     tab_height = layout_tabs(width) if paths else 0
     changed = False
     if state.selected_path not in files.open_paths:
@@ -304,6 +311,13 @@ def draw_file_editor(input_value: OpenFiles, draw_state=None,
     # One codec-selected view, including loading/empty/error states. Its identity
     # includes the version, so historic cursors/folds never replace the working ones.
     imgui.set_cursor_screen_pos((left, top + 30))
+    from meltygui.view.pending_file_view import draw_file_status
+    from meltygui.code.new_codecs import codec_for_path
+    status_height = (draw_file_status(state._file.address,
+                     state._file.codec or codec_for_path(state._file.address.path), draw_state)
+                     if state._file is not None else 0)
+    state._status_height = status_height
+    imgui.set_cursor_screen_pos((left, top + 30 + status_height))
     file_value = state._file if text is not None else None
     editable = file_value is not None and file_value.writable
     is_text = isinstance(text, str)
@@ -312,7 +326,7 @@ def draw_file_editor(input_value: OpenFiles, draw_state=None,
         from meltygui.editor.text_editor import _line_starts
         state._line_numbers = text, range(1, len(_line_starts(text)) + 1)
     context_menu = {}
-    if editable and is_text and Path(path).suffix.lower() == ".py":
+    if editable and is_text and file_path(path).suffix.lower() == ".py":
         link = project_source
         root = link.selected_project if link is not None else None
         if debugger_state is not None:
@@ -328,7 +342,7 @@ def draw_file_editor(input_value: OpenFiles, draw_state=None,
         source_context=file_value, context_menu=context_menu,
         debugger_state=debugger_state, code_tree=state.source_tree(text, path),
         line_numbers=state._line_numbers[1] if is_text else None,
-        width=width, height=max(1, height - tab_height - 30), return_extras=True,
+        width=width, height=max(1, height - tab_height - 30 - status_height), return_extras=True,
         editable=editable, syntax_highlight=is_text,
         syntax_language="python" if path and path.endswith(".py") else "text",
         show_header=False, show_file_header=False, gutter_indent=True, freeze_resize=True,

@@ -42,6 +42,7 @@ from meltygui_pro.editor.execution_target import ExecutionTargetState, draw_exec
 import os
 import shlex
 from pathlib import Path
+from meltygui.model.file_location_model import file_path, is_remote
 
 from meltygui import imgui
 from meltygui.core.core_render import render_func
@@ -65,6 +66,7 @@ class ProjectTasks(DictConversion):
     def __init__(self):
         super().__init__()
         self.projects = {}
+        self.manifest_tasks = {}
 
 
 # editor.py replaces this with the app session's persisted instance at startup.
@@ -100,7 +102,7 @@ class TaskState(ProjectExecution):
 
     def run_module(self, path, root=None, *, debug=False, file_metadata=None, source_snapshot=None):
         from editor_settings import settings
-        root = str(Path(root or project_for(path) or Path(path).parent).resolve())
+        root = str(file_path(root or project_for(path) or file_path(path).parent).resolve())
         try:
             name = add_module_task(path, root, save=settings['Tasks']['save_tasks'])
             self.run(root, name, debug, file_metadata, source_snapshot)
@@ -108,15 +110,23 @@ class TaskState(ProjectExecution):
             self.error = str(error)
             self._changed()
 
-    def run(self, root, name, debug=False, file_metadata=None, source_snapshot=None):
+    def run(self, root, name, debug=False, file_metadata=None, source_snapshot=None, target=None):
         task = read_tasks(root).get(name)
+        if name not in project_tasks.projects.get(str(root), {}):
+            from meltygui_pro.models.project_kind import manifest_data
+            try:
+                manifest_data(root, strict=True)
+            except (OSError, ValueError) as error:
+                self.error = str(error)
+                self._changed()
+                return
         self.selected_tasks[str(root)] = name
         if task is None:
             self.task, self.project = name, str(root)
-            self.error = f'No task {name!r} in {Path(root).name}'
+            self.error = f'No task {name!r} in {file_path(root).name}'
             self._changed()
             return
-        self.execute(root, task, name, debug, file_metadata, source_snapshot)
+        self.execute(root, task, name, debug, file_metadata, source_snapshot, target)
 
     def run_current_file(self, editor_view, *, debug=False, file_metadata=None):
         """Resolve the linked editor at click time and reuse its normal module task."""
@@ -139,7 +149,7 @@ class TaskState(ProjectExecution):
 
     def _execution_started(self):
         global _last
-        _last = (self.project, self.task)
+        _last = (self.project, self.task, self.target)
 
 
 # ── the tasks ───────────────────────────────────────────────────────────────
@@ -149,8 +159,11 @@ def read_tasks(root):
     pyproject.toml; {} without the table. Entries that are not a string or a
     table with a string `cmd` are skipped."""
     from meltygui_pro.models.project_kind import manifest_data
-    tasks = dict(project_tasks.projects.get(str(Path(root).resolve()), {}))
-    table = manifest_data(root)
+    tasks = dict(project_tasks.projects.get(str(file_path(root).resolve()), {}))
+    if not hasattr(project_tasks, 'manifest_tasks'):
+        project_tasks.manifest_tasks = {}
+    fallback = {'tool': {'melty': {'tasks': project_tasks.manifest_tasks.get(str(root), {})}}}
+    table = manifest_data(root, fallback=fallback)
     for key in ('tool', 'melty', 'tasks'):
         table = table.get(key, {}) if isinstance(table, dict) else {}
     if not isinstance(table, dict):
@@ -167,13 +180,14 @@ def read_tasks(root):
             'env': {str(k): str(v) for k, v in env.items()} if isinstance(env, dict) else {}}
         if isinstance(value.get('module'), str):
             tasks[str(name)]['module'] = value['module']
+    project_tasks.manifest_tasks[str(root)] = dict(table)
     return tasks
 
 
 def add_module_task(path, root, save=False):
     """Reuse a module's task, or add one without replacing a user's named task."""
-    path, root = Path(path).resolve(), Path(root).resolve()
-    if path.suffix.lower() != '.py' or not path.is_file():
+    path, root = file_path(path).resolve(), file_path(root).resolve()
+    if path.suffix.lower() != '.py' or (not is_remote(path) and not path.is_file()):
         raise ValueError(f'Not a Python module: {path}')
     relative = path.relative_to(root).as_posix()
     existing = read_tasks(root)
@@ -186,13 +200,13 @@ def add_module_task(path, root, save=False):
             name = f'{base} ({suffix})'
             suffix += 1
         parts, parent = [path.stem], path.parent
-        while (parent / '__init__.py').is_file():
+        while not is_remote(path) and (parent / '__init__.py').is_file():
             parts.insert(0, parent.name)
             parent = parent.parent
         command = ('python -m ' + shlex.quote('.'.join(parts)) if len(parts) > 1
                    else 'python ' + shlex.quote(path.name))
         task = {'cmd': command,
-                'cwd': os.path.relpath(parent, root), 'env': {}, 'module': relative}
+                'cwd': '.' if is_remote(root) else os.path.relpath(parent, root), 'env': {}, 'module': relative}
     else:
         task = existing[name]
     project_tasks.projects.setdefault(str(root), {})[name] = dict(task)
@@ -207,17 +221,18 @@ def save_module_task(root, name, task):
     from meltygui.code.fileref import writable_file_refusal
     from meltygui.code.project_code import project_code
     from meltygui_pro.models.project_toml import apply_plan
-    path = Path(root) / 'pyproject.toml'
+    path = file_path(root) / 'pyproject.toml'
     refusal = writable_file_refusal(path)
     if refusal:
         raise ValueError(f'Cannot save task: {refusal}')
-    before = (project_code[path].text() or '') if path.exists() else ''
+    source = project_code[path]
+    before = source.text_for_edit()
     document = tomlkit.parse(before)
     table = document.setdefault('tool', tomlkit.table()).setdefault(
         'melty', tomlkit.table()).setdefault('tasks', tomlkit.table())
     table[name] = dict(task)
     apply_plan({'path': path, 'before': before, 'after': tomlkit.dumps(document),
-                'summary': [name], 'created': not path.exists()})
+                'summary': [name], 'created': not before})
 
 
 # A fresh interpreter executes the current editor text with module/package context.
@@ -228,18 +243,20 @@ def save_module_task(root, name, task):
 _pending = globals().get("_pending")
 _pending_error = globals().get("_pending_error")
 _pending_debug = globals().get("_pending_debug", False)
+_pending_target = globals().get("_pending_target")
 _last = globals().get("_last")       # (root, name) of the last run started anywhere (TaskState.run)
 _TILES = globals().get("_TILES", {})        # tile instance -> its draw_state, to wake them for a request
 
 
-def request_run(root, name, error=None, debug=False):
+def request_run(root, name, error=None, debug=False, target=None):
     """The menu's pick: the first Tasks tile drawn runs it. A pick produces
     no frame of its own, so the tiles are marked dirty and the window woken."""
-    global _pending, _pending_error, _pending_debug
+    global _pending, _pending_error, _pending_debug, _pending_target
     from meltygui.core.windowing.glfw_utils import request_render
     _pending = (str(root), name)
     _pending_error = error
     _pending_debug = debug
+    _pending_target = target
     for tile_ds in _TILES.values():
         if Melty.cache is not None and tile_ds._tile_id is not None:
             Melty.cache.invalidate_up(tile_ds._tile_id, force=True, max_depth=4)
@@ -249,11 +266,11 @@ def request_run(root, name, error=None, debug=False):
 def request_module_run(path, root=None, debug=False):
     """The clicked editor's module becomes a project task and a queued run."""
     from editor_settings import settings
-    root = str(Path(root or project_for(path) or Path(path).parent).resolve())
+    root = str(file_path(root or project_for(path) or file_path(path).parent).resolve())
     try:
         name = add_module_task(path, root, save=settings['Tasks']['save_tasks'])
     except (OSError, ValueError, TypeError) as error:
-        request_run(root, f'Run {Path(path).name}', error=str(error), debug=debug)
+        request_run(root, f'Run {file_path(path).name}', error=str(error), debug=debug)
         return
     request_run(root, name, debug=debug)
 
@@ -261,7 +278,7 @@ def request_module_run(path, root=None, debug=False):
 def request_rerun():
     """The chord: the last task run anywhere, again."""
     if _last is not None:
-        request_run(*_last)
+        request_run(_last[0], _last[1], target=_last[2] if len(_last) > 2 else None)
 
 
 def pending_run():
@@ -305,7 +322,7 @@ def current_file_project(editor_view):
     source = (editor_view._kwargs or {}).get('files_view')
     selection = project_selection(source)
     root = selection.selected_project if selection is not None else None
-    return str(Path(root or project_for(editor.selected_path) or Path(editor.selected_path).parent).resolve())
+    return str(file_path(root or project_for(editor.selected_path) or file_path(editor.selected_path).parent).resolve())
 
 
 def task_choices(root):
@@ -319,6 +336,11 @@ def selected_task(state, root, tasks):
     if state.project and state.task:
         selections.setdefault(str(state.project), state.task)
     root = str(root or '')
+    if root and selections.get(root) not in tasks:
+        from meltygui.code.project_code import project_code
+        manifest = project_code[file_path(root) / 'pyproject.toml'].status()
+        if manifest.get('loading') or manifest.get('error'):
+            return selections.get(root) or next(iter(tasks), None)
     if selections.get(root) not in tasks:
         selections[root] = next(iter(tasks), None)
     return selections[root]
@@ -546,7 +568,7 @@ def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
                file_editor_view: "DrawState[file_editor.draw_file_editor]" = None,
                header_height=28.0, tile_toolbar_rect=None, file_metadata=None, **kwargs):
     """Task output, status and debug controls above the bottom run toolbar."""
-    global _pending, _pending_error, _pending_debug
+    global _pending, _pending_error, _pending_debug, _pending_target
     from meltygui.core.windowing.glfw_utils import request_render
     from meltygui.view.text_view import draw_text
     state = task_state
@@ -573,10 +595,14 @@ def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
             state.project, state.task, state.error = pending_root, name, _pending_error
             _pending_error = None
         else:
-            pending_start = (pending_root, name, _pending_debug, file_metadata)
+            pending_start = (pending_root, name, _pending_debug, file_metadata, None, _pending_target)
+            _pending_target = None
         _pending_debug = False
 
     root = tile_project(files_view, open_files)
+    if root:
+        from meltygui.code.project_code import project_code
+        project_code[file_path(root) / 'pyproject.toml'].status(draw_state)
     tasks = task_choices(root)
     names = list(tasks)
     choice = selected_task(state, root, tasks)
@@ -639,9 +665,17 @@ def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
     if toolbar_y >= status_h:
         imgui.set_cursor_screen_pos((body_left, body_top))
         output_root = state.project or root
-        imgui.text(f'{Path(output_root).name if output_root else "no project"}  {status_text(state)}')
+        imgui.text(f'{file_path(output_root).name if output_root else "no project"}  {status_text(state)}')
     debug_command = draw_task_debug_controls(state, draw_state, body_left, body_top)
     output_top = task_output_top(state)
+    if getattr(state, 'ssh_unconfirmed', False) and not state.running:
+        imgui.set_cursor_screen_pos((body_left, body_top + output_top))
+        if flat_button('I checked the remote process — allow a new run', draw_state,
+                       view_id='acknowledge-ssh-run', width=max(1, width), height=28):
+            state.ssh_unconfirmed = False
+            state.error = None
+            state._changed()
+        output_top += px(30)
     input_h = px(32) if state.waiting_for_input else 0
     output_h = max(0, toolbar_y - output_top - input_h)
     view_state._input_view = None

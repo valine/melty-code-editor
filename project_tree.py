@@ -42,6 +42,7 @@ The shared OpenFiles model carries the open request into the editor's body.
 """
 import os
 from pathlib import Path
+from meltygui.model.file_location_model import file_path, is_remote
 
 from meltygui import imgui
 from meltygui import window_api as glfw
@@ -101,10 +102,10 @@ class _Watch:
 def open_path(open_files, path, instance):
     """Open `path` as the selected tab of editor `instance`, by the app's
     editability rules. Returns the refusal (a short reason) or None."""
-    path = Path(path).expanduser().resolve()
+    path = file_path(path).expanduser().resolve()
     try:
         refusal = writable_file_refusal(path)
-        if not path.is_file():
+        if not is_remote(path) and not path.is_file():
             refusal = 'not an existing file'
         if refusal:
             return f'Cannot open {path}: {refusal}'
@@ -165,6 +166,16 @@ def search_index(roots, show_hidden):
     entries = []
 
     def add(directory, depth):
+        if is_remote(directory):
+            from meltygui.model.ssh_file_model import entry
+            for path, directory_row in entry(directory).get('rows', ()):
+                if len(entries) >= SEARCH_LIMIT:
+                    break
+                if show_hidden or not path.name.startswith('.'):
+                    entries.append((path, directory_row, depth))
+                    if directory_row and path.name not in SEARCH_SKIP:
+                        add(path, depth + 1)
+            return
         try:
             found = list(os.scandir(directory))
         except OSError:
@@ -181,16 +192,16 @@ def search_index(roots, show_hidden):
         for name in sorted(folders, key=str.casefold):
             if len(entries) >= SEARCH_LIMIT:
                 return
-            entries.append((Path(directory) / name, True, depth))
+            entries.append((file_path(directory) / name, True, depth))
             if name not in SEARCH_SKIP:
-                add(Path(directory) / name, depth + 1)
+                add(file_path(directory) / name, depth + 1)
         for name in sorted(files, key=str.casefold):
             if len(entries) >= SEARCH_LIMIT:
                 return
-            entries.append((Path(directory) / name, False, depth))
+            entries.append((file_path(directory) / name, False, depth))
 
     for root in roots:
-        entries.append((Path(root), True, 0))
+        entries.append((file_path(root), True, 0))
         add(root, 1)
     return entries
 
@@ -253,6 +264,8 @@ def sync_watches(draw_state, state, shown):
     tree: the inotify instance cap is per user."""
     from meltygui.core.files import file_explorer_core as explorer
     from meltygui.core.files.path_icons import IconInvalidator
+    from meltygui.model.file_model import watch_directories
+    shown = watch_directories(shown)
     owner = getattr(state, '_icon_watch_owner', None)
     if owner is None:
         owner = state._icon_watch_owner = IconInvalidator(draw_state, state._folder_icons)
@@ -279,7 +292,7 @@ def sync_watches(draw_state, state, shown):
 def reveal(state, path, roots):
     """Open the folders above `path` (up to its root) and scroll to it on
     the next run."""
-    path = Path(path)
+    path = file_path(path)
     for root in roots:
         if path == root or path.is_relative_to(root):
             state.expanded.add(str(root))
@@ -326,6 +339,8 @@ def file_menu(menu_target):
 def move_to_trash(target, open_files):
     """`gio trash` (the file browser's): the desktop's trash, so it can be
     restored. The tabs of what went are closed. Returns the refusal or None."""
+    if is_remote(target):
+        return 'Trash is not available on this SSH filesystem.'
     import shutil
     import subprocess
     gio = shutil.which("gio")
@@ -336,7 +351,7 @@ def move_to_trash(target, open_files):
         return (done.stderr.strip().splitlines() or [f"Cannot trash {target.name}."])[-1]
     if open_files is not None:
         for path in list(open_files.open_paths):
-            real = Path(path.removeprefix(OpenFiles.GIT_DIFF_PREFIX)) if isinstance(path, str) else None
+            real = file_path(path.removeprefix(OpenFiles.GIT_DIFF_PREFIX)) if isinstance(path, str) else None
             if real is not None and (real == target or target in real.parents):
                 open_files.close_file(path)
     return None
@@ -344,11 +359,11 @@ def move_to_trash(target, open_files):
 
 def free_name(directory, name):
     """`directory/name`, numbered ("name (2).ext") until nothing is there."""
-    target = Path(directory) / name
+    target = file_path(directory) / name
     stem, suffix = target.stem, target.suffix
     number = 2
     while target.exists():
-        target = Path(directory) / f"{stem} ({number}){suffix}"
+        target = file_path(directory) / f"{stem} ({number}){suffix}"
         number += 1
     return target
 
@@ -358,7 +373,25 @@ def begin_request(state, request, roots, open_files=None):
     free name at once and then named in place, as a rename. Returns the
     refusal (a short reason) or None."""
     kind, target = request
-    target = Path(target) if target else roots[0]
+    target = file_path(target) if target else roots[0]
+    if is_remote(target) and kind in ('file', 'folder'):
+        import threading
+        from meltygui.model import ssh_file_model as ssh
+        directory = target if target.is_dir() else target.parent
+        def work():
+            try:
+                created = ssh.create(directory, NEW_FOLDER_NAME if kind == 'folder' else NEW_FILE_NAME, kind == 'folder')
+                def adopt():
+                    state.selected = str(created)
+                    state._naming = {'path': str(created), 'draft': created.name, 'opened': True}
+                    reveal(state, created, roots)
+                    ssh.request(directory, 'rows', refresh=True)
+                Melty.post_to_render(adopt)
+            except OSError as error:
+                message = str(error)
+                Melty.post_to_render(lambda: setattr(state, '_error', message))
+        threading.Thread(target=work, name='ssh-create', daemon=True).start()
+        return None
     if kind == "project":
         from meltygui_pro.models.projects import mark_project
         mark_project(target if target.is_dir() else target.parent)
@@ -390,13 +423,48 @@ def commit_name(state, open_files):
     """Rename the row being named to its draft; open tabs follow the file.
     Returns (refusal | None, the new path | None)."""
     naming, state._naming = state._naming, None
-    old = Path(naming["path"])
+    old = file_path(naming["path"])
     name = naming["draft"].strip()
     if not name or name == old.name:
         return None, None
     if "/" in name or name in (".", ".."):
         return f"'{name}' is not a file name.", None
     new = old.with_name(name)
+    if is_remote(old):
+        import threading
+        from meltygui.editor.pending_save import PendingSave
+        from meltygui.model import ssh_file_model as ssh
+        if any(address.path.is_relative_to(old) for address in PendingSave.pending_saves
+               if is_remote(address.path)):
+            return 'Save pending edits before renaming this file or folder.', None
+        try:
+            ssh.begin_rename(old)
+        except ValueError as error:
+            return str(error), None
+        def work():
+            try:
+                ssh.rename(old, new)
+                def adopt():
+                    ssh.finish_rename(old, new)
+                    state.selected = str(new)
+                    state.expanded = {str(new / file_path(p).relative_to(old)) if is_remote(p) and file_path(p).is_relative_to(old) else p for p in state.expanded}
+                    if open_files is not None:
+                        follow_rename(open_files, old, new)
+                    from meltygui.models.file_meta import file_meta_store
+                    meta = file_meta_store()
+                    for key in list(meta):
+                        if is_remote(key) and file_path(key).is_relative_to(old):
+                            meta[str(new / file_path(key).relative_to(old))] = meta.pop(key)
+                    ssh.request(old.parent, 'rows', refresh=True)
+                Melty.post_to_render(adopt)
+            except OSError as error:
+                message = str(error)
+                def failed():
+                    ssh.finish_rename(old)
+                    state._error = message
+                Melty.post_to_render(failed)
+        threading.Thread(target=work, name='ssh-rename', daemon=True).start()
+        return None, None
     if new.exists():
         return f"{name} already exists.", None
     try:
@@ -416,7 +484,7 @@ def follow_rename(open_files, old, new):
     """The tabs of `old` (a file, or the files under a folder) become `new`'s:
     same slots, hosts reopened from the new path on their next draw."""
     def moved(path):
-        real = Path(path.removeprefix(OpenFiles.GIT_DIFF_PREFIX))
+        real = file_path(path.removeprefix(OpenFiles.GIT_DIFF_PREFIX))
         if real != old and old not in real.parents:
             return None
         prefix = OpenFiles.GIT_DIFF_PREFIX if path.startswith(OpenFiles.GIT_DIFF_PREFIX) else ""
@@ -520,7 +588,15 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
     meta = file_metadata
     row_bg = row_tint_bg()
 
-    roots = [Path(root)] if root and Path(root).is_dir() else []
+    from meltygui.model.file_model import directory_status, refresh_directories
+    directory = directory_status(root, draw_state)
+    roots = [file_path(root)] if directory['available'] else []
+    if directory.get('refreshable'):
+        from meltygui.view.header_view import flat_button
+        if flat_button('Refresh', draw_state, view_id='directory-refresh', width=80, height=24):
+            refresh_directories({root, *state.expanded})
+    if directory.get('message'):
+        imgui.text_wrapped(directory['message'])
     if not roots:
         state._folder_icons.close()
         sync_watches(draw_state, state, set())
@@ -536,7 +612,7 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
             wake_editors(tile_ds, {instance for instance, _editor in ordered_editors(tile_ds)})
         request_render()
     naming = state._naming
-    if naming is not None and not Path(naming["path"]).exists():
+    if naming is not None and not file_path(naming["path"]).exists():
         naming = state._naming = None
     if naming is not None:
         state._armed = False                         # the name field has the keyboard
@@ -573,6 +649,8 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
     else:
         rows, shown = visible_rows(state, roots, meta, show_hidden)
     searching = bool(query and positions)
+    for directory in shown:
+        directory_status(directory, draw_state)
 
     rows_x, rows_y = imgui.get_cursor_screen_pos()
     top_inset = (rows_y + draw_state.scroll_offset[1]) - draw_state.abs_top
@@ -1007,7 +1085,11 @@ def draw_project_tree(input_value: object, draw_state, panel_state: ProjectPanel
     from meltygui_pro.editor.project_selector import draw_project_selector
     state = panel_state
     open_files = input_value if isinstance(input_value, OpenFiles) else None
-    initialized = not state.selected_project or not Path(state.selected_project).is_dir()
+    from meltygui.model.file_model import directory_status
+    directory = directory_status(state.selected_project, draw_state)
+    if directory['path'] != state.selected_project:
+        state.set_project(directory['path'])
+    initialized = not directory['available']
     if initialized:
         state.set_project(default_project(open_files))
 
@@ -1033,13 +1115,14 @@ def draw_project_tree(input_value: object, draw_state, panel_state: ProjectPanel
         request_render()
     imgui.set_cursor_screen_pos((left + chip_w + gap, top))
     changed, folder = draw_project_selector(state.selected_project, name="project-selector",
+                                            project_roots=settings["Editor"]["project_roots"],
                                             width=max(px(60), width - chip_w - gap),
                                             trigger_height=header_height, paint_settings=False)
     if changed:
         state.set_project(folder)
         draw_state.invalidate()
         request_render()
-    project_path = Path(state.selected_project)
+    project_path = file_path(state.selected_project)
     draw_state.nickname = project_path.name or str(project_path)
     # Expose the same project colour the instance paints, for source menus.
     project_tint = folder_tint(state.selected_project)

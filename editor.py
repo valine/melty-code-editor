@@ -61,9 +61,10 @@ from meltygui.code.fileref import writable_file_refusal
 from meltygui.view.header_view import draw_header
 from meltygui_pro.models.projects import mark_project, project_roots as marked_projects, project_for
 
-paths = [pathlib.Path(arg).expanduser().resolve() for arg in sys.argv[1:]]
+from meltygui.model.file_location_model import file_path, is_remote
+paths = [file_path(arg).expanduser().resolve() for arg in sys.argv[1:]]
 for path in paths:
-    if not path.exists():
+    if not is_remote(path) and not path.exists():
         path.touch()          # a new file: the editor needs something on disk to host
     # Refuse up front what the studio's plain-file codec will not edit (a
     # library install, no write permission): the reason beats a dead tab.
@@ -103,7 +104,8 @@ def project_roots():
     Open tabs remain editable after unmarking their project, but no longer
     silently put that project back into global search.
     """
-    return [str(root) for root in marked_projects()]
+    from meltygui.model.file_location_model import is_remote
+    return [str(root) for root in marked_projects() if not is_remote(root)]
 
 
 def implicit_projects():

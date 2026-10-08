@@ -59,6 +59,53 @@ it; the query and the pick counts persist with the session. Edits go
 to melty's file hosts (the studio's deferred-save model: queued in memory,
 written to disk when the window closes); there is no Ctrl+S.
 
+## Local and SSH roots
+
+The root settings window has `Editor.project_roots` beside `show_shortcuts`.
+Its entries name places to browse; marking a folder as a project remains a
+separate action. For example, with `SSH` imported from
+`meltygui.model.ssh_file_model` (already imported in `editor_settings.py`):
+
+```python
+project_roots = {
+    "Desktop": "/home/lukas/Desktop",
+    "Mac Mini": SSH("lukas@192.168.1.123"),
+    "Remote projects": SSH("mac-mini", "/Users/lukas/Projects"),
+}
+```
+
+SSH uses the installed OpenSSH client, including its config aliases, agent,
+identities, jump hosts and known-host checks. Authenticate and verify a new host
+with `ssh` first; the editor does not prompt for passwords or automatically
+trust host keys. Browsing and editing use SFTP. Remote files can also be opened
+as `sftp://user@host/absolute/path` command-line arguments.
+
+File Editor and Code Editor use the same file values and codec/pending-change
+lifecycle for local and SSH text. Codecs own availability and I/O; PendingSave
+owns drafts, save acknowledgement and conflict resolution. Tasks read and edit
+the same pending project manifest. There is no separate SSH editor.
+
+Remote tabs, selected projects, folder expansion and metadata keep their remote
+identities when disconnected. Refresh reloads listings or clean text. Save uses
+the existing pending-edit queue and checks the loaded file's metadata before
+replacement. A failed or uncertain save retains the draft; overwrite/discard
+actions are explicit. Draft recovery lives under the MeltyGUI XDG data directory
+in `ssh-drafts`. Metadata checks cannot detect every concurrent write, especially
+with coarse server timestamps. Atomic replacement requires the server's SFTP
+POSIX rename extension.
+
+Tasks run on the project's host. The initial remote runner supports POSIX hosts
+with `python3`; no remote Melty installation is required. The project environment
+uses the project's metadata override or `.venv`, otherwise remote system Python.
+An explicit unavailable environment is an error. Run Current File executes its
+captured editor text with remote package imports without saving that file first.
+Command tasks read saved files. Stop terminates the remote process group; a lost
+connection is shown as unconfirmed and never automatically reruns the task.
+
+Remote Debug, Git history, dependency management, global code search,
+desktop artwork, Trash, and cross-filesystem moves are not provided. Tree search
+filters the remote directories already loaded. Local behavior remains unchanged.
+
 ## Task sessions and Debug
 
 Tasks owns execution, output and inspection in one `TaskState`. File Editor,

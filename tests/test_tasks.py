@@ -74,7 +74,7 @@ def test_start_streams_output_and_exit_code(tmp_path):
     assert wait(state)
     assert state.exit == 3
     assert state.output.splitlines() == ['$ echo $GREETING; pwd; exit 3', 'hello', str(pathlib.Path(root, 'sub').resolve())]
-    assert tasks._last == (root, 'hi')
+    assert tasks._last == (root, 'hi', '')
 
 
 def test_stop_ends_the_process_group(tmp_path):
