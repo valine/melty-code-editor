@@ -23,7 +23,7 @@ from meltygui.view.header_view import flat_button
 from meltygui.view.tab_view import draw_tab_bar
 
 
-@no_save('networks', 'scan', 'error')
+@no_save('networks', 'scan', 'error', 'auth')
 class SettingsState(DictConversion):
     def __init__(self):
         super().__init__()
@@ -37,6 +37,7 @@ class SettingsState(DictConversion):
         self.networks = None
         self.scan = None
         self.error = ''
+        self.auth = None
 
 
 def add_root(settings, state):
@@ -325,14 +326,61 @@ def start_scan(network, wake=request_render):
     return job
 
 
+def check_ssh(root, key=None):
+    """Only public connection results enter view state; secrets stay in Keychain."""
+    job = dict(done=False, error='', fingerprint='', key=None)
+
+    def work():
+        from meltygui.model.ssh_auth_model import UnknownHostKey, trust_host
+        from meltygui.model.ssh_file_model import sftp, request, native_path
+        try:
+            if key is not None:
+                trust_host(root.location, key)
+            with sftp(root.location) as client:
+                client.stat(native_path(client, root.location))
+            request(root.location, 'rows', refresh=True)
+        except UnknownHostKey as error:
+            job.update(fingerprint=error.fingerprint, key=error.key)
+        except Exception as error:
+            job['error'] = str(error)
+        finally:
+            job['done'] = True
+            request_render()
+
+    threading.Thread(target=work, name='ssh-auth', daemon=True).start()
+    return job
+
+
+def poll_ssh_auth(state):
+    auth = state.auth
+    if auth is None or auth.get('prompt') is None:
+        return
+    import _melty_ios
+    result = _melty_ios.ssh_configuration_status(auth['prompt'])
+    if result['status'] == 'pending':
+        return
+    auth['prompt'] = None
+    if result['status'] == 'saved':
+        auth['job'] = check_ssh(auth['root'])
+    elif result['status'] == 'cancelled':
+        state.auth = None
+    else:
+        auth['job'] = dict(done=True, error=result['error'], fingerprint='')
+
+
 def cleanup_settings(draw_state):
     state = draw_state.misc.get('state')
     if state is not None and state.scan is not None:
         state.scan['cancel'].set()
+    if state is not None:
+        state.auth = None  # Release any native credential prompt.
 
 
 @render_func(selectable=False, on_cleanup=cleanup_settings)
 def draw_settings(input_value: CodeDict, draw_state, state: SettingsState = None):
+    poll_ssh_auth(state)
+    if state.auth and (state.auth.get('prompt') is not None or not state.auth['job']['done']):
+        draw_state.invalidate()
     if state.scan is not None and state.scan.get('networks') is not None:
         state.networks, state.network = state.scan['networks']
         state.scan['networks'] = None
@@ -357,6 +405,7 @@ def draw_roots(settings, state, draw_state):
     color = pack_color(*Tint.dd_text(), 1)
     changed = False
     scan_requested = False
+    auth_requested = None
 
     def label(text, x=0, available=None):
         draw_list.push_clip_rect(left + x, top, left + (width if available is None else x + available), top + row, True)
@@ -382,11 +431,38 @@ def draw_roots(settings, state, draw_state):
         label(str(name), available=width - 36)
         if button('\uf1f8', ('delete-root', name), width - 30, 30):
             remove_root(settings, name)
+            if state.auth and state.auth['name'] == name:
+                state.auth = None
             changed = True
         top += row - 6
         location = f'{root.target}{":" + str(root.port) if root.port else ""} · {root.directory}' if isinstance(root, SSH) else str(root)
         label(location, available=width - 36)
         top += row + 4
+        if isinstance(root, SSH) and sys.platform == 'ios':
+            for index, (title, kind) in enumerate((('Password', 'password'), ('SSH Key', 'key'), ('Connect', 'connect'))):
+                size = (width - 12) / 3
+                if button(title, ('ssh-auth', name, kind), index * (size + 6), size):
+                    auth_requested = (name, root, kind, None)
+            top += row + 4
+            auth = state.auth
+            if auth and auth['name'] == name and auth['root'] == root:
+                job = auth.get('job')
+                if job is None or not job['done']:
+                    label('Authenticating…' if job is None else 'Connecting…')
+                    top += row
+                elif job['fingerprint']:
+                    label('Verify server fingerprint')
+                    top += row
+                    # A SHA256 fingerprint must remain fully visible on phones.
+                    for part in (job['fingerprint'][:27], job['fingerprint'][27:]):
+                        label(part)
+                        top += row
+                    if button('Trust & Connect', ('trust-ssh', name), 0, min(width, 175)):
+                        auth_requested = (name, root, 'connect', job['key'])
+                    top += row + 4
+                else:
+                    label(job['error'] or 'Connected')
+                    top += row
     if roots:
         top += 8
 
@@ -467,5 +543,15 @@ def draw_roots(settings, state, draw_state):
     if scan_requested:
         state.error = ''
         state.scan = start_scan(state.network)
+        draw_state.invalidate()
+    if auth_requested:
+        name, root, kind, key = auth_requested
+        from meltygui.model.ssh_auth_model import server
+        import _melty_ios
+        state.auth = dict(name=name, root=root, prompt=None, job=None)
+        if kind == 'connect':
+            state.auth['job'] = check_ssh(root, key)
+        else:
+            state.auth['prompt'] = _melty_ios.configure_ssh(*server(root.location), kind)
         draw_state.invalidate()
     return changed

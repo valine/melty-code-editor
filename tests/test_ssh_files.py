@@ -131,6 +131,52 @@ def test_sftp_read_save_conflict_and_recovery(server):
     assert Path(location.remote_path).read_text().startswith('external')
 
 
+def test_ios_direct_files_and_tasks_share_keychain_credentials(server, monkeypatch):
+    from types import SimpleNamespace
+    from meltygui.model import ssh_auth_model as auth
+    from meltygui_pro.models import project_execution
+    root = Path(server.remote_path)
+    monkeypatch.setattr(auth, 'known_hosts_path', lambda: root / 'known_hosts')
+    monkeypatch.setitem(sys.modules, '_melty_ios', SimpleNamespace(
+        ssh_credentials=lambda account: json.dumps({'private_key': (root / 'client').read_text()})))
+    ios = SimpleNamespace(**(vars(sys) | {'platform': 'ios'}))
+    monkeypatch.setattr(ssh, 'sys', ios)
+    monkeypatch.setattr(project_execution, 'sys', ios)
+    monkeypatch.setattr(subprocess, 'Popen', lambda *a, **kw: pytest.fail('iOS cannot launch OpenSSH'))
+    test_sftp_read_save_conflict_and_recovery(server)
+    state = ProjectExecution()
+    state.execute(str(server), dict(cmd='echo direct-ssh; echo stderr-output >&2', cwd='.', env={}), 'direct')
+    wait_run(state)
+    assert state.error is None, state.error
+    assert state.exit == 0
+    assert 'direct-ssh' in state.output and 'stderr-output' in state.output
+
+
+def test_ios_stop_during_authentication_does_not_launch_task(server, monkeypatch):
+    from types import SimpleNamespace
+    from meltygui.model import ssh_auth_model as auth
+    from meltygui_pro.models import project_execution
+    entered, proceed = threading.Event(), threading.Event()
+    terminated = []
+
+    def connecting(*args):
+        entered.set()
+        assert proceed.wait(5)
+        return SimpleNamespace(terminate=lambda: terminated.append(True))
+
+    monkeypatch.setattr(project_execution, 'sys', SimpleNamespace(**(vars(sys) | {'platform': 'ios'})))
+    monkeypatch.setattr(auth, 'SSHProcess', connecting)
+    state = ProjectExecution()
+    state.execute(str(server), dict(cmd='echo should-not-run', cwd='.', env={}), 'cancel')
+    assert entered.wait(2)
+    assert state.running and state.process is None
+    state.stop()
+    proceed.set()
+    wait_run(state)
+    assert terminated == [True]
+    assert not state.ssh_unconfirmed
+
+
 def wait_run(state, timeout=15):
     deadline = time.monotonic() + timeout
     while state.running and time.monotonic() < deadline:
