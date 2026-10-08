@@ -236,22 +236,39 @@ def draw_file_editor_overlay_background(draw_state, draw_list):
 
 
 def draw_file_editor_overlay(draw_state, draw_list):
-    """Paint prepared tabs at live bounds; all input stays in the normal body."""
+    """Paint prepared chrome and return CPU timings as plain diagnostic data."""
+    from time import thread_time
+    started = thread_time()
     from meltygui_pro.editor.code_editor import paint_editor_tabs, _draw_nav_buttons, _nav_button_tints
     tints = _nav_button_tints(sync_metadata=False)
+    targets_done = thread_time()
     _draw_nav_buttons(draw_state, *tints[:2], draw_list=draw_list,
                       pos=(draw_state.abs_left, draw_state.abs_top))
+    arrows_done = thread_time()
+    timings = {'Navigation targets': targets_done - started,
+               'Navigation arrows': arrows_done - targets_done}
     state = draw_state.misc.get("file_editor_state")
     if state is None or state._tab_overlay is None:
         from meltygui.core.cache.tile_marks import clear_shadows
         clear_shadows(draw_state, 'editor_tabs')
-        return
+        timings['Tab shadows'] = thread_time() - arrows_done
+        return {'overlay_timings': timings}
     tabs, layout_tabs, button_height, row_height, swatch_width, background = state._tab_overlay
     height = layout_tabs(draw_state.width) if tabs else 0
     rect = (draw_state.abs_left, draw_state.abs_top + draw_state.height - height,
             draw_state.width, height)
-    paint_editor_tabs(draw_state, draw_list, tabs, rect, button_height,
-                      row_height, swatch_width, background)
+    layout_done = thread_time()
+    timings['Tab layout'] = layout_done - arrows_done
+    tab_timings = paint_editor_tabs(draw_state, draw_list, tabs, rect, button_height,
+                                   row_height, swatch_width, background)
+    # Painters may supply finer detail; the whole operation is still measured
+    # when a live instance retains a painter without diagnostic return data.
+    if tab_timings is None:
+        timings['Tabs'] = thread_time() - layout_done
+    else:
+        for label, duration in tab_timings.items():
+            timings[label] = timings.get(label, 0.0) + duration
+    return {'overlay_timings': timings}
 
 
 @render_func(multi_instance=True, use_cache=True, disable_scroll=True, selectable=False,

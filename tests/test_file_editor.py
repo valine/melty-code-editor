@@ -424,7 +424,10 @@ def test_tab_overlay_reflows_at_live_bottom_without_registering_inputs(monkeypat
     backing = Mock()
     monkeypatch.setattr(file_editor.imgui, 'get_window_draw_list', lambda: backing)
     file_editor.draw_file_editor_overlay_background(ds, dl)
-    file_editor.draw_file_editor_overlay(ds, dl)
+    measured = file_editor.draw_file_editor_overlay(ds, dl)['overlay_timings']
+    assert {'Navigation targets', 'Navigation arrows', 'Tab layout', 'Tab shadows',
+            'Tab labels', 'Tab icons', 'Tab close'} <= measured.keys()
+    assert all(duration >= 0 for duration in measured.values())
     backing.add_rect_filled.assert_called_once()
     backing_rect = backing.add_rect_filled.call_args.args[:4]
     assert all(call.args[:4] != backing_rect for call in dl.add_rect_filled.call_args_list)
