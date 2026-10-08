@@ -12,6 +12,60 @@ import settings_panel as panel
 from meltygui.model.ssh_file_model import SSH
 
 
+def test_authentication_prompt_keeps_credentials_out_of_settings(monkeypatch):
+    import sys
+    state = panel.SettingsState()
+    root = SSH('server.local')
+    prompt = object()
+    state.auth = dict(name='Server', root=root, prompt=prompt, job=None)
+    jobs = []
+    monkeypatch.setitem(sys.modules, '_melty_ios', SimpleNamespace(
+        ssh_configuration_status=lambda value: dict(status='saved', username='alice', error='')))
+    monkeypatch.setattr(panel, 'check_ssh', lambda value: jobs.append(value) or dict(done=False))
+    panel.poll_ssh_auth(state)
+    assert jobs == [root]
+    assert state.auth['prompt'] is None
+    assert 'auth' in state.__no_save__
+    assert root.target == 'server.local'  # Existing open-file identities remain valid.
+    panel.poll_ssh_auth(state)
+    assert jobs == [root]
+
+
+def test_authentication_requires_explicit_host_trust(monkeypatch):
+    from contextlib import contextmanager
+    from meltygui.model import ssh_auth_model as auth, ssh_file_model as ssh
+    import paramiko
+    key = paramiko.RSAKey.generate(2048)
+    trusted, refreshed = [], []
+    root = SSH('alice@server.local')
+
+    @contextmanager
+    def sftp(location):
+        if not trusted:
+            raise auth.UnknownHostKey('server.local', key)
+        yield SimpleNamespace(stat=lambda path: None)
+
+    monkeypatch.setattr(ssh, 'sftp', sftp)
+    monkeypatch.setattr(ssh, 'native_path', lambda client, location: '/home/alice')
+    monkeypatch.setattr(ssh, 'request', lambda *a, **kw: refreshed.append((a, kw)))
+    monkeypatch.setattr(auth, 'trust_host', lambda location, value: trusted.append((location, value)))
+    monkeypatch.setattr(panel, 'request_render', lambda: None)
+
+    def finish(job):
+        deadline = time.monotonic() + 3
+        while not job['done'] and time.monotonic() < deadline:
+            time.sleep(.01)
+        assert job['done']
+        return job
+
+    job = finish(panel.check_ssh(root))
+    assert job['key'] is key and job['fingerprint'].startswith('SHA256:')
+    assert trusted == refreshed == []
+    assert finish(panel.check_ssh(root, job['key']))['error'] == ''
+    assert trusted == [(root.location, key)]
+    assert refreshed == [((root.location, 'rows'), {'refresh': True})]
+
+
 def test_roots_share_codedict_and_persist(tmp_path, monkeypatch):
     from editor_settings import CodeEditorSettings, settings
     from meltygui.core.runtime import launch_override

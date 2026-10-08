@@ -427,6 +427,18 @@ def draw_roots(settings, state, draw_state):
         imgui.set_cursor_screen_pos((left + x, top))
         return flat_button(text, draw_state, view_id=identity, width=size, height=row - 2)
 
+    def message(text):
+        nonlocal top
+        line = ''
+        for word in text.split():
+            if line and imgui.calc_text_size(line + ' ' + word)[0] > width:
+                label(line)
+                top += row
+                line = ''
+            line = (line + ' ' + word).lstrip()
+        label(line)
+        top += row
+
     def field(title, attribute):
         nonlocal top
         label(title, available=64)
@@ -472,8 +484,7 @@ def draw_roots(settings, state, draw_state):
                         auth_requested = (name, root, 'connect', job['key'])
                     top += row + 4
                 else:
-                    label(job['error'] or 'Connected')
-                    top += row
+                    message(job['error'] or 'Connected')
     if roots:
         top += 8
 
@@ -539,12 +550,12 @@ def draw_roots(settings, state, draw_state):
                     _melty_ios.open_app_settings()
                 top += row + 4
             for host in sorted(job['hosts'], key=ipaddress.IPv4Address):
-                name = job.get('names', {}).get(host, '')
+                name = job.get('names', {}).get(host, '').removesuffix('.local')
                 title = f'{name} · {host}' if name else host
                 if button(title, ('ssh-host', host), 0, width):
                     user, sep, _ = state.host.rpartition('@')
                     state.host = f'{user}@{host}' if sep else host
-                    state.name = state.name or name.removesuffix('.local') or host
+                    state.name = state.name or name or host
                     state.port = '22'
                     draw_state.invalidate()  # The form above was drawn before this selection.
                 top += row + 2
