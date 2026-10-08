@@ -328,17 +328,22 @@ def start_scan(network, wake=request_render):
 
 def check_ssh(root, key=None):
     """Only public connection results enter view state; secrets stay in Keychain."""
-    job = dict(done=False, error='', fingerprint='', key=None)
+    job = dict(done=False, error='', fingerprint='', key=None, cancel=threading.Event())
 
     def work():
         from meltygui.model.ssh_auth_model import UnknownHostKey, trust_host
         from meltygui.model.ssh_file_model import sftp, request, native_path
         try:
+            if job['cancel'].is_set():
+                return
             if key is not None:
                 trust_host(root.location, key)
             with sftp(root.location) as client:
+                if job['cancel'].is_set():
+                    return
                 client.stat(native_path(client, root.location))
-            request(root.location, 'rows', refresh=True)
+            if not job['cancel'].is_set():
+                request(root.location, 'rows', refresh=True)
         except UnknownHostKey as error:
             job.update(fingerprint=error.fingerprint, key=error.key)
         except Exception as error:
@@ -368,12 +373,18 @@ def poll_ssh_auth(state):
         auth['job'] = dict(done=True, error=result['error'], fingerprint='')
 
 
+def cancel_ssh_auth(state):
+    if state.auth and state.auth.get('job') and state.auth['job'].get('cancel'):
+        state.auth['job']['cancel'].set()
+    state.auth = None  # Release any native credential prompt.
+
+
 def cleanup_settings(draw_state):
     state = draw_state.misc.get('state')
     if state is not None and state.scan is not None:
         state.scan['cancel'].set()
     if state is not None:
-        state.auth = None  # Release any native credential prompt.
+        cancel_ssh_auth(state)
 
 
 @render_func(selectable=False, on_cleanup=cleanup_settings)
@@ -432,7 +443,7 @@ def draw_roots(settings, state, draw_state):
         if button('\uf1f8', ('delete-root', name), width - 30, 30):
             remove_root(settings, name)
             if state.auth and state.auth['name'] == name:
-                state.auth = None
+                cancel_ssh_auth(state)
             changed = True
         top += row - 6
         location = f'{root.target}{":" + str(root.port) if root.port else ""} · {root.directory}' if isinstance(root, SSH) else str(root)
@@ -548,6 +559,7 @@ def draw_roots(settings, state, draw_state):
         name, root, kind, key = auth_requested
         from meltygui.model.ssh_auth_model import server
         import _melty_ios
+        cancel_ssh_auth(state)
         state.auth = dict(name=name, root=root, prompt=None, job=None)
         if kind == 'connect':
             state.auth['job'] = check_ssh(root, key)

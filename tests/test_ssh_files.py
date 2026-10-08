@@ -138,6 +138,7 @@ def test_ios_direct_files_and_tasks_share_keychain_credentials(server, monkeypat
     root = Path(server.remote_path)
     monkeypatch.setattr(auth, 'known_hosts_path', lambda: root / 'known_hosts')
     monkeypatch.setitem(sys.modules, '_melty_ios', SimpleNamespace(
+        request_frame=lambda: None,
         ssh_credentials=lambda account: json.dumps({'private_key': (root / 'client').read_text()})))
     ios = SimpleNamespace(**(vars(sys) | {'platform': 'ios'}))
     monkeypatch.setattr(ssh, 'sys', ios)

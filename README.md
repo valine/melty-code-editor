@@ -97,10 +97,16 @@ project_roots = {
 }
 ```
 
-SSH uses the installed OpenSSH client, including its config aliases, agent,
-identities, jump hosts and known-host checks. Authenticate and verify a new host
-with `ssh` first; the editor does not prompt for passwords or automatically
-trust host keys. Browsing and editing use SFTP. Remote files can also be opened
+Desktop SSH uses the installed OpenSSH client, including its config aliases,
+agent, identities, jump hosts and known-host checks. Authenticate and verify a
+new host with `ssh` first. On iOS, **Password** and **SSH Key** under a saved
+Project Root open secure native authentication dialogs. Import an OpenSSH or
+PEM private key through Files; encrypted keys accept a passphrase. Credentials
+stay in the device Keychain and are shared by SFTP and Tasks. **Connect** checks
+the saved login; confirm a new server's displayed SHA256 fingerprint before
+connecting. A changed host key is refused. iOS connects directly to the host
+and port, without desktop SSH config aliases or jump hosts.
+Browsing and editing use SFTP. Remote files can also be opened
 as `sftp://user@host/absolute/path` command-line arguments.
 
 File Editor and Code Editor use the same file values and codec/pending-change
