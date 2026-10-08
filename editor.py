@@ -44,7 +44,7 @@ from meltygui import glfw_window, pressed, imgui, window_api as glfw
 # Register typed tensor views; their graphics resources are allocated on use.
 from meltygui import draw_voxels, draw_line_graph
 from app_model import EditorAppModel
-from tile_views import draw_main_editor, draw_chat  # noqa: F401  tile_views registers the Tasks tile
+from tile_views import draw_main_editor, draw_chat, draw_settings_panel
 from file_editor import (FileEditorComparisons, draw_file_editor_comparisons,
                          draw_file_editor_comparison_overlay,
                          cleanup_file_editor_comparisons)
@@ -347,7 +347,7 @@ def editor(input_value: object, draw_state,
     app_model.bind_open_files(open_files)
     layout_changed = draw_tiles(
         app_model.tiles, draw_state, tile_state=tile_state,
-        multi_instance_renderers=(draw_main_editor, draw_chat, *multi_instance_renderers),
+        multi_instance_renderers=(draw_main_editor, draw_chat, draw_settings_panel, *multi_instance_renderers),
         content_top=imgui.get_cursor_screen_pos()[1])
     draw_file_editor_comparisons(draw_state, file_comparisons, app_model.file_editor_ids())
     app_model.reconcile_editors(open_files)

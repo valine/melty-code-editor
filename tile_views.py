@@ -35,3 +35,16 @@ def draw_chat(input_value: OpenFiles, files_view: DrawState[draw_project_tree] =
 
 
 draw_chat.__header_defaults__ = draw_claude_chat.__header_defaults__
+
+
+def draw_settings_panel(input_value: object, **kwargs):
+    """The cog's settings value, rendered inside a workspace tile."""
+    from meltygui.core.rendering.render_dispatch import draw_any
+    from meltygui.core.runtime import launch_override
+    changed, _ = draw_any(settings, name="settings", **kwargs)
+    if changed:
+        launch_override.flush()
+    return False, input_value
+
+
+draw_settings_panel.__header_defaults__ = {"display_name": "Settings", "icon": "\uf013"}
