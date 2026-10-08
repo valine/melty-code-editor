@@ -69,14 +69,16 @@ both tabs edit the same settings as the window's cog. SSH entries accept a
 **Scan** checks SSH port 22 on the selected connected IPv4 subnet (at most 256
 addresses, using the machine's /24 on larger networks). Select a result to fill
 the form, then add it. The scan only reads SSH identification banners; it does
-not log in or change known hosts. Stop cancels the scan, and the refresh button
-updates the available networks. The selected tab and unfinished form persist;
+not log in or change known hosts. Each Scan refreshes the available networks;
+Stop cancels the scan. The selected tab and unfinished form persist;
 network results are refreshed each session.
 
 On iOS, interface discovery uses the system's `getifaddrs` API through ctypes;
 it does not require psutil. The bundled host includes the local-network privacy
-description. Allow Local Network access when iOS asks, then scan again if the
-first scan finished while the permission prompt was open.
+description and Bonjour service used by a short-lived permission check. Scan
+requests access before probing hosts and continues after permission is granted.
+If access was denied, **Open Settings** opens the app's iOS settings so you can
+enable Local Network access. Stop also cancels a pending permission check.
 
 The root settings window has `Editor.project_roots` beside `show_shortcuts`.
 Its entries name places to browse; marking a folder as a project remains a

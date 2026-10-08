@@ -99,13 +99,13 @@ def test_ios_getifaddrs_abi_and_cleanup(monkeypatch, fails):
             return -1
         entry_type = getifaddrs.argtypes[0]._type_._type_
         address_type = dict(entry_type._fields_)['address']._type_
-        def address(ip, family=socket.AF_INET):
-            value = address_type(length=16, family=family)
+        def address(ip, family=socket.AF_INET, length=16):
+            value = address_type(length=length, family=family)
             value.address[:] = socket.inet_aton(ip)
             allocated.append(value)
             return c.pointer(value)
         nodes = [entry_type(name=b'en0', flags=0x43, address=address('192.168.4.9'),
-                            netmask=address('255.255.255.0')),
+                            netmask=address('255.255.255.0', length=7)),
                  entry_type(name=b'pdp_ip0', flags=0x51, address=address('10.0.0.1'),
                             netmask=address('255.0.0.0')),
                  entry_type(name=b'en1', flags=0x42, address=address('10.0.0.2'),
@@ -165,6 +165,7 @@ def wait_done(job):
 
 
 def test_scan_results_and_cancel_cleanup(monkeypatch):
+    monkeypatch.setattr(panel, 'local_networks', lambda: {'small': '192.168.1.0/30', 'large': '192.168.1.0/24'})
     monkeypatch.setattr(panel, 'ssh_available', lambda host: host.endswith('.1'))
     job = panel.start_scan('192.168.1.0/30', wake=lambda: None)
     wait_done(job)
@@ -187,9 +188,61 @@ def test_scan_results_and_cancel_cleanup(monkeypatch):
 
 
 def test_scan_failure_finishes(monkeypatch):
+    monkeypatch.setattr(panel, 'local_networks', lambda: {'test': '192.168.1.0/30'})
     def fail(host):
         raise RuntimeError('probe failed')
     monkeypatch.setattr(panel, 'ssh_available', fail)
     job = panel.start_scan('192.168.1.0/30', wake=lambda: None)
     wait_done(job)
     assert job['error'] == 'probe failed'
+
+
+def test_scan_requests_permission_then_refreshes_empty_network(monkeypatch):
+    released, seen = [], []
+    statuses = iter(['pending', 'denied', 'granted'])
+    class Request:
+        def __del__(self):
+            released.append(True)
+    native = SimpleNamespace(request_local_network_access=Request,
+                             local_network_access_status=lambda request: next(statuses))
+    monkeypatch.setitem(__import__('sys').modules, '_melty_ios', native)
+    monkeypatch.setattr(panel, 'sys', SimpleNamespace(platform='ios'))
+    def networks():
+        assert released, 'Discovery must wait for permission, and release its probe.'
+        return {'new Wi-Fi': '192.168.2.0/30'}
+    monkeypatch.setattr(panel, 'local_networks', networks)
+    monkeypatch.setattr(panel, 'ssh_available', lambda host: seen.append(host) or False)
+    job = panel.start_scan('', wake=lambda: None)
+    wait_done(job)
+    assert not job['error']
+    assert job['permission'] == 'granted'
+    assert job['network'] == '192.168.2.0/30'
+    assert sorted(seen) == ['192.168.2.1', '192.168.2.2']
+
+
+@pytest.mark.parametrize('status', ['denied', 'failed'])
+def test_permission_probe_released_on_cancel_or_failure(monkeypatch, status):
+    released = []
+    class Request:
+        def __del__(self):
+            released.append(True)
+    native = SimpleNamespace(request_local_network_access=Request,
+                             local_network_access_status=lambda request: status)
+    monkeypatch.setitem(__import__('sys').modules, '_melty_ios', native)
+    monkeypatch.setattr(panel, 'sys', SimpleNamespace(platform='ios'))
+    job = dict(cancel=threading.Event(), permission='pending')
+    if status == 'denied':
+        assert not panel.wait_for_network_access(job, wake=job['cancel'].set)
+    else:
+        with pytest.raises(OSError, match='unavailable'):
+            panel.wait_for_network_access(job, wake=lambda: None)
+    assert released == [True]
+
+
+def test_scan_refreshes_disconnected_selection(monkeypatch):
+    monkeypatch.setattr(panel, 'local_networks', lambda: {'new': '192.168.2.0/30'})
+    monkeypatch.setattr(panel, 'ssh_available', lambda host: False)
+    job = panel.start_scan('192.168.1.0/24', wake=lambda: None)
+    wait_done(job)
+    assert job['network'] == '192.168.2.0/30'
+    assert job['total'] == 2

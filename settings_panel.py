@@ -105,10 +105,12 @@ def ios_interfaces():
             if entry.flags & 0x43 != 0x43 or not (entry.name and entry.address and entry.netmask):
                 continue
             address, netmask = entry.address.contents, entry.netmask.contents
-            if address.family != socket.AF_INET or address.length < 8 or netmask.length < 8:
+            if address.family != socket.AF_INET or address.length < 8 or netmask.length < 4:
                 continue
+            # BSD may omit trailing zero bytes from a netmask sockaddr.
+            mask = c.string_at(c.addressof(netmask) + 4, min(4, netmask.length - 4)).ljust(4, b'\0')
             result.append((entry.name.decode(), socket.inet_ntoa(bytes(address.address)),
-                           socket.inet_ntoa(bytes(netmask.address))))
+                           socket.inet_ntoa(mask)))
     finally:
         libc.freeifaddrs(head)
     return result
@@ -159,20 +161,59 @@ def ssh_available(host, port=22, timeout=0.6):
     return False
 
 
+def wait_for_network_access(job, wake):
+    """iOS prompts on first use; a denial stays actionable while Settings is open."""
+    if sys.platform != 'ios':
+        return True
+    import _melty_ios
+    request = _melty_ios.request_local_network_access()
+    deadline = time.monotonic() + 120
+    try:
+        while not job['cancel'].is_set():
+            status = _melty_ios.local_network_access_status(request)
+            if status != job['permission']:
+                job['permission'] = status
+                wake()
+            if status == 'granted':
+                return True
+            if status == 'failed':
+                raise OSError('Local network unavailable.')
+            if time.monotonic() >= deadline:
+                raise TimeoutError('Local Network access is required.' if status == 'denied'
+                                   else 'Local network request timed out.')
+            job['cancel'].wait(0.1)
+        return False
+    finally:
+        # The native capsule cancels its listener and browser on release.
+        del request
+
+
 def start_scan(network, wake=request_render):
     """One cancellable, bounded job per view; workers only write plain job fields."""
-    subnet = ipaddress.IPv4Network(network)
-    if subnet.num_addresses > 256:
+    if network and ipaddress.IPv4Network(network).num_addresses > 256:
         raise ValueError('Choose a network with at most 256 addresses.')
-    hosts = [str(host) for host in subnet.hosts()]
     job = dict(cancel=threading.Event(), done=False, completed=0,
-               total=len(hosts), hosts=(), error='')
+               total=0, hosts=(), error='', permission='pending', networks=None, network=network)
 
     def run():
         def probe(host):
             return not job['cancel'].is_set() and ssh_available(host)
 
         try:
+            if not wait_for_network_access(job, wake):
+                return
+            networks = local_networks()
+            job['network'] = network if network in networks.values() else next(iter(networks.values()), '')
+            job['networks'] = (networks, job['network'])
+            if not job['network']:
+                raise ValueError('No local IPv4 network.')
+            subnet = ipaddress.IPv4Network(job['network'])
+            if subnet.num_addresses > 256:
+                raise ValueError('Choose a network with at most 256 addresses.')
+            hosts = [str(host) for host in subnet.hosts()]
+            job['total'] = len(hosts)
+            job['permission'] = 'granted'
+            wake()
             with ThreadPoolExecutor(max_workers=16, thread_name_prefix='ssh-discovery') as pool:
                 # Only one batch is outstanding, so Stop does not leave queued probes.
                 for offset in range(0, len(hosts), 16):
@@ -202,6 +243,9 @@ def cleanup_settings(draw_state):
 
 @render_func(selectable=False, on_cleanup=cleanup_settings)
 def draw_settings(input_value: CodeDict, draw_state, state: SettingsState = None):
+    if state.scan is not None and state.scan['networks'] is not None:
+        state.networks, state.network = state.scan['networks']
+        state.scan['networks'] = None
     if state.scan is not None and not state.scan['done']:
         draw_state.invalidate()
     picked, tabs = draw_tab_bar([state.tab], collection=['Settings', 'Project Roots'],
@@ -223,7 +267,6 @@ def draw_roots(settings, state, draw_state):
     color = pack_color(*Tint.dd_text(), 1)
     changed = False
     scan_requested = False
-    refresh_requested = False
 
     def label(text, x=0, available=None):
         draw_list.push_clip_rect(left + x, top, left + (width if available is None else x + available), top + row, True)
@@ -294,23 +337,30 @@ def draw_roots(settings, state, draw_state):
         scanning = state.scan is not None and not state.scan['done']
         imgui.set_cursor_screen_pos((left, top))
         _, state.network = draw_dropdown(state.network, collection=state.networks,
-                                          name='scan-network', width=width - 116,
+                                          name='scan-network', width=width - 80,
                                           trigger_height=row - 2, show_header=False)
-        refresh_requested = button('\uf021', 'refresh-networks', width - 110, 30)
         if button('Stop' if scanning else 'Scan', 'scan', width - 72, 72):
             if scanning:
                 state.scan['cancel'].set()
-            elif state.network:
+            else:
                 scan_requested = True
         top += row + 4
-        if not state.networks:
+        if not state.networks and state.scan is None:
             label('No local IPv4 network')
             top += row
         if state.scan is not None:
             job = state.scan
             status = 'Stopped' if job['cancel'].is_set() else ('Done' if job['done'] else f'{job["completed"]}/{job["total"]}')
-            label(job['error'] or f'{status} · {len(job["hosts"])} found')
+            if scanning and job['permission'] in ('pending', 'denied'):
+                label('Local Network access required' if job['permission'] == 'denied' else 'Requesting network access…')
+            else:
+                label(job['error'] or f'{status} · {len(job["hosts"])} found')
             top += row
+            if job['permission'] == 'denied':
+                if button('Open Settings', 'network-settings', 0, 140):
+                    import _melty_ios
+                    _melty_ios.open_app_settings()
+                top += row + 4
             for host in job['hosts']:
                 if button(host, ('ssh-host', host), 0, width):
                     user, sep, _ = state.host.rpartition('@')
@@ -322,9 +372,7 @@ def draw_roots(settings, state, draw_state):
     imgui.set_cursor_screen_pos((left, top))
     imgui.dummy(width, 1)
     if scan_requested:
+        state.error = ''
         state.scan = start_scan(state.network)
         draw_state.invalidate()
-    if refresh_requested:
-        state.networks = None
-        state.error = ''
     return changed
