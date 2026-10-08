@@ -136,7 +136,7 @@ def local_networks():
             continue
         network = ipaddress.IPv4Network(f'{ip}/{netmask}', strict=False)
         network = ipaddress.IPv4Network(f'{ip}/{max(24, network.prefixlen)}', strict=False)
-        result[f'{interface} · {network}'] = str(network)
+        result[f'{interface}  {network}'] = str(network)
     return result
 
 
@@ -458,7 +458,7 @@ def draw_roots(settings, state, draw_state):
                 cancel_ssh_auth(state)
             changed = True
         top += row - 6
-        location = f'{root.target}{":" + str(root.port) if root.port else ""} · {root.directory}' if isinstance(root, SSH) else str(root)
+        location = f'{root.target}{":" + str(root.port) if root.port else ""}  {root.directory}' if isinstance(root, SSH) else str(root)
         label(location, available=width - 36)
         top += row + 4
         if isinstance(root, SSH) and sys.platform == 'ios':
@@ -542,7 +542,7 @@ def draw_roots(settings, state, draw_state):
             if scanning and job.get('permission') in ('pending', 'denied'):
                 label('Local Network access required' if job['permission'] == 'denied' else 'Requesting network access…')
             else:
-                label(job['error'] or f'{status} · {len(job["hosts"])} found')
+                label(job['error'] or f'{status}  {len(job["hosts"])} found')
             top += row
             if job.get('permission') == 'denied':
                 if button('Open Settings', 'network-settings', 0, 140):
@@ -551,7 +551,7 @@ def draw_roots(settings, state, draw_state):
                 top += row + 4
             for host in sorted(job['hosts'], key=ipaddress.IPv4Address):
                 name = job.get('names', {}).get(host, '').removesuffix('.local')
-                title = f'{name} · {host}' if name else host
+                title = f'{name}  {host}' if name else host
                 if button(title, ('ssh-host', host), 0, width):
                     user, sep, _ = state.host.rpartition('@')
                     state.host = f'{user}@{host}' if sep else host

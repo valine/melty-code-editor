@@ -50,6 +50,9 @@ The toolkit guide is `../meltygui/docs/APPS.md`; package ownership and migration
 notes are `../meltygui-pro/docs/PACKAGE_SPLIT.md`.
 
 ## Icons
+Never use the Unicode middle dot (U+00B7) in UI text, including labels, buttons,
+menus, and status messages. Separate details with spacing, parentheses, or clear wording.
+
 The only icon font is Font Awesome 5 Free (`meltygui/resources/fontawesome-webfont.ttf`), merged
 into every UI font. Before using an icon, look its codepoint up in `meltygui/model/icon_model.py`
 (`FA_ICONS`, generated from that font's cmap); a codepoint not listed there renders as `?`. Never

@@ -127,7 +127,7 @@ def test_networks_are_connected_and_bounded(monkeypatch):
         'lan': [address('10.3.4.5', '255.255.0.0')],
         'lo': [address('127.0.0.1', '255.0.0.0')],
         'down': [address('192.168.1.1', '255.255.255.0')]})
-    assert panel.local_networks() == {'lan · 10.3.4.0/24': '10.3.4.0/24'}
+    assert panel.local_networks() == {'lan  10.3.4.0/24': '10.3.4.0/24'}
     with pytest.raises(ValueError, match='256'):
         panel.start_scan('10.0.0.0/8')
 
@@ -139,8 +139,8 @@ def test_ios_networks_without_psutil(monkeypatch):
         ('en0', '192.168.3.4', '255.255.0.0'),
         ('en1', '10.0.0.2', '255.255.255.252'),
         ('lo0', '127.0.0.1', '255.0.0.0')])
-    assert panel.local_networks() == {'en0 · 192.168.3.0/24': '192.168.3.0/24',
-                                      'en1 · 10.0.0.0/30': '10.0.0.0/30'}
+    assert panel.local_networks() == {'en0  192.168.3.0/24': '192.168.3.0/24',
+                                      'en1  10.0.0.0/30': '10.0.0.0/30'}
 
 
 @pytest.mark.parametrize('fails', [False, True])

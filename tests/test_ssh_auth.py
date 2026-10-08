@@ -12,6 +12,44 @@ import pytest
 from meltygui.model import ssh_auth_model as auth
 
 
+def test_ios_host_keys_use_application_support(tmp_path, monkeypatch):
+    import errno
+    from pathlib import Path
+    from meltygui.core.runtime import paths
+    library = tmp_path / 'Library'
+    library.mkdir()
+    monkeypatch.setattr(Path, 'home', classmethod(lambda cls: tmp_path))
+    monkeypatch.setattr(paths, 'sys', SimpleNamespace(platform='ios'))
+    mkdir = Path.mkdir
+    exists = Path.exists
+
+    def permitted(path):
+        if path == tmp_path / '.ssh' or (tmp_path / '.ssh') in path.parents:
+            raise PermissionError(errno.EPERM, 'Operation not permitted', str(path))
+
+    def sandbox_mkdir(path, *args, **kwargs):
+        permitted(path)
+        return mkdir(path, *args, **kwargs)
+
+    def sandbox_exists(path):
+        permitted(path)
+        return exists(path)
+
+    monkeypatch.setattr(Path, 'mkdir', sandbox_mkdir)
+    monkeypatch.setattr(Path, 'exists', sandbox_exists)
+    expected = library / 'Application Support/meltygui/ssh/known_hosts'
+    assert auth.known_hosts_path() == expected
+    assert not auth.known_hosts_path().exists()
+    key = paramiko.RSAKey.generate(2048)
+    location = 'sftp://alice@server.local/~'
+    auth.trust_host(location, key)
+    assert paramiko.HostKeys(str(expected)).check('server.local', key)
+    assert expected.stat().st_mode & 0o777 == 0o600
+    # Repeat trust after a relaunch: keep the original key and its private file.
+    auth.trust_host(location, key)
+    assert paramiko.HostKeys(str(expected)).check('server.local', key)
+
+
 @pytest.fixture
 def ssh_login(tmp_path, monkeypatch):
     host_key = paramiko.RSAKey.generate(2048)

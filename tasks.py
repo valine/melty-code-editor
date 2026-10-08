@@ -370,7 +370,7 @@ def status_text(state):
     if state.running:
         return 'running'
     if state.exit is not None:
-        return f'exit {state.exit} · {state.ended - state.started:.1f} s'
+        return f'exit {state.exit}  {state.ended - state.started:.1f} s'
     return ''
 
 
