@@ -50,6 +50,7 @@ from file_editor import (FileEditorComparisons, draw_file_editor_comparisons,
                          cleanup_file_editor_comparisons)
 from project_tree import draw_project_tree, open_path  # noqa: F401  draw_project_tree registers the Files tile
 from editor_settings import settings
+from meltygui.core.runtime.toggles import Toggles
 from new_project import draw_new_project, main_files
 import tasks
 from meltygui.core.layout.tile_manager_core import TileManagerState, draw_tiles
@@ -299,6 +300,7 @@ def editor(input_value: object, draw_state,
            add_folder_dialog: WindowCallState = None,
            new_project_dialog: WindowCallState = None):
     global open_requested, add_project_requested, new_project_requested
+    Toggles.show_overlay_warnings = settings['Editor']['show_overlay_warnings']
     menu_height = 25.0
     meltygui.draw_menu_bar({'File': {'New…': request_new, 'New Project…': request_new_project,
                                   'Open…': request_open},
