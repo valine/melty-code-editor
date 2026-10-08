@@ -23,7 +23,7 @@ from meltygui.model.ssh_file_model import SSH
 class CodeEditorSettings:
 
     class Editor:
-        show_overlay_warnings = True
+        show_overlay_warnings = False
         # The file browser's shortcuts column (home, the XDG folders, the
         # marked projects) to the left of the editor.
         show_shortcuts = True
