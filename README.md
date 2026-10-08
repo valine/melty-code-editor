@@ -61,6 +61,18 @@ written to disk when the window closes); there is no Ctrl+S.
 
 ## Local and SSH roots
 
+The **Settings** tile has **Settings** and **Project Roots** tabs. Project Roots
+adds named local folders or SSH targets and removes them with the trash button;
+both tabs edit the same settings as the window's cog. SSH entries accept a
+`user@host` or SSH config alias, a folder, and an optional port.
+
+**Scan** checks SSH port 22 on the selected connected IPv4 subnet (at most 256
+addresses, using the machine's /24 on larger networks). Select a result to fill
+the form, then add it. The scan only reads SSH identification banners; it does
+not log in or change known hosts. Stop cancels the scan, and the refresh button
+updates the available networks. The selected tab and unfinished form persist;
+network results are refreshed each session.
+
 The root settings window has `Editor.project_roots` beside `show_shortcuts`.
 Its entries name places to browse; marking a folder as a project remains a
 separate action. For example, with `SSH` imported from
