@@ -411,6 +411,9 @@ def test_tab_overlay_reflows_at_live_bottom_without_registering_inputs(monkeypat
     state._pane = object()
     ds.abs_clip_rect = (20, 30, 420, 330)
     from meltygui.core.rendering import overlay
+    # The live toolkit can predate app source updates. Painting must not
+    # depend on the diagnostic helper introduced during spike investigation.
+    monkeypatch.delattr(overlay, 'overlay_checkpoint', raising=False)
     place = Mock()
     monkeypatch.setattr(overlay, 'place_overlay_view', place)
     paint = Mock()
