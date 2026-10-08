@@ -77,6 +77,65 @@ def test_networks_are_connected_and_bounded(monkeypatch):
         panel.start_scan('10.0.0.0/8')
 
 
+def test_ios_networks_without_psutil(monkeypatch):
+    monkeypatch.setattr(panel, 'sys', SimpleNamespace(platform='ios'))
+    monkeypatch.setitem(__import__('sys').modules, 'psutil', None)
+    monkeypatch.setattr(panel, 'ios_interfaces', lambda: [
+        ('en0', '192.168.3.4', '255.255.0.0'),
+        ('en1', '10.0.0.2', '255.255.255.252'),
+        ('lo0', '127.0.0.1', '255.0.0.0')])
+    assert panel.local_networks() == {'en0 · 192.168.3.0/24': '192.168.3.0/24',
+                                      'en1 · 10.0.0.0/30': '10.0.0.0/30'}
+
+
+@pytest.mark.parametrize('fails', [False, True])
+def test_ios_getifaddrs_abi_and_cleanup(monkeypatch, fails):
+    import ctypes as c
+    allocated, freed = [], []
+
+    def getifaddrs(out):
+        if fails:
+            c.set_errno(13)
+            return -1
+        entry_type = getifaddrs.argtypes[0]._type_._type_
+        address_type = dict(entry_type._fields_)['address']._type_
+        def address(ip, family=socket.AF_INET):
+            value = address_type(length=16, family=family)
+            value.address[:] = socket.inet_aton(ip)
+            allocated.append(value)
+            return c.pointer(value)
+        nodes = [entry_type(name=b'en0', flags=0x43, address=address('192.168.4.9'),
+                            netmask=address('255.255.255.0')),
+                 entry_type(name=b'pdp_ip0', flags=0x51, address=address('10.0.0.1'),
+                            netmask=address('255.0.0.0')),
+                 entry_type(name=b'en1', flags=0x42, address=address('10.0.0.2'),
+                            netmask=address('255.0.0.0')),
+                 entry_type(name=b'en0', flags=0x43, address=address('0.0.0.0', 30)),
+                 entry_type(name=b'en0', flags=0x43)]
+        for first, second in zip(nodes, nodes[1:]):
+            first.next = c.pointer(second)
+        allocated.extend(nodes)
+        c.cast(out, getifaddrs.argtypes[0])[0] = c.pointer(nodes[0])
+        return 0
+
+    def freeifaddrs(head):
+        freed.append(c.addressof(head.contents))
+
+    def library(name, *, use_errno):
+        assert name is None and use_errno
+        return SimpleNamespace(getifaddrs=getifaddrs, freeifaddrs=freeifaddrs)
+
+    monkeypatch.setattr(c, 'CDLL', library)
+    if fails:
+        with pytest.raises(OSError) as error:
+            panel.ios_interfaces()
+        assert error.value.errno == 13
+        assert freed == []
+    else:
+        assert panel.ios_interfaces() == [('en0', '192.168.4.9', '255.255.255.0')]
+        assert len(freed) == 1
+
+
 @pytest.mark.parametrize('banner,expected', [(b'SSH-2.0-test\r\n', True),
                                             (b'Notice\r\nSSH-1.99-test\r\n', True),
                                             (b'HTTP/1.1 200 OK\r\n', False),

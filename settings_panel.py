@@ -1,6 +1,7 @@
 """The Settings tile: shared settings, named roots, and bounded SSH discovery."""
 import ipaddress
 import socket
+import sys
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -69,24 +70,69 @@ def remove_root(settings, name):
     settings['Editor']['project_roots'] = roots
 
 
+def ios_interfaces():
+    """Connected LAN addresses from Darwin's getifaddrs; psutil has no iOS port."""
+    import ctypes as c
+
+    # Darwin ABI (not Linux sockaddr): length and family are each one byte.
+    class SockaddrIn(c.Structure):
+        _fields_ = [('length', c.c_uint8), ('family', c.c_uint8),
+                    ('port', c.c_uint16), ('address', c.c_ubyte * 4),
+                    ('padding', c.c_ubyte * 8)]
+
+    class Ifaddrs(c.Structure):
+        pass
+
+    Ifaddrs._fields_ = [('next', c.POINTER(Ifaddrs)), ('name', c.c_char_p),
+                       ('flags', c.c_uint), ('address', c.POINTER(SockaddrIn)),
+                       ('netmask', c.POINTER(SockaddrIn)), ('destination', c.c_void_p),
+                       ('data', c.c_void_p)]
+    libc = c.CDLL(None, use_errno=True)
+    libc.getifaddrs.argtypes = [c.POINTER(c.POINTER(Ifaddrs))]
+    libc.getifaddrs.restype = c.c_int
+    libc.freeifaddrs.argtypes = [c.POINTER(Ifaddrs)]
+    libc.freeifaddrs.restype = None
+    head = c.POINTER(Ifaddrs)()
+    if libc.getifaddrs(c.byref(head)) != 0:
+        raise OSError(c.get_errno(), 'Could not read local network interfaces')
+    result = []
+    try:
+        current = head
+        while current:
+            entry = current.contents
+            current = entry.next
+            # IFF_UP | IFF_BROADCAST | IFF_RUNNING: exclude cellular and VPN links.
+            if entry.flags & 0x43 != 0x43 or not (entry.name and entry.address and entry.netmask):
+                continue
+            address, netmask = entry.address.contents, entry.netmask.contents
+            if address.family != socket.AF_INET or address.length < 8 or netmask.length < 8:
+                continue
+            result.append((entry.name.decode(), socket.inet_ntoa(bytes(address.address)),
+                           socket.inet_ntoa(bytes(netmask.address))))
+    finally:
+        libc.freeifaddrs(head)
+    return result
+
+
 def local_networks():
     """Connected IPv4 networks; large networks default to this machine's /24."""
-    import psutil
+    if sys.platform == 'ios':
+        interfaces = ios_interfaces()
+    else:
+        import psutil
+        stats = psutil.net_if_stats()
+        interfaces = [(name, address.address, address.netmask)
+                      for name, addresses in psutil.net_if_addrs().items()
+                      if name in stats and stats[name].isup
+                      for address in addresses if address.family == socket.AF_INET and address.netmask]
     result = {}
-    stats = psutil.net_if_stats()
-    for interface, addresses in psutil.net_if_addrs().items():
-        if interface not in stats or not stats[interface].isup:
+    for interface, address, netmask in interfaces:
+        ip = ipaddress.IPv4Address(address)
+        if ip.is_loopback or ip.is_unspecified or ip.is_multicast:
             continue
-        for address in addresses:
-            if address.family != socket.AF_INET or not address.netmask:
-                continue
-            ip = ipaddress.IPv4Address(address.address)
-            if ip.is_loopback or ip.is_unspecified or ip.is_multicast:
-                continue
-            network = ipaddress.IPv4Network(f'{ip}/{address.netmask}', strict=False)
-            prefix = max(24, network.prefixlen)
-            network = ipaddress.IPv4Network(f'{ip}/{prefix}', strict=False)
-            result[f'{interface} · {network}'] = str(network)
+        network = ipaddress.IPv4Network(f'{ip}/{netmask}', strict=False)
+        network = ipaddress.IPv4Network(f'{ip}/{max(24, network.prefixlen)}', strict=False)
+        result[f'{interface} · {network}'] = str(network)
     return result
 
 
@@ -280,4 +326,5 @@ def draw_roots(settings, state, draw_state):
         draw_state.invalidate()
     if refresh_requested:
         state.networks = None
+        state.error = ''
     return changed

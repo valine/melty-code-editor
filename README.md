@@ -73,6 +73,11 @@ not log in or change known hosts. Stop cancels the scan, and the refresh button
 updates the available networks. The selected tab and unfinished form persist;
 network results are refreshed each session.
 
+On iOS, interface discovery uses the system's `getifaddrs` API through ctypes;
+it does not require psutil. The bundled host includes the local-network privacy
+description. Allow Local Network access when iOS asks, then scan again if the
+first scan finished while the permission prompt was open.
+
 The root settings window has `Editor.project_roots` beside `show_shortcuts`.
 Its entries name places to browse; marking a folder as a project remains a
 separate action. For example, with `SSH` imported from
