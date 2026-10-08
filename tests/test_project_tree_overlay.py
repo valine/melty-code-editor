@@ -169,3 +169,69 @@ def test_tree_overlay_state_does_not_persist_view_references():
     row_overlay = FileRowsOverlayState()
     row_overlay.layout = {'selected_index': 3}
     assert 'layout' not in row_overlay.to_dict()
+
+
+def test_project_trigger_follows_files_resize(monkeypatch):
+    from meltygui_pro.editor.project_selector import ProjectSelectorState, place_project_trigger
+    monkeypatch.setattr(Melty, 'px', staticmethod(lambda value: value))
+    panel = project_tree.ProjectPanelState()
+    selector = ProjectSelectorState()
+    selector._dropdown = object()
+    panel._selector_view = SimpleNamespace(
+        _kwargs={'selector_state': selector}, _raw_input_value='/project')
+    panel._files_view, panel._files_insets = object(), (0, 34, 0, 4)
+    ds = SimpleNamespace(_kwargs={'panel_state': panel}, abs_left=20, abs_top=40,
+                         width=400, height=300, abs_clip_rect=(20, 40, 420, 340))
+    placements = []
+    def place(view, rect, clip):
+        placements.append((view, rect))
+        if view is panel._selector_view:
+            view.abs_left, view.abs_top, view.width, view.height = rect
+            view.abs_clip_rect = clip
+    monkeypatch.setattr(overlay, 'place_overlay_view', place)
+    for width in (400, 600, 180):
+        ds.width = width
+        project_tree.draw_project_tree_overlay_background(ds, None)
+        place_project_trigger(panel._selector_view, None)
+        assert placements[-1] == (selector._dropdown, (48, 40, width - 62, 30))
+    assert '_selector_view' not in panel.to_dict()
+    assert '_dropdown' not in selector.to_dict()
+
+
+def test_project_trigger_overlay_refits_label_at_live_width(monkeypatch):
+    from meltygui.view import header_view, dropdown_view
+    from meltygui_pro.editor.project_selector import draw_project_trigger_overlay
+    fit, button = Mock(return_value='project'), Mock()
+    monkeypatch.setattr(dropdown_view, '_dd_fit_label', fit)
+    monkeypatch.setattr(header_view, 'flat_button', button)
+    ds = SimpleNamespace(_kwargs={'display_label': 'long project name', 'trigger_height': 30},
+                         width=300, abs_left=20, abs_top=40)
+    dl = object()
+    for width in (300, 500, 100):
+        ds.width = width
+        draw_project_trigger_overlay(ds, dl)
+        assert fit.call_args.args == ('long project name', width - 30)
+        assert button.call_args.kwargs['width'] == width
+        assert button.call_args.kwargs['draw_list'] is dl
+        assert button.call_args.kwargs['layout'] is False
+
+
+def test_project_overlay_paints_prepared_icon_on_supplied_list(frame, monkeypatch):
+    from meltygui.model.folder_icon_model import PathIcon
+    from meltygui.view import header_view, path_icon_view
+    from meltygui_pro.editor.project_selector import draw_project_trigger_overlay
+    from meltygui.model.file_location_model import file_path
+    icon = PathIcon('/project')
+    texture = object()
+    folders = SimpleNamespace(get=Mock(return_value=texture))
+    ds = SimpleNamespace(_kwargs={'display_path': icon, 'display_label': 'project'},
+                         misc={'icon_state': SimpleNamespace(folders=folders)},
+                         width=300, abs_left=20, abs_top=40, current_tint=(.3, .4, .5))
+    monkeypatch.setattr(header_view, 'flat_button', Mock())
+    paint = Mock()
+    monkeypatch.setattr(path_icon_view, 'paint_path_icon', paint)
+    dl = Mock()
+    draw_project_trigger_overlay(ds, dl)
+    folders.get.assert_called_once_with(file_path('/project'))
+    assert paint.call_args.args[:3] == (dl, '/project', texture)
+    assert paint.call_args.args[3:6] == (45, 46, 18)

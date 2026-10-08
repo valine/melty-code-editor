@@ -989,7 +989,7 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
 # ── the tile: the selector and the rows ─────────────────────
 
 
-@no_save('_files_view', '_files_insets')
+@no_save('_files_view', '_files_insets', '_selector_view')
 class ProjectPanelState(ProjectSelection):
     """The Files tile's selected project and row menu state."""
 
@@ -1002,6 +1002,7 @@ class ProjectPanelState(ProjectSelection):
         super().__init__()
         self.selected_project = None
         self._menu = {}             # the rows' right-click target + the menu's pending request
+        self._selector_view = None
         self._files_view = None
         self._files_insets = None
 
@@ -1052,6 +1053,13 @@ def draw_project_tree_overlay_background(draw_state, draw_list):
     if state is None or state._files_view is None or state._files_insets is None:
         return
     from meltygui.core.rendering.overlay import place_overlay_view
+    if state._selector_view is not None:
+        inset = Melty.px(28)
+        place_overlay_view(state._selector_view,
+                           (draw_state.abs_left + inset, draw_state.abs_top,
+                            max(Melty.px(60), draw_state.width - inset),
+                            Melty.px(draw_state._kwargs.get("header_height", 30))),
+                           draw_state.abs_clip_rect)
     left, top, right, bottom = state._files_insets
     place_overlay_view(state._files_view,
                        (draw_state.abs_left + left, draw_state.abs_top + top,
@@ -1114,10 +1122,10 @@ def draw_project_tree(input_value: object, draw_state, panel_state: ProjectPanel
         draw_state.invalidate()
         request_render()
     imgui.set_cursor_screen_pos((left + chip_w + gap, top))
-    changed, folder = draw_project_selector(state.selected_project, name="project-selector",
+    changed, folder, state._selector_view = draw_project_selector(state.selected_project, name="project-selector",
                                             project_roots=settings["Editor"]["project_roots"],
                                             width=max(px(60), width - chip_w - gap),
-                                            trigger_height=header_height, paint_settings=False)
+                                            trigger_height=header_height, paint_settings=False, return_extras=True)
     if changed:
         state.set_project(folder)
         draw_state.invalidate()
