@@ -31,6 +31,29 @@ def test_authentication_prompt_keeps_credentials_out_of_settings(monkeypatch):
     assert jobs == [root]
 
 
+def test_saved_settings_exclude_authentication_state(tmp_path):
+    from meltygui.core.conversion.load_save_v2 import load, save
+
+    class NativePrompt:
+        def __reduce__(self):
+            raise AssertionError('Native authentication prompts must never be serialized')
+
+    state = panel.SettingsState()
+    state.name, state.host = 'Server', 'alice@server.local'
+    # Guard the persistence boundary even if a future auth implementation
+    # accidentally puts credentials into its temporary job state.
+    secrets = dict(password='test-only-password', private_key='test-only-private-key',
+                   passphrase='test-only-passphrase')
+    state.auth = dict(prompt=NativePrompt(), job=secrets)
+    path = tmp_path / 'settings.pkl'
+    save(state, path)
+    saved = path.read_bytes()
+    assert all(value.encode() not in saved for value in secrets.values())
+    restored = load(path, run_on_load=False)
+    assert restored.auth is None
+    assert (restored.name, restored.host) == ('Server', 'alice@server.local')
+
+
 def test_authentication_requires_explicit_host_trust(monkeypatch):
     from contextlib import contextmanager
     from meltygui.model import ssh_auth_model as auth, ssh_file_model as ssh

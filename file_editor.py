@@ -237,9 +237,8 @@ def draw_file_editor_overlay_background(draw_state, draw_list):
 
 def draw_file_editor_overlay(draw_state, draw_list):
     """Paint prepared tabs at live bounds; all input stays in the normal body."""
-    state = draw_state.misc.get('file_editor_state')
     from meltygui_pro.editor.code_editor import paint_editor_tabs, _draw_nav_buttons, _nav_button_tints
-    _draw_nav_buttons(draw_state, *_nav_button_tints()[:2], draw_list=draw_list,
+    _draw_nav_buttons(draw_state, *_nav_button_tints(sync_metadata=False)[:2], draw_list=draw_list,
                       pos=(draw_state.abs_left, draw_state.abs_top))
     state = draw_state.misc.get("file_editor_state")
     if state is None or state._tab_overlay is None:

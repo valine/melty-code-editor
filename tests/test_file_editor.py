@@ -445,6 +445,61 @@ def test_tab_overlay_reflows_at_live_bottom_without_registering_inputs(monkeypat
     ds.on_action.assert_not_called()
 
 
+def test_overlay_defers_pending_metadata_reload_to_render_delivery(monkeypatch, tmp_path):
+    import pickle
+    from unittest.mock import Mock
+    import file_editor
+    from meltygui.core.melty import Melty
+    from meltygui.models import file_meta
+    from meltygui.state.core_undo import NavUndo, NavChange, UndoStack
+    from meltygui_pro.editor import code_editor
+
+    path = '/project/target.py'
+    metadata_path = tmp_path / 'file_meta.pkl'
+    old_tint, new_tint = (.2, .3, .4), (.7, .6, .5)
+    def write_metadata(tint):
+        metadata_path.write_bytes(pickle.dumps({'entries': {path: {'tint': tint}}}))
+
+    queued, repaints = [], []
+    monkeypatch.setattr(Melty, 'post_to_render', queued.append)
+    write_metadata(old_tint)
+    metadata = file_meta.FileMetaProxy(metadata_path)
+    monkeypatch.setattr(metadata, '_repaint', lambda: repaints.append(True))
+    monkeypatch.setattr(file_meta, 'file_meta_store', lambda: metadata)
+    for callback in queued[:]:
+        callback()
+    queued.clear()
+    repaints.clear()
+
+    stack = UndoStack('overlay regression')
+    stack.history.append(NavChange((path, 1, 0), ('/project/current.py', 2, 0)))
+    stack.redo_stack.append([NavChange(('/project/current.py', 2, 0), (path, 3, 0))])
+    monkeypatch.setattr(NavUndo, 'stack', stack)
+    paint = Mock(return_value=False)
+    monkeypatch.setattr(code_editor, '_draw_nav_buttons', paint)
+    monkeypatch.setattr(Melty, 'cache', None)
+    ds = SimpleNamespace(misc={}, abs_left=0, abs_top=0)
+    dl = object()
+
+    # The poller may publish an update between render-task delivery and an
+    # overlay on a frozen frame. It must not make this painter read the file.
+    write_metadata(new_tint)
+    metadata._pending = True
+    metadata._queue_repaint()
+    with monkeypatch.context() as overlay_only:
+        overlay_only.setattr(metadata, '_read_file', Mock(side_effect=AssertionError('overlay read disk')))
+        file_editor.draw_file_editor_overlay(ds, dl)
+    assert paint.call_args.args == (ds, old_tint, old_tint)
+    assert metadata._pending
+    assert len(queued) == 1
+
+    queued.pop()()
+    assert not metadata._pending
+    assert repaints == [True]
+    file_editor.draw_file_editor_overlay(ds, dl)
+    assert paint.call_args.args == (ds, new_tint, new_tint)
+
+
 def test_files_settings_overlay_tracks_live_right_edge(monkeypatch):
     from unittest.mock import Mock
     import project_tree
