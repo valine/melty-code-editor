@@ -198,11 +198,10 @@ def test_project_trigger_follows_files_resize(monkeypatch):
     assert '_dropdown' not in selector.to_dict()
 
 
-def test_project_trigger_overlay_refits_label_at_live_width(monkeypatch):
-    from meltygui.view import header_view, dropdown_view
+def test_project_trigger_overlay_clips_full_label_at_live_width(monkeypatch):
+    from meltygui.view import header_view
     from meltygui_pro.editor.project_selector import draw_project_trigger_overlay
-    fit, button = Mock(return_value='project'), Mock()
-    monkeypatch.setattr(dropdown_view, '_dd_fit_label', fit)
+    button = Mock()
     monkeypatch.setattr(header_view, 'flat_button', button)
     ds = SimpleNamespace(_kwargs={'display_label': 'long project name', 'trigger_height': 30},
                          width=300, abs_left=20, abs_top=40)
@@ -210,7 +209,8 @@ def test_project_trigger_overlay_refits_label_at_live_width(monkeypatch):
     for width in (300, 500, 100):
         ds.width = width
         draw_project_trigger_overlay(ds, dl)
-        assert fit.call_args.args == ('long project name', width - 30)
+        assert button.call_args.args[0] == '\uf078 long project name'
+        assert button.call_args.kwargs['text_clip_rect'] == (25, 40, 20 + width - 1, 70)
         assert button.call_args.kwargs['width'] == width
         assert button.call_args.kwargs['draw_list'] is dl
         assert button.call_args.kwargs['layout'] is False
