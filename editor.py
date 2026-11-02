@@ -287,6 +287,7 @@ def draw_new_field(width):
     elif pressed('enter') or pressed('kp_enter'):
         new_file_commit()
     return NEW_FIELD_HEIGHT
+    
 
 
 @glfw_window(name=paths[0].name if len(paths) == 1 else 'Code Editor', app_id='melty-code-editor',
