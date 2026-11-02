@@ -1,10 +1,10 @@
 [Desktop Entry]
-X-HDR-Icon=/home/lukas/Desktop/codeeditor-melty/icon/melty-code-editor-hdr.png
+Icon=/home/lukas/Desktop/codeeditor-melty/icon/melty-code-editor.png
+X-HDR-Icon=/home/lukas/Desktop/codeeditor-melty/icon/melty-code-editor.png
 Type=Application
 Name=Melty Code Editor
 Comment=Edit code in melty's draw_code_editor (tabs, compare with git, analysis)
 Exec=/home/lukas/Desktop/codeeditor-melty/melty-code-editor %F
-Icon=/home/lukas/Desktop/codeeditor-melty/icon/melty-code-editor.png
 Terminal=false
 Categories=Development;TextEditor;
 MimeType=text/plain;text/x-python;
