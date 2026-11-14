@@ -287,24 +287,46 @@ def test_tile_fill_washes_the_fallback_for_an_unpainted_folder(tints, tmp_path, 
     fallback, colour = (.3, .4, .5), (.9, .2, .1, 1.0)
     assert project_tree.painted(tmp_path) is None
     assert project_tree.tile_fill(None, fallback) == (fallback, -.23)
-    assert project_tree.paint(str(tmp_path), colour) is None
+    project_tree.set_tint(str(tmp_path), colour)
     assert project_tree.painted(tmp_path) == colour
     assert project_tree.tile_fill(colour, fallback) == (colour, -.23)
     tints.flush()
     import melty_meta
     assert melty_meta.tint(tmp_path) == colour
-    assert project_tree.paint(str(tmp_path), None) is None
+    project_tree.set_tint(str(tmp_path), None)
     tints.flush()
     assert melty_meta.tint(tmp_path) is None and not (tmp_path / '.melty').exists()
 
 
-def test_ssh_paths_are_never_painted(tints, tmp_path):
+def test_ssh_rows_and_project_keep_their_tint_across_a_rename(tints, monkeypatch):
+    """The row and swatch setters are `set_tint`; an SSH path's tint lives in the
+    (temporary) global store under its address and follows an SSH rename."""
+    import threading
     import melty_meta
-    remote = 'sftp://host/home/user/main.py'
-    assert project_tree.painted(remote) is None
-    assert project_tree.paint(remote, (1.0, 0.0, 0.0)) == 'Tints are not saved on an SSH filesystem.'
+    from meltygui.model import ssh_file_model as ssh
+    from meltygui.model.file_location_model import file_path
+    monkeypatch.setattr(Melty, 'post_to_render', lambda task: task())
+    for name in ('begin_rename', 'finish_rename', 'rename', 'request'):
+        monkeypatch.setattr(ssh, name, lambda *args, **kwargs: None)
+    project = 'sftp://host/home/user/project'
+    old, new = f'{project}/old.py', f'{project}/new.py'
+    row, swatch = (.2, .6, .9), (.9, .4, .1, 1.0)
+    project_tree.set_tint(old, row)
+    project_tree.set_tint(project, swatch)
+    assert project_tree.painted(old) == row and project_tree.painted(project) == swatch
     tints.flush()
-    assert not melty_meta.store().exists()
+    assert melty_meta.tint(old) == row and melty_meta.tint(project) == swatch
+    state = project_tree.ProjectTreeState()
+    state._naming = {'path': old, 'draft': 'new.py', 'opened': False}
+    assert project_tree.commit_name(state, None) == (None, None)
+    for thread in threading.enumerate():
+        if thread.name == 'ssh-rename':
+            thread.join()
+    assert state._error is None and state.selected == new
+    assert melty_meta.tint(new) == row and melty_meta.tint(old) is None
+    assert melty_meta.tint(project) == swatch
+    tints._check()
+    assert project_tree.painted(file_path(new)) == row and project_tree.painted(old) is None
 
 
 def test_a_renamed_file_keeps_its_tint(tints, tmp_path):

@@ -197,7 +197,8 @@ File and folder tints live beside what they colour, in each folder's hidden
 (`tint(path)`, `set_tint(path, colour)`). Paint a file in the studio and the
 tab here takes the colour within half a second (tint_model's watcher stats
 the `.melty` files it read); a rename in the Files tile carries the tint
-(`melty_meta.move`). SSH paths have no `.melty` and are never painted.
+(`melty_meta.move`), on SSH too. An SSH path has no `.melty`: its tint is kept
+in this computer's global store under its `sftp://` address.
 Icons, folder order and project flags still come from the **shared file-meta
 store**, `file_meta_store()` in `meltygui.models.file_meta`: a
 `FileMetaProxy` dict backed by `~/.melty/file_meta.pkl` that the studio and

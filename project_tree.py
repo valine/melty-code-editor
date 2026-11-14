@@ -13,8 +13,8 @@ The tree owns the selected project. Tasks and editor tiles receive it through
 DrawState[draw_project_tree]; draw_tiles supplies their per-parameter link pickers.
 
 The rows are the file browser's listing (`draw_file_listing`): names straight
-to the draw list, viewport-culled, each wearing its tint (`painted`, the
-`.melty` beside it through tint_model) and its file-meta icon,
+to the draw list, viewport-culled, each wearing its tint (tint_model: the
+`.melty` beside it, or the global store for an SSH path) and its file-meta icon,
 the same selection recipe, a listing per folder memoized on the
 folder's mtime and refreshed by a FileWatch emitter per folder shown.
 
@@ -61,7 +61,7 @@ from meltygui_pro.models.open_files import OpenFiles
 from meltygui_pro.models.projects import project_roots, project_for
 from editor_settings import settings
 from meltygui.model.folder_icon_model import FolderIcons
-from meltygui.model.tint_model import set_tint, tint
+from meltygui.model.tint_model import set_tint, tint as painted
 
 # Never listed: not something to pick.
 TREE_HIDE = frozenset({"__pycache__"})
@@ -447,14 +447,14 @@ def commit_name(state, open_files):
         def work():
             try:
                 ssh.rename(old, new)
+                carry_meta(state, old, new)
                 def adopt():
                     ssh.finish_rename(old, new)
                     state.selected = str(new)
                     state.expanded = {str(new / file_path(p).relative_to(old)) if is_remote(p) and file_path(p).is_relative_to(old) else p for p in state.expanded}
                     if open_files is not None:
                         follow_rename(open_files, old, new)
-                    # The old store's fields (icon, order, ...) follow; a remote path
-                    # has no `.melty`, so no tint to carry.
+                    # The old store's fields (icon, order, ...) follow; the tint moved in work().
                     from meltygui.models.file_meta import file_meta_store
                     meta = file_meta_store()
                     for key in list(meta):
@@ -476,7 +476,8 @@ def commit_name(state, open_files):
         old.rename(new)
     except OSError as error:
         return f"Cannot rename {old.name}: {error.strerror or error}", None
-    carry_meta(state, old, new)
+    import threading
+    threading.Thread(target=carry_meta, args=(state, old, new), name='melty-move', daemon=True).start()
     if str(old) in state.expanded:
         state.expanded.discard(str(old))
         state.expanded.add(str(new))
@@ -488,19 +489,15 @@ def commit_name(state, open_files):
 
 def carry_meta(state, old, new):
     """A renamed path keeps its tint and its place in the folder's order
-    (`melty_meta.move`; a folder carries its own `.melty`). Off the render
-    thread: tint_model's watcher repaints when the `.melty` changed."""
-    import threading
+    (`melty_meta.move`; a local folder carries its own `.melty`, an SSH path's
+    fields are in the global store under its address). Call it off the render
+    thread: tint_model's watcher repaints when the file changed."""
     import melty_meta
-
-    def work():
-        try:
-            melty_meta.move(old, new)
-        except (OSError, ValueError) as error:
-            message = f"{new.name} lost its tint: {error}"
-            Melty.post_to_render(lambda: setattr(state, '_error', message))
-
-    threading.Thread(target=work, name='melty-move', daemon=True).start()
+    try:
+        melty_meta.move(str(old), str(new))
+    except (OSError, ValueError) as error:
+        message = f"{new.name} lost its tint: {error}"
+        Melty.post_to_render(lambda: setattr(state, '_error', message))
 
 
 def follow_rename(open_files, old, new):
@@ -911,7 +908,7 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
             y=ry0 + (row_h - chip_size) * 0.5, size=chip_size,
             empty_tint_icon=True, icon="" if badge or app_icon is not None else icon, icon_color=icon_col,
             hovered=row_hovered and x <= mouse_x < x + chip_size,
-            setter=lambda value, _path=str(path): paint(_path, value))
+            setter=lambda value, _path=str(path): set_tint(_path, value))
         imgui.set_cursor_screen_pos(chip_cursor)
         if app_icon is not None:
             pixels = app_icon.pixels
@@ -929,7 +926,7 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
             draw_file_badge(draw_list, x, ry0 + (row_h - chip_size) * 0.5,
                             chip_size, icon_col, badge, glyph_rgba[3])
         if tint_changed:
-            state._error = paint(str(path), new_tint) or state._error
+            set_tint(str(path), new_tint)
             draw_state.invalidate()
             request_render()
         name_x = x + glyph_w
@@ -1028,20 +1025,6 @@ class ProjectPanelState(ProjectSelection):
         self._files_insets = None
 
 
-def painted(path):
-    """The tint `path` is painted with (tint_model), None when unpainted. An
-    SSH path has no `.melty` beside it, so it is never painted."""
-    return tint(path) if path and not is_remote(path) else None
-
-
-def paint(path, value):
-    """Paint `path` (tint_model.set_tint; None unpaints). Returns the refusal or None."""
-    if is_remote(path):
-        return "Tints are not saved on an SSH filesystem."
-    set_tint(path, value)
-    return None
-
-
 def tile_fill(tint, fallback, folder_bg_boost=-0.23):
     """Use the browser's folder wash; adjust its boost alongside browser().
     An unpainted folder (None) washes `fallback`."""
@@ -1138,9 +1121,9 @@ def draw_project_tree(input_value: object, draw_state, panel_state: ProjectPanel
         tint, draw_state, view_id=f"project_tint_{project}",
         x=left + (chip_w - chip) * 0.5, y=top + (header_h - chip) * 0.5,
         empty_tint_icon=True,
-        setter=lambda value, _folder=project: paint(_folder, value))
+        setter=lambda value, _folder=project: set_tint(_folder, value))
     if tint_changed:
-        paint(project, new_tint)
+        set_tint(project, new_tint)
         draw_state.invalidate()
         request_render()
     imgui.set_cursor_screen_pos((left + chip_w + gap, top))
