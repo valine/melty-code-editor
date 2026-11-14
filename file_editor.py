@@ -248,7 +248,7 @@ def draw_file_editor_overlay(draw_state, draw_list):
     from time import thread_time
     started = thread_time()
     from meltygui_pro.editor.code_editor import paint_editor_tabs, _draw_nav_buttons, _nav_button_tints
-    tints = _nav_button_tints(sync_metadata=False)
+    tints = _nav_button_tints()
     targets_done = thread_time()
     _draw_nav_buttons(draw_state, *tints[:2], draw_list=draw_list,
                       pos=(draw_state.abs_left, draw_state.abs_top))

@@ -13,7 +13,8 @@ The tree owns the selected project. Tasks and editor tiles receive it through
 DrawState[draw_project_tree]; draw_tiles supplies their per-parameter link pickers.
 
 The rows are the file browser's listing (`draw_file_listing`): names straight
-to the draw list, viewport-culled, each wearing its file-meta tint and icon,
+to the draw list, viewport-culled, each wearing its tint (`painted`, the
+`.melty` beside it through tint_model) and its file-meta icon,
 the same selection recipe, a listing per folder memoized on the
 folder's mtime and refreshed by a FileWatch emitter per folder shown.
 
@@ -30,10 +31,11 @@ Right-click a row (or the empty space: the project folder) for Rename…,
 New → File / Folder, Add to Projects and Move to Trash (`gio trash`) (`file_menu`, the wrapper's
 `context_menu=`). A new file / folder is created under a free name and named
 in place like a rename: Enter commits, Esc or a click elsewhere leaves the
-name. Open tabs follow a renamed file or folder (`follow_rename`).
+name. Open tabs follow a renamed file or folder (`follow_rename`), its
+tint too (`melty_meta.move`).
 
-The whole tile's background uses the browser's folder wash and file-meta tint
-(`tile_fill`, painted by the tile manager through
+The whole tile's background uses the browser's folder wash and the project
+folder's tint (`tile_fill`, painted by the tile manager through
 `draw_project_tree.tile_background`); the chip beside the selector edits it.
 
 A file opens in the active editor linked to this Files view, else the first
@@ -59,6 +61,7 @@ from meltygui_pro.models.open_files import OpenFiles
 from meltygui_pro.models.projects import project_roots, project_for
 from editor_settings import settings
 from meltygui.model.folder_icon_model import FolderIcons
+from meltygui.model.tint_model import set_tint, tint
 
 # Never listed: not something to pick.
 TREE_HIDE = frozenset({"__pycache__"})
@@ -450,6 +453,8 @@ def commit_name(state, open_files):
                     state.expanded = {str(new / file_path(p).relative_to(old)) if is_remote(p) and file_path(p).is_relative_to(old) else p for p in state.expanded}
                     if open_files is not None:
                         follow_rename(open_files, old, new)
+                    # The old store's fields (icon, order, ...) follow; a remote path
+                    # has no `.melty`, so no tint to carry.
                     from meltygui.models.file_meta import file_meta_store
                     meta = file_meta_store()
                     for key in list(meta):
@@ -471,6 +476,7 @@ def commit_name(state, open_files):
         old.rename(new)
     except OSError as error:
         return f"Cannot rename {old.name}: {error.strerror or error}", None
+    carry_meta(state, old, new)
     if str(old) in state.expanded:
         state.expanded.discard(str(old))
         state.expanded.add(str(new))
@@ -478,6 +484,23 @@ def commit_name(state, open_files):
     if open_files is not None:
         follow_rename(open_files, old, new)
     return None, new
+
+
+def carry_meta(state, old, new):
+    """A renamed path keeps its tint and its place in the folder's order
+    (`melty_meta.move`; a folder carries its own `.melty`). Off the render
+    thread: tint_model's watcher repaints when the `.melty` changed."""
+    import threading
+    import melty_meta
+
+    def work():
+        try:
+            melty_meta.move(old, new)
+        except (OSError, ValueError) as error:
+            message = f"{new.name} lost its tint: {error}"
+            Melty.post_to_render(lambda: setattr(state, '_error', message))
+
+    threading.Thread(target=work, name='melty-move', daemon=True).start()
 
 
 def follow_rename(open_files, old, new):
@@ -550,7 +573,6 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
     from meltygui.files.fast_file_explorer import search_keys
     from meltygui.files.fast_file_explorer import search_typed
     from meltygui.files.fast_file_explorer import tinted_text
-    from meltygui.models.file_meta import FileMeta
     from meltygui.core.windowing.glfw_utils import request_render
     from meltygui.core.cache.tile_marks import clear_glows
 
@@ -852,7 +874,7 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
         if clip is not None and (ry1 < clip[1] or ry0 > clip[3]):
             continue
         entry = meta.get(str(path)) if meta is not None else None
-        tint = FileMeta.painted_tint(entry)
+        tint = painted(path)
         icon = row_icon(path, is_dir, entry, folder_icon, file_icon)
         badge = (file_badge_for_path(path) if not is_dir
                  and not (isinstance(entry, dict) and entry.get("icon")) else None)
@@ -885,12 +907,11 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
         x += chevron_w
         chip_cursor = imgui.get_cursor_screen_pos()
         tint_changed, new_tint = draw_tuple_fast(
-            tuple(tint) if tint is not None else FileMeta.tint, draw_state,
-            view_id=f"tree_tint_{path}", x=x,
+            tint, draw_state, view_id=f"tree_tint_{path}", x=x,
             y=ry0 + (row_h - chip_size) * 0.5, size=chip_size,
             empty_tint_icon=True, icon="" if badge or app_icon is not None else icon, icon_color=icon_col,
             hovered=row_hovered and x <= mouse_x < x + chip_size,
-            setter=lambda value, _path=str(path): set_folder_tint(_path, value))
+            setter=lambda value, _path=str(path): paint(_path, value))
         imgui.set_cursor_screen_pos(chip_cursor)
         if app_icon is not None:
             pixels = app_icon.pixels
@@ -908,7 +929,7 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
             draw_file_badge(draw_list, x, ry0 + (row_h - chip_size) * 0.5,
                             chip_size, icon_col, badge, glyph_rgba[3])
         if tint_changed:
-            set_folder_tint(str(path), new_tint)
+            state._error = paint(str(path), new_tint) or state._error
             draw_state.invalidate()
             request_render()
         name_x = x + glyph_w
@@ -945,7 +966,7 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
         elif entered:
             state._error, renamed = commit_name(state, open_files)
             if renamed is not None:
-                for linked_editor in editors:
+                for linked_editor in project_editors(draw_state._parent):
                     linked_editor.invalidate()
         if state._naming is None:
             draw_state.invalidate()
@@ -1007,24 +1028,25 @@ class ProjectPanelState(ProjectSelection):
         self._files_insets = None
 
 
-def set_folder_tint(folder, tint):
-    """Set a file/folder tint in shared metadata; None removes the tint."""
-    from meltygui.models.file_meta import file_meta_store
-    from meltygui.model.file_metadata_model import set_row_tint
-    set_row_tint(file_meta_store(), folder, tint)
+def painted(path):
+    """The tint `path` is painted with (tint_model), None when unpainted. An
+    SSH path has no `.melty` beside it, so it is never painted."""
+    return tint(path) if path and not is_remote(path) else None
 
 
-def folder_tint(folder):
-    """The project folder's file-meta tint (rgba; FileMeta's default, alpha 0, when unpainted)."""
-    from meltygui.models.file_meta import FileMeta, file_meta_store
-    return tuple(FileMeta.painted_tint(file_meta_store().get(folder)) or FileMeta.tint)
+def paint(path, value):
+    """Paint `path` (tint_model.set_tint; None unpaints). Returns the refusal or None."""
+    if is_remote(path):
+        return "Tints are not saved on an SSH filesystem."
+    set_tint(path, value)
+    return None
 
 
 def tile_fill(tint, fallback, folder_bg_boost=-0.23):
-    """Use the browser's folder wash; adjust its boost alongside browser()."""
+    """Use the browser's folder wash; adjust its boost alongside browser().
+    An unpainted folder (None) washes `fallback`."""
     from meltygui.files.fast_file_explorer import row_tint_bg
-    painted = len(tint) < 4 or bool(tint[3])
-    return row_tint_bg()(tint if painted else fallback, folder_bg_boost)
+    return row_tint_bg()(tint or fallback, folder_bg_boost)
 
 
 # tile id -> packed fill, written by each Files tile's body and read by the
@@ -1105,9 +1127,9 @@ def draw_project_tree(input_value: object, draw_state, panel_state: ProjectPanel
     left, top = imgui.get_cursor_screen_pos()
     width = draw_state.content_width or (draw_state.width or 240)
     gap, header_h = px(4), px(header_height)
-    tint = folder_tint(state.selected_project)
+    tint = painted(state.selected_project)
     _TILE_FILLS[kwargs.get("instance")] = tile_fill(tint, draw_state.current_tint)
-    # The project folder's colour (its file-meta tint: the tile's background,
+    # The project folder's colour (its `.melty` tint: the tile's background,
     # the folder's row in every tree): the tab bar's chip, picker and undo.
     from meltygui.view.collection_view import draw_tuple_fast
     chip, chip_w = px(17), px(24)
@@ -1116,9 +1138,9 @@ def draw_project_tree(input_value: object, draw_state, panel_state: ProjectPanel
         tint, draw_state, view_id=f"project_tint_{project}",
         x=left + (chip_w - chip) * 0.5, y=top + (header_h - chip) * 0.5,
         empty_tint_icon=True,
-        setter=lambda value, _folder=project: set_folder_tint(_folder, value))
+        setter=lambda value, _folder=project: paint(_folder, value))
     if tint_changed:
-        set_folder_tint(project, new_tint)
+        paint(project, new_tint)
         draw_state.invalidate()
         request_render()
     imgui.set_cursor_screen_pos((left + chip_w + gap, top))
@@ -1133,9 +1155,9 @@ def draw_project_tree(input_value: object, draw_state, panel_state: ProjectPanel
     project_path = file_path(state.selected_project)
     draw_state.nickname = project_path.name or str(project_path)
     # Expose the same project colour the instance paints, for source menus.
-    project_tint = folder_tint(state.selected_project)
-    if len(project_tint) < 4 or project_tint[3]:
-        draw_state.current_tint = tuple(project_tint[:3])
+    project_tint = painted(state.selected_project)
+    if project_tint:
+        draw_state.current_tint = project_tint[:3]
     imgui.set_cursor_screen_pos((left, top + header_h + gap))
     rows_height = max(0.0, (draw_state.height or 0) - header_h - gap - px(4))
     opened, _, state._files_view = draw_project_files(

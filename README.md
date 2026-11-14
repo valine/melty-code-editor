@@ -44,8 +44,8 @@ by symbol analysis too. Environments inside the project are stored as relative
 paths. Invalid folder selections leave the current association intact.
 
 New selections default to HEAD, and non-git folders show no git changes. **Projects** are folders marked in melty's shared file-meta store
-(`meltygui_pro.mark_project`; the flag rides `~/.melty/file_meta.pkl` beside the
-tints, so the studio and every other melty app see it too). The Projects
+(`meltygui_pro.mark_project`; the flag rides `~/.melty/file_meta.pkl`, so the
+studio and every other melty app see it too). The Projects
 menu: **Add Folder…** (the file browser as a folder picker), **Mark ▸** an
 open tab's project (its git root / project marker, not marked yet), and
 **Unmark ▸** one; right-clicking a folder in the Open dialog offers the
@@ -192,13 +192,18 @@ imports behind it). The app builds one, opens its files into it and posts
 the studio's `@window` registration does, the editor falls back to the app
 model's `Melty.vis.root.open_files`.
 
-File tints (and icons, folder order) come from the **shared file-meta
-store**, `file_meta_store()` in `src/lsd/gl_gui/model/file_meta.py`: a
+File and folder tints live beside what they colour, in each folder's hidden
+`.melty` (`melty_meta`), read and written through `meltygui.model.tint_model`
+(`tint(path)`, `set_tint(path, colour)`). Paint a file in the studio and the
+tab here takes the colour within half a second (tint_model's watcher stats
+the `.melty` files it read); a rename in the Files tile carries the tint
+(`melty_meta.move`). SSH paths have no `.melty` and are never painted.
+Icons, folder order and project flags still come from the **shared file-meta
+store**, `file_meta_store()` in `meltygui.models.file_meta`: a
 `FileMetaProxy` dict backed by `~/.melty/file_meta.pkl` that the studio and
-this app both read and write. Paint a file in the studio and the tab here
-takes the colour within half a second (a poller thread watches the file;
-writes are debounced and atomic, concurrent edits from two apps merge per
-path). `MELTY_FILE_META=/path.pkl` points a process at another store.
+this app both read and write (a poller thread watches the file; writes are
+debounced and atomic). `MELTY_FILE_META=/path.pkl` points a process at
+another store.
 
 The file hosts need nothing from the app. melty draws every registered
 RenderHost once a frame (`RenderHost.draw_all`, the studio's `draw_main` host

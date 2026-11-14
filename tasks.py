@@ -647,7 +647,7 @@ def draw_tasks(input_value: object, draw_state, task_state: TaskState = None,
         picked, selected, view_state._target_view = draw_execution_target(
             state.selected_targets.get(str(target_root), ''), str(target_root), execution_target_state, draw_state,
             width=target[2], height=header_h, trigger_height=header_h / Melty.ui_scale,
-            prepared=prepared_target, file_metadata=file_metadata, trigger_caret=('', ''))
+            prepared=prepared_target, trigger_caret=('', ''))
         if picked:
             state.selected_targets[str(target_root)] = selected
             draw_state.invalidate()

@@ -235,3 +235,90 @@ def test_project_overlay_paints_prepared_icon_on_supplied_list(frame, monkeypatc
     folders.get.assert_called_once_with(file_path('/project'))
     assert paint.call_args.args[:3] == (dl, '/project', texture)
     assert paint.call_args.args[3:6] == (45, 46, 18)
+
+
+def draw_rows(tmp_path, monkeypatch):
+    """One run of the rows over `tmp_path`; returns the tints the names were mixed with."""
+    from meltygui.files import fast_file_explorer
+    mixed = []
+    original = fast_file_explorer.tinted_text
+    monkeypatch.setattr(fast_file_explorer, 'tinted_text',
+                        lambda rgba, tint, mix: mixed.append((tint, mix)) or original(rgba, tint, mix))
+    state, rows = project_tree.ProjectTreeState(), FileRowsOverlayState()
+    monkeypatch.setattr(state._folder_icons, 'dispatch', lambda notify, *, check_stale: None)
+    imgui.new_frame()
+    imgui.set_next_window_position(0, 0)
+    imgui.set_next_window_size(500, 400)
+    imgui.begin('Painted rows')
+    x, y = imgui.get_cursor_screen_pos()
+    ds = SimpleNamespace(
+        width=400, height=200, content_width=388, abs_left=x, abs_top=y,
+        abs_clip_rect=(x, y, x + 400, y + 200), scroll_offset=(0, 0),
+        _bounding_hovered=False, _tile_id='tree', closable=False, parent_window=None,
+        on_action=lambda *args, **kwargs: None, invalidate=lambda *args, **kwargs: None,
+        current_tint=(.3, .4, .5), misc={'_row_overlay': rows})
+    try:
+        inspect.unwrap(project_tree.draw_project_files)(
+            None, draw_state=ds, tree_state=state, root=str(tmp_path), file_metadata={},
+            _row_overlay=rows)
+    finally:
+        imgui.end()
+        imgui.end_frame()
+        state._folder_icons.close()
+    return mixed
+
+
+def test_rows_wear_the_tint_painted_in_melty(frame, tints, tmp_path, monkeypatch):
+    import json
+    (tmp_path / 'painted.txt').write_text('text\n')
+    (tmp_path / 'plain.txt').write_text('text\n')
+    (tmp_path / 'folder').mkdir()
+    (tmp_path / '.melty').write_text(json.dumps({'files': {'painted.txt': {'tint': [.8, .3, .2]}}}))
+    (tmp_path / 'folder' / '.melty').write_text(json.dumps({'tint': [.1, .5, .3, 1]}))
+    mixed = draw_rows(tmp_path, monkeypatch)
+    # Name and glyph mixes per painted row: the folder, then the file; the plain file none.
+    assert mixed == [((.1, .5, .3, 1.0), .5), ((.1, .5, .3, 1.0), .9),
+                     ((.8, .3, .2), .5), ((.8, .3, .2), .9)]
+
+
+def test_tile_fill_washes_the_fallback_for_an_unpainted_folder(tints, tmp_path, monkeypatch):
+    from meltygui.files import fast_file_explorer
+    monkeypatch.setattr(fast_file_explorer, 'row_tint_bg', lambda: lambda tint, boost: (tint, boost))
+    fallback, colour = (.3, .4, .5), (.9, .2, .1, 1.0)
+    assert project_tree.painted(tmp_path) is None
+    assert project_tree.tile_fill(None, fallback) == (fallback, -.23)
+    assert project_tree.paint(str(tmp_path), colour) is None
+    assert project_tree.painted(tmp_path) == colour
+    assert project_tree.tile_fill(colour, fallback) == (colour, -.23)
+    tints.flush()
+    import melty_meta
+    assert melty_meta.tint(tmp_path) == colour
+    assert project_tree.paint(str(tmp_path), None) is None
+    tints.flush()
+    assert melty_meta.tint(tmp_path) is None and not (tmp_path / '.melty').exists()
+
+
+def test_ssh_paths_are_never_painted(tints, tmp_path):
+    import melty_meta
+    remote = 'sftp://host/home/user/main.py'
+    assert project_tree.painted(remote) is None
+    assert project_tree.paint(remote, (1.0, 0.0, 0.0)) == 'Tints are not saved on an SSH filesystem.'
+    tints.flush()
+    assert not melty_meta.store().exists()
+
+
+def test_a_renamed_file_keeps_its_tint(tints, tmp_path):
+    import threading
+    import melty_meta
+    old = tmp_path / 'old.py'
+    old.write_text('pass\n')
+    melty_meta.set_tint(old, (.2, .6, .9))
+    state = project_tree.ProjectTreeState()
+    state._naming = {'path': str(old), 'draft': 'new.py', 'opened': False}
+    refusal, new = project_tree.commit_name(state, None)
+    assert refusal is None and new == tmp_path / 'new.py'
+    for thread in threading.enumerate():
+        if thread.name == 'melty-move':
+            thread.join()
+    assert melty_meta.tint(new) == (.2, .6, .9)
+    assert 'old.py' not in melty_meta.load(tmp_path).get('files', {})

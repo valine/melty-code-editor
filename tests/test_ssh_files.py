@@ -50,7 +50,6 @@ def test_identity_and_settings_source():
 def test_offline_tabs_and_projects(monkeypatch):
     from meltygui_pro.models.open_files import OpenFiles
     from meltygui_pro.models import projects
-    from meltygui.models.file_meta import FileMeta
     root = FileLocation('sftp://offline/project')
     monkeypatch.setattr(projects, 'project_roots', lambda: (root, Path('/tmp/local')))
     files = OpenFiles()

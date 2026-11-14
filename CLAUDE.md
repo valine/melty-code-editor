@@ -36,7 +36,8 @@ editor to open in by the sibling draw_state walk (`target_editor`), posts `jump_
 `jump_to_instance`, and forces that editor past its blit cache so the jump is adopted.
 Its rows' right-click menu (`file_menu`: Rename…, New → File / Folder, Add to Projects, Move to Trash) posts a
 request on the tile's `_menu` dict; the rows act on it next run and name rows in place. The whole tile's
-background is the project folder's file-meta tint, dark and saturated (`tile_fill`), painted by the tile
+background is the project folder's tint (its `.melty`, through `meltygui.model.tint_model`), dark and
+saturated (`tile_fill`), painted by the tile
 manager via `draw_project_tree.tile_background`; the chip beside the selector edits that tint.
 The Claude Code tile is meltygui's `draw_claude_chat`, a plain function (one call of
 `draw_chat_interface`, the only render boundary); `tile_views.py` names it `draw_chat` and
