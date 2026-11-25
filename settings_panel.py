@@ -14,7 +14,6 @@ from meltygui.core.rendering.core_decoration import no_save
 from meltygui.core.rendering.render_dispatch import draw_any
 from meltygui.core.runtime.toggles import Tint
 from meltygui.core.windowing.glfw_utils import request_render
-from meltygui.hdr_color import pack_color
 from meltygui.model.code_dict_model import CodeDict
 from meltygui.model.ssh_file_model import SSH
 from meltygui.view.control_view import draw_str
@@ -413,7 +412,7 @@ def draw_roots(settings, state, draw_state):
     width = max(180, draw_state.content_width - 24)
     row = 30
     draw_list = imgui.get_window_draw_list()
-    color = pack_color(*Tint.dd_text(), 1)
+    color = (*Tint.dd_text(), 1)
     changed = False
     scan_requested = False
     auth_requested = None

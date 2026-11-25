@@ -17,7 +17,6 @@ import sys
 from meltygui import imgui, draw_file_selector
 from meltygui.core.runtime.background import Background
 from meltygui.core.runtime.paths import default_file_directory
-from meltygui.hdr_color import pack_color
 from meltygui.core.conversion.dict_conversion import DictConversion
 from meltygui.core.runtime.toggles import Tint
 from meltygui.core.core_render import render_func
@@ -174,8 +173,8 @@ def draw_new_project(input_value: str, draw_state, project_state: NewProjectStat
     width = draw_state.content_width - 48
     row = 28
     draw_list = imgui.get_window_draw_list()
-    color = pack_color(*Tint.dd_text(), 1)
-    muted = pack_color(*Tint.dd_text(), 0.65)
+    color = (*Tint.dd_text(), 1)
+    muted = (*Tint.dd_text(), 0.65)
 
     def label(text, subdued=False, x=0.0, advance=True):
         nonlocal top

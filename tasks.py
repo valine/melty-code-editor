@@ -476,7 +476,6 @@ def draw_task_debug_controls(state, draw_state, left, top, *, paint=False, draw_
 def draw_tasks_overlay(draw_state, draw_list):
     """Paint toolbar chrome and retain its shadows at the current tile bounds."""
     from meltygui.core.cache.tile_marks import add_shadow, clear_shadows
-    from meltygui.hdr_color import pack_color
     from meltygui.core.runtime.toggles import Tint
     clear_shadows(draw_state, 'task_buttons')
     state = draw_state.misc.get('task_state')
@@ -492,7 +491,7 @@ def draw_tasks_overlay(draw_state, draw_list):
         draw_list.push_clip_rect(x, y, x + width, y + height, True)
         try:
             draw_list.add_text(x, y + (height - imgui.get_text_line_height()) * 0.5,
-                               pack_color(*Tint.dd_text(draw_state.current_tint), 1.0),
+                               (*Tint.dd_text(draw_state.current_tint), 1.0),
                                toolbar['empty_text'])
         finally:
             draw_list.pop_clip_rect()

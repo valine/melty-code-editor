@@ -53,7 +53,6 @@ from meltygui.core.rendering.core_decoration import no_save
 from meltygui.core.conversion.dict_conversion import DictConversion
 from meltygui.core.melty import Melty, FileWatch
 from meltygui.code.fileref import writable_file_refusal
-from meltygui.hdr_color import pack_color
 from meltygui.view.file_icon_view import draw_file_badge
 from meltygui.view.file_view import paint_file_rows_overlay
 from meltygui_pro.models.editor_project import ProjectSelection
@@ -578,13 +577,13 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
     # [tint=(0.55, 0.72, 0.95)]
     file_icon = f"\uf15b"
     text_rgba = (0.867, 0.858, 0.874, 1.0)
-    text_col = pack_color(*text_rgba)
-    dim_col = pack_color(0.6, 0.63, 0.68, 1.0)
+    text_col = text_rgba
+    dim_col = (0.6, 0.63, 0.68, 1.0)
     folder_rgba = (0.78, 0.84, 0.92, 1.0)
-    folder_col = pack_color(*folder_rgba)
-    search_wash = pack_color(search_tint[0], search_tint[1], search_tint[2], 0.30)
-    search_col = pack_color(search_tint[0], search_tint[1], search_tint[2], 1.0)
-    no_match_col = pack_color(0.95, 0.55, 0.5, 1.0)
+    folder_col = folder_rgba
+    search_wash = (search_tint[0], search_tint[1], search_tint[2], 0.30)
+    search_col = (search_tint[0], search_tint[1], search_tint[2], 1.0)
+    no_match_col = (0.95, 0.55, 0.5, 1.0)
     state = tree_state
     _row_overlay.layout = None
     open_files = input_value if isinstance(input_value, OpenFiles) else None
@@ -886,8 +885,8 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
             name_col = tinted_text(name_rgba, tint, text_mix)
             icon_col = tinted_text(glyph_rgba, tint, icon_mix)
         elif faded:
-            name_col = pack_color(*name_rgba)
-            icon_col = pack_color(*glyph_rgba)
+            name_col = name_rgba
+            icon_col = glyph_rgba
         else:
             name_col = icon_col = folder_col if is_dir else text_col
         row_hovered = hover_ok and rows_x <= mouse_x <= rows_x + content_w and ry0 <= mouse_y < ry1
@@ -917,7 +916,7 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
             image_x, image_y = x + (chip_size - width) * 0.5, ry0 + (row_h - height) * 0.5
             draw_list.add_image(int(app_icon), (image_x, image_y),
                                 (image_x + width, image_y + height),
-                                col=pack_color(1.0, 1.0, 1.0, glyph_rgba[3]))
+                                col=(1.0, 1.0, 1.0, glyph_rgba[3]))
             if tint:
                 # Keep the metadata tint visible without recoloring application artwork.
                 draw_list.add_line(x, ry1 - px(1), x + chip_size, ry1 - px(1),
@@ -985,11 +984,11 @@ def draw_project_files(input_value: object, draw_state, tree_state: ProjectTreeS
         px0 = max(view_rect[0] + px(6), px1 - pill_w)
         py0 = py1 - pill_h
         draw_list.add_rect_filled(px0 + px(1), py0 + px(2), px1 + px(1), py1 + px(2),
-                                  pack_color(0.0, 0.0, 0.0, 0.35), rounding=pill_h * 0.5)
+                                  (0.0, 0.0, 0.0, 0.35), rounding=pill_h * 0.5)
         draw_list.add_rect_filled(px0, py0, px1, py1,
-                                  pack_color(*row_bg.rgb(default_tint, -0.02), 0.97),
+                                  (*row_bg.rgb(default_tint, -0.02), 0.97),
                                   rounding=pill_h * 0.5)
-        draw_list.add_rect(px0, py0, px1, py1, pack_color(1.0, 1.0, 1.0, 0.14),
+        draw_list.add_rect(px0, py0, px1, py1, (1.0, 1.0, 1.0, 0.14),
                            rounding=pill_h * 0.5)
         pill_ty = py0 + (pill_h - imgui.get_font_size()) * 0.5
         draw_list.add_text(px0 + pad_x, pill_ty, search_col, icon_search)
